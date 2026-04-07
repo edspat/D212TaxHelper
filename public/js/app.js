@@ -11,6 +11,10 @@ const App = (() => {
   // 2023-2024: 3-tier system (6SM / 12SM / 24SM cap)
   // 2025+: 5-tier system (6SM / 12SM / 24SM / 60SM cap)
   const cassThresholds = {
+    2019: { minSalary: 2080, tiers: 3 },
+    2020: { minSalary: 2230, tiers: 3 },
+    2021: { minSalary: 2300, tiers: 3 },
+    2022: { minSalary: 2550, tiers: 3 },
     2023: { minSalary: 3000, tiers: 3 },
     2024: { minSalary: 3300, tiers: 3 },
     2025: { minSalary: 4050, tiers: 5 },
@@ -222,6 +226,8 @@ const App = (() => {
     // Default year = previous year (fiscal year being declared)
     const defaultYear = new Date().getFullYear() - 1;
     const years = new Set([defaultYear]);
+    // Add all years from exchange rates
+    Object.keys(exchangeRates).forEach(y => years.add(parseInt(y, 10)));
     if (appData.years) {
       Object.keys(appData.years).forEach(y => {
         const yr = parseInt(y, 10);
@@ -336,7 +342,37 @@ const App = (() => {
     // From trade confirmations (US sold activity)
     let tradeProceedsUSD = trades.totalNet || 0;
 
-    // If no declaration data but we have trades, use trades as capital gains source
+    // Determine US broker sources from trades
+    const tradeSources = new Set();
+    if (Array.isArray(trades.trades)) {
+      for (const t of trades.trades) {
+        if (t.source === 'ms_statement') tradeSources.add('Morgan Stanley');
+        else tradeSources.add('Fidelity');
+      }
+    }
+    // Also check msStatement and fidelity statement data
+    if (yd.msStatement) tradeSources.add('Morgan Stanley');
+    if (yd.fidelityTransfers || yd.fidelityDividendsYTD) tradeSources.add('Fidelity');
+    if (fd.dividends) tradeSources.add('Fidelity');
+    if (inv.totalDividends > 0) tradeSources.add('Fidelity');
+    // Manual broker selection from Add Data form
+    if (yd.usBroker === 'fidelity') tradeSources.add('Fidelity');
+    if (yd.usBroker === 'morgan_stanley') tradeSources.add('Morgan Stanley');
+    // Dividend sources
+    const divSources = new Set();
+    if (yd.msStatement && yd.msStatement.dividends > 0) divSources.add('Morgan Stanley');
+    if (yd.msDividends > 0) divSources.add('Morgan Stanley');
+    if (fd.dividends?.grossUSD > 0 || f1042sDivUSD > 0 || inv.totalDividends > 0 || yd.fidelityDividendsYTD > 0) divSources.add('Fidelity');
+    // Manual broker for dividends too
+    if (yd.usBroker === 'fidelity') divSources.add('Fidelity');
+    if (yd.usBroker === 'morgan_stanley') divSources.add('Morgan Stanley');
+    const usBrokerLabel = tradeSources.size > 0 ? ' (' + [...tradeSources].join(' & ') + ')' : '';
+    const usDivBrokerLabel = divSources.size > 0 ? ' (' + [...divSources].join(' & ') + ')' : '';
+    // Romania broker label
+    const roSources = new Set();
+    if (yd.xtbDividendsReport || yd.xtbPortfolio) roSources.add('XTB');
+    if (yd.roBroker === 'xtb') roSources.add('XTB');
+    const roBrokerLabel = roSources.size > 0 ? ' (' + [...roSources].join(' & ') + ')' : '';
     if (!capitalGainsSaleUSD && tradeProceedsUSD > 0) {
       capitalGainsSaleUSD = trades.totalProceeds || 0;
     }
@@ -353,7 +389,7 @@ const App = (() => {
     let roDivTaxWithheld = xtbDiv.dividends?.taxWithheldRON || 0;
     let roInterestRON = xtbDiv.interest?.grossRON || 0;
     let roPortTaxWithheld = xtbPort.totalTaxWithheldRON || 0;
-    let withholding = 0;
+    let withholding = withholdingData.total || 0;
 
     // Manual overrides
     if (yd.fidelityCost !== undefined && yd.fidelityCost !== '') {
@@ -399,20 +435,30 @@ const App = (() => {
     const roCapitalGainsTax = (roLongTermGainRON * roLongRate) + (roShortTermGainRON * roShortRate);
     // Romania capital gains: tax already withheld by XTB
     const roGainsTaxNet = Math.max(0, roCapitalGainsTax - (roPortTaxWithheld || 0));
-    const capitalGainsTaxRON = fd.capitalGains?.taxPaidRON || decl.capitalGains?.taxDueRON || (capitalGainsTaxableRON * capGainsTaxRate + roGainsTaxNet);
+
+    // US income: deduct stock withholding from US capital gains ONLY (not dividends)
+    // Per Romanian tax rules: stock withholding is salary benefit already taxed, deducted from capital gains
+    const usNetGainsRON = Math.max(0, capitalGainsTaxableRON - withholding);
+    const usGrossIncomeRON = capitalGainsTaxableRON + dividendsRON;
+    const usNetIncomeRON = usNetGainsRON + dividendsRON;
+
+    const capitalGainsTaxRON = fd.capitalGains?.taxPaidRON || decl.capitalGains?.taxDueRON || (usNetGainsRON * capGainsTaxRate + roGainsTaxNet);
     const interestTaxGross = interestIncomeRON * 0.10;
     const interestTaxPaid = adv.interestTax || 0;
     const interestTax = Math.max(0, interestTaxGross - interestTaxPaid);
 
     // CASS calculation (tiered system 2025+)
-    // CASS uses NET income: dividends net of foreign tax, interest net of withholding
+    // CASS base: total investment income minus total already paid (taxes withheld)
     const usDivNetRON = dividendsRON - usForeignTaxRON;
     const roDivNetRON = dividendsRON_ro - (roDivTaxWithheld || 0);
     const totalDividendsRON_cass = Math.max(0, usDivNetRON) + Math.max(0, roDivNetRON);
     const totalDividendsRON = dividendsRON + dividendsRON_ro;
     const totalCapitalGainsRON = capitalGainsTaxableRON + capitalGainsRON_ro;
     const interestNetRON = Math.max(0, interestIncomeRON - interestTaxPaid);
-    const totalInvestmentIncome_cass = totalDividendsRON_cass + totalCapitalGainsRON + interestNetRON;
+    // Subtract stock withholding from CASS base (only from capital gains)
+    const totalAlreadyPaid = withholding + (roPortTaxWithheld || 0) + (roDivTaxWithheld || 0) + interestTaxPaid;
+    const usNetCapGainsRON_cass = Math.max(0, capitalGainsTaxableRON - withholding);
+    const totalInvestmentIncome_cass = Math.max(0, totalDividendsRON_cass + usNetCapGainsRON_cass + capitalGainsRON_ro + interestNetRON);
     const totalInvestmentIncome = totalDividendsRON + totalCapitalGainsRON + interestIncomeRON;
     const savedMinSalary = (yd.minSalary !== undefined && yd.minSalary !== '') ? parseFloat(yd.minSalary) : null;
     const cassResult = calculateCASS(totalInvestmentIncome_cass, year, savedMinSalary);
@@ -421,7 +467,7 @@ const App = (() => {
     const cassInfo = cassResult;
 
     const totalTax = (decl.totalTax || (dividendTaxRON + capitalGainsTaxRON + interestTax)) + cassTax;
-    const netTax = Math.max(0, totalTax - withholding);
+    const netTax = totalTax; // withholding already deducted from taxable base
 
     return {
       dividendsUSD,
@@ -471,7 +517,16 @@ const App = (() => {
       usDivForeignTaxUSD: fd.dividends?.foreignTaxUSD ?? usForeignTaxUSD,
       // Gambling income
       gamblingIncome: adv.gamblingIncome || 0,
-      gamblingTax: adv.gamblingTax || 0
+      gamblingTax: adv.gamblingTax || 0,
+      // Broker labels
+      usBrokerLabel,
+      usDivBrokerLabel,
+      roBrokerLabel,
+      // US net income after withholding
+      usGrossIncomeRON,
+      usNetIncomeRON,
+      usNetGainsRON,
+      totalAlreadyPaid
     };
   }
 
@@ -532,7 +587,7 @@ const App = (() => {
 
     const rows = [
       {
-        cat: I18n.t('income.usDividends'),
+        cat: I18n.t('income.usDividends') + data.usDivBrokerLabel,
         usd: data.dividendsUSD,
         rate: data.exchangeRate,
         ron: data.dividendsRON || data.dividendsUSD * data.exchangeRate,
@@ -543,7 +598,7 @@ const App = (() => {
         tax: data.dividendTaxRON
       },
       {
-        cat: I18n.t('income.roDividends') + (data.roDivTaxWithheld ? ' ' + I18n.t('misc.creditFiscal') : ''),
+        cat: I18n.t('income.roDividends') + data.roBrokerLabel + (data.roDivTaxWithheld ? ' ' + I18n.t('misc.creditFiscal') : ''),
         usd: '-',
         rate: '-',
         ron: data.dividendsRON_ro,
@@ -554,7 +609,7 @@ const App = (() => {
         tax: Math.max(0, data.dividendsRON_ro * data.divTaxRate - (data.roDivTaxWithheld || 0))
       },
       {
-        cat: I18n.t('income.usGains') + (data.tradeCount ? ` (${data.tradeCount} trades)` : ''),
+        cat: I18n.t('income.usGains') + data.usBrokerLabel + (data.tradeCount ? ` (${data.tradeCount} trades)` : ''),
         usd: data.tradeProceedsUSD || data.capitalGainsSaleUSD || 0,
         rate: data.exchangeRate,
         ron: data.capitalGainsTaxableRON || (data.tradeProceedsUSD || 0) * data.exchangeRate,
@@ -565,7 +620,7 @@ const App = (() => {
         tax: data.capitalGainsTaxRON
       },
       {
-        cat: I18n.t('income.roGainsLong') + ' ' + I18n.t('misc.roWithheld'),
+        cat: I18n.t('income.roGainsLong') + data.roBrokerLabel + ' ' + I18n.t('misc.roWithheld'),
         usd: '-',
         rate: '-',
         ron: data.roLongTermGainRON,
@@ -576,7 +631,7 @@ const App = (() => {
         tax: 0
       },
       {
-        cat: I18n.t('income.roGainsShort') + ' ' + I18n.t('misc.roWithheld'),
+        cat: I18n.t('income.roGainsShort') + data.roBrokerLabel + ' ' + I18n.t('misc.roWithheld'),
         usd: '-',
         rate: '-',
         ron: data.roShortTermGainRON,
@@ -843,11 +898,15 @@ const App = (() => {
 
     // === SECTION A: CE AM CÂȘTIGAT ===
     html += sectionRow('\ud83d\udcb0 ' + I18n.t('taxes.sectionEarned'));
-    html += dataRow(I18n.t('taxes.earnUsGains'), fmtR(usGainsRON) + ' RON', { indent: true });
-    html += dataRow(I18n.t('taxes.earnUsDiv'), fmtR(usDivRON) + ' RON', { indent: true });
-    html += dataRow(I18n.t('taxes.earnRoGainsLong'), fmtR(roLong) + ' RON', { indent: true });
-    html += dataRow(I18n.t('taxes.earnRoGainsShort'), fmtR(roShort) + ' RON', { indent: true });
-    html += dataRow(I18n.t('taxes.earnRoDiv'), fmtR(roDivGross) + ' RON', { indent: true });
+    html += dataRow(I18n.t('taxes.earnUsGains') + data.usBrokerLabel, fmtR(usGainsRON) + ' RON', { indent: true });
+    html += dataRow(I18n.t('taxes.earnUsDiv') + data.usDivBrokerLabel, fmtR(usDivRON) + ' RON', { indent: true });
+    if (stockWithholding > 0) {
+      html += dataRow(I18n.t('taxes.earnStockDeduction'), '-' + fmtR(stockWithholding) + ' RON', { indent: true, green: true });
+      html += dataRow(I18n.t('taxes.earnUsNet'), fmtR(data.usNetIncomeRON) + ' RON', { indent: true, bold: true });
+    }
+    html += dataRow(I18n.t('taxes.earnRoGainsLong') + data.roBrokerLabel, fmtR(roLong) + ' RON', { indent: true });
+    html += dataRow(I18n.t('taxes.earnRoGainsShort') + data.roBrokerLabel, fmtR(roShort) + ' RON', { indent: true });
+    html += dataRow(I18n.t('taxes.earnRoDiv') + data.roBrokerLabel, fmtR(roDivGross) + ' RON', { indent: true });
     html += dataRow(I18n.t('taxes.earnInterest'), fmtR(data.interestIncomeRON) + ' RON', { indent: true });
     if (gamblingIncome > 0) {
       html += dataRow(I18n.t('taxes.earnGambling'), fmtR(gamblingIncome) + ' RON', { indent: true });
@@ -901,12 +960,9 @@ const App = (() => {
     html += dataRow(I18n.t('taxes.oweIncomeTaxSubtotal'), '<strong>' + fmtR(incomeTaxToPay) + ' RON</strong>', { topBorder: true });
     // CASS
     html += dataRow(I18n.t('taxes.oweCASS'), fmtR(data.cassTax) + ' RON', { indent: true });
-    // Stock withholding deduction
-    if (stockWithholding > 0) {
-      html += dataRow(I18n.t('taxes.oweStockDeduction'), '-' + fmtR(stockWithholding) + ' RON', { indent: true });
-    }
     html += emptyRow();
-    html += dataRow(I18n.t('taxes.oweTotalToPay'), '<strong style="color:var(--warning);font-size:1.15rem;">' + fmtR(data.netTax) + ' RON</strong>', { bold: true, topBorder: true, highlight: true });
+    const finalToPay = incomeTaxToPay + data.cassTax;
+    html += dataRow(I18n.t('taxes.oweTotalToPay'), '<strong style="color:var(--warning);font-size:1.15rem;">' + fmtR(finalToPay) + ' RON</strong>', { bold: true, topBorder: true, highlight: true });
 
     // Payment deadline
     const deadlineISO = data.paymentDeadline || d212DefaultDeadline(selectedYear);
@@ -1183,6 +1239,8 @@ const App = (() => {
       banner.innerHTML = `<span class="year-badge">${selectedYear}</span><span>${I18n.t('misc.editingBanner')} <strong>${selectedYear}</strong>. ${I18n.t('misc.rateAndSalaryApply')}</span>`;
     }
 
+    document.getElementById('input-us-broker').value = yd.usBroker || '';
+    document.getElementById('input-ro-broker').value = yd.roBroker || '';
     document.getElementById('input-us-dividends').value = yd.fidelityDividends || '';
     document.getElementById('input-ro-dividends').value = yd.xtbDividends || '';
     document.getElementById('input-us-gains').value = yd.fidelityGains || '';
@@ -1215,6 +1273,8 @@ const App = (() => {
   async function handleDataSubmit(e) {
     e.preventDefault();
     const payload = {
+      usBroker: document.getElementById('input-us-broker').value,
+      roBroker: document.getElementById('input-ro-broker').value,
       usDividends: document.getElementById('input-us-dividends').value,
       roDividends: document.getElementById('input-ro-dividends').value,
       usGains: document.getElementById('input-us-gains').value,

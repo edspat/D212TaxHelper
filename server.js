@@ -658,11 +658,15 @@ app.get('/api/tax-rates', (req, res) => {
         { label: '>60SM (>243,000)', cass: 24300 },
       ]
     },
-    // BNR exchange rates (annual averages)
+    // BNR exchange rates (annual averages - Serii anuale, valori medii)
     exchangeRates: {
-      2023: { usdRon: 4.5743, source: 'BNR - Serii anuale, valori medii' },
-      2024: { usdRon: 4.5984, source: 'BNR - Serii anuale, valori medii' },
-      2025: { usdRon: 4.5000, source: 'Estimate - update from BNR' },
+      2019: { usdRon: 4.2379, source: 'BNR' },
+      2020: { usdRon: 4.2440, source: 'BNR' },
+      2021: { usdRon: 4.1604, source: 'BNR' },
+      2022: { usdRon: 4.6885, source: 'BNR' },
+      2023: { usdRon: 4.5743, source: 'BNR' },
+      2024: { usdRon: 4.5984, source: 'BNR' },
+      2025: { usdRon: 4.4705, source: 'BNR' },
     },
     notes: {
       ro: 'Starting 2025, stocks transferred to Romania broker. Romania broker withholds capital gains tax (1%/3%) but NOT CASS.',
@@ -677,9 +681,13 @@ app.get('/api/tax-rates', (req, res) => {
 // GET /api/exchange-rates - Exchange rates
 app.get('/api/exchange-rates', (req, res) => {
   res.json({
+    2019: { usdRon: 4.2379, source: 'BNR' },
+    2020: { usdRon: 4.2440, source: 'BNR' },
+    2021: { usdRon: 4.1604, source: 'BNR' },
+    2022: { usdRon: 4.6885, source: 'BNR' },
     2023: { usdRon: 4.5743, source: 'BNR' },
     2024: { usdRon: 4.5984, source: 'BNR' },
-    2025: { usdRon: 4.5000, source: 'BNR (estimate)' }
+    2025: { usdRon: 4.4705, source: 'BNR' }
   });
 });
 

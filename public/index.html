@@ -291,6 +291,25 @@
       <div class="card">
         <form id="data-form">
           <fieldset class="form-grid-2">
+            <legend data-i18n="input.brokers">Brokers</legend>
+            <div class="form-row">
+              <label data-i18n="input.usBrokerLabel">US Broker used</label>
+              <select id="input-us-broker" name="usBroker">
+                <option value="" data-i18n="input.brokerNone">-- None --</option>
+                <option value="fidelity" data-i18n="input.brokerFidelity">Fidelity</option>
+                <option value="morgan_stanley" data-i18n="input.brokerMS">Morgan Stanley</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label data-i18n="input.roBrokerLabel">Romania Broker used</label>
+              <select id="input-ro-broker" name="roBroker">
+                <option value="" data-i18n="input.brokerNone">-- None --</option>
+                <option value="xtb" data-i18n="input.brokerXTB">XTB</option>
+              </select>
+            </div>
+          </fieldset>
+
+          <fieldset class="form-grid-2">
             <legend data-i18n="input.dividends">Dividends</legend>
             <div class="form-row">
               <label data-i18n="input.usDividends">US Dividends (USD)</label>
