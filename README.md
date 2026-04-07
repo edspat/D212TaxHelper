@@ -5,7 +5,7 @@ A local web application that helps Romanian tax residents calculate and prepare 
 ## Who is this for?
 
 - Microsoft employees (or similar) in Romania receiving stock awards (RSUs), ESPP shares, and dividends via **Fidelity / Morgan Stanley**
-- Investors who trade or hold stocks through **XTB** or other Romanian brokers
+- Investors who trade or hold stocks through **XTB** (currently the only supported Romanian broker — for Tradeville or other Romanian brokers, [contact me](https://github.com/edmund-1))
 - Anyone filing a D212 for investment income in Romania
 
 ## Features

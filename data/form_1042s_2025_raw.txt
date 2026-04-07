@@ -1,0 +1,309 @@
+
+
+National Financial Services LLC
+P.O. Box 28019
+Albuquerque, NM 87125-8019
+SPS STOCK PLAN ACCOUNT - MSFT
+EDMUND J SPATARIU
+CALEA CIRCUMVALATIUNII NR. 14
+BL. 81, SC. C, APT. 39
+TIMISOARA 300672
+ROMANIA
+Page 1 of 4
+eDelivered
+Dear Participant:
+The enclosed Form 1042S contains important U.S. tax information, that we are required to furnish to you and to
+the U.S. Internal Revenue Service. The form contains information regarding U.S. tax withholding related to your
+participation in your company's equity compensation plan, administered by Fidelity Stock Plan Services. In
+addition, you will also receive under separate cover a Grantor Letter providing additional detail. Please consult
+your tax advisor regarding your specific tax situation.
+Fidelity Stock Plan Services
+
+This page is intentionally left blank
+
+Form 1042-S
+Department of the Treasury
+Internal Revenue Service
+Foreign Person’s U.S. Source Income Subject to Withholding
+Go to www.irs.gov/Form1042S for instructions and the latest information.
+OMB No. 1545-0096
+AMENDED AMENDMENT NO.UNIQUE FORM IDENTIFIER
+2 5 0 0 9 3 6 9 3 9
+2025
+5 Withholding allowance
+6 Net income
+7a Federal tax withheld
+7b Check if federal tax withheld was not deposited with the IRS because
+escrow procedures were applied (see instructions) . . . . . . . . . . . . . . . . . . .
+7c Check if withholding occurred in subsequent year with respect to a
+partnership interest . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+7d Check if you are a qualified intermediary,withholding foreign
+partnership, or withholding foreign trust revising its reporting on Form
+1042-S to report to a specific recipient . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+8 Tax withheld by other agents
+9 Overwithheld tax repaid to recipient pursuant to adjustment procedures(see instructions)
+( )
+10 Total withholding credit (combine boxes 7a, 8, and 9)
+11 Tax paid by withholding agent (amounts not withheld) (see instructions)
+12a Withholding agent’s EIN
+04-3523567
+12b Ch. 3 status code
+15
+12c Ch. 4 status code
+01
+12d Withholding agent’s name
+NATIONAL FINANCIAL SERVICES LLC
+12e Withholding agent’s global intermediary identification number (GIIN)
+12f Country code
+US
+12g Foreign tax identification number, if any
+12h Address (number and street)
+499 WASHINGTON BLVD
+12i City or town, state or province, country, ZIP or foreign postal code
+JERSEY CITY NJ 07310
+13a Recipient’s name
+EDMUND J SPATARIU
+13b Recipient’s country code
+RO
+13c Address (number and street)
+CALEA CIRCUMVALATIUNII NR. 14 BL. 81, SC. C, APT.
+3 Chapter indicator. Enter “3” or “4” 3
+13f Ch. 3 status code 16
+13g Ch. 4 status code 23
+1 Income
+code
+06
+2 Gross income
+45.00 
+3a Exemption code 00 
+4a Exemption code 15
+4b Tax rate 0.003b Tax rate 10.00
+13l Recipient’s date of birth (YYYYMMDD)
+13d City or town, state or province, country, ZIP or foreign postal code
+TIMISOARA 300672 ROMANIA
+13h Recipient’s GIIN 13i Recipient’s foreign tax identification
+number, if any
+1741126080122
+13j LOB code
+13k Recipient’s account number
+I01-850253
+14a Primary withholding agent’s name (if applicable)
+15d Intermediary or flow-through entity’s name
+15e Intermediary or flow-through entity’s GIIN
+15f Country code 15g Foreign tax identification number, if any
+15h Address (number and street)
+15i City or town, state or province, country, ZIP or foreign postal code
+13e Recipient’s U.S. TIN, if any
+Form 1042-S (2025)
+17a State income tax withheld 17b Payer’s state tax no . 17c Name of state
+16c Payer’s GIIN 16d Ch. 3 status code 16e Ch. 4 status code
+16a Payer’s name 16b Payer’s TIN
+14b Primary withholding agent’s EIN 
+15 Check if pro-rata basis reporting
+15c Ch. 4 status code15b Ch. 3 status code15a Intermediary or flow-through entity’s EIN,if any
+1 9 7 4 1 21 6
+0.00
+0.00
+5.00
+0.00
+0.00
+5.00
+-
+COPY B
+for Recipient
+(keep for your records)
+1161855.2.0
+Page 2 of 4
+
+
+
+Form 1042-S
+Department of the Treasury
+Internal Revenue Service
+Foreign Person’s U.S. Source Income Subject to Withholding
+Go to www.irs.gov/Form1042S for instructions and the latest information.
+OMB No. 1545-0096
+AMENDED AMENDMENT NO.UNIQUE FORM IDENTIFIER
+2 5 0 0 9 3 6 9 3 9
+2025
+5 Withholding allowance
+6 Net income
+7a Federal tax withheld
+7b Check if federal tax withheld was not deposited with the IRS because
+escrow procedures were applied (see instructions) . . . . . . . . . . . . . . . . . . .
+7c Check if withholding occurred in subsequent year with respect to a
+partnership interest . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+7d Check if you are a qualified intermediary,withholding foreign
+partnership, or withholding foreign trust revising its reporting on Form
+1042-S to report to a specific recipient . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+8 Tax withheld by other agents
+9 Overwithheld tax repaid to recipient pursuant to adjustment procedures(see instructions)
+( )
+10 Total withholding credit (combine boxes 7a, 8, and 9)
+11 Tax paid by withholding agent (amounts not withheld) (see instructions)
+12a Withholding agent’s EIN
+04-3523567
+12b Ch. 3 status code
+15
+12c Ch. 4 status code
+01
+12d Withholding agent’s name
+NATIONAL FINANCIAL SERVICES LLC
+12e Withholding agent’s global intermediary identification number (GIIN)
+12f Country code
+US
+12g Foreign tax identification number, if any
+12h Address (number and street)
+499 WASHINGTON BLVD
+12i City or town, state or province, country, ZIP or foreign postal code
+JERSEY CITY NJ 07310
+13a Recipient’s name
+EDMUND J SPATARIU
+13b Recipient’s country code
+RO
+13c Address (number and street)
+CALEA CIRCUMVALATIUNII NR. 14 BL. 81, SC. C, APT.
+3 Chapter indicator. Enter “3” or “4” 3
+13f Ch. 3 status code 16
+13g Ch. 4 status code 23
+1 Income
+code
+06
+2 Gross income
+45.00 
+3a Exemption code 00 
+4a Exemption code 15
+4b Tax rate 0.003b Tax rate 10.00
+13l Recipient’s date of birth (YYYYMMDD)
+13d City or town, state or province, country, ZIP or foreign postal code
+TIMISOARA 300672 ROMANIA
+13h Recipient’s GIIN 13i Recipient’s foreign tax identification
+number, if any
+1741126080122
+13j LOB code
+13k Recipient’s account number
+I01-850253
+14a Primary withholding agent’s name (if applicable)
+15d Intermediary or flow-through entity’s name
+15e Intermediary or flow-through entity’s GIIN
+15f Country code 15g Foreign tax identification number, if any
+15h Address (number and street)
+15i City or town, state or province, country, ZIP or foreign postal code
+13e Recipient’s U.S. TIN, if any
+Form 1042-S (2025)
+17a State income tax withheld 17b Payer’s state tax no . 17c Name of state
+16c Payer’s GIIN 16d Ch. 3 status code 16e Ch. 4 status code
+16a Payer’s name 16b Payer’s TIN
+14b Primary withholding agent’s EIN 
+15 Check if pro-rata basis reporting
+15c Ch. 4 status code15b Ch. 3 status code15a Intermediary or flow-through entity’s EIN,if any
+1 9 7 4 1 21 6
+0.00
+0.00
+5.00
+0.00
+0.00
+5.00
+-
+COPY C for
+Recipient Attach to any
+Federal tax return you file
+1161855.2.0
+Page 3 of 4
+
+
+
+Form 1042-S
+Department of the Treasury
+Internal Revenue Service
+Foreign Person’s U.S. Source Income Subject to Withholding
+Go to www.irs.gov/Form1042S for instructions and the latest information.
+OMB No. 1545-0096
+AMENDED AMENDMENT NO.UNIQUE FORM IDENTIFIER
+2 5 0 0 9 3 6 9 3 9
+2025
+5 Withholding allowance
+6 Net income
+7a Federal tax withheld
+7b Check if federal tax withheld was not deposited with the IRS because
+escrow procedures were applied (see instructions) . . . . . . . . . . . . . . . . . . .
+7c Check if withholding occurred in subsequent year with respect to a
+partnership interest . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+7d Check if you are a qualified intermediary,withholding foreign
+partnership, or withholding foreign trust revising its reporting on Form
+1042-S to report to a specific recipient . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+8 Tax withheld by other agents
+9 Overwithheld tax repaid to recipient pursuant to adjustment procedures(see instructions)
+( )
+10 Total withholding credit (combine boxes 7a, 8, and 9)
+11 Tax paid by withholding agent (amounts not withheld) (see instructions)
+12a Withholding agent’s EIN
+04-3523567
+12b Ch. 3 status code
+15
+12c Ch. 4 status code
+01
+12d Withholding agent’s name
+NATIONAL FINANCIAL SERVICES LLC
+12e Withholding agent’s global intermediary identification number (GIIN)
+12f Country code
+US
+12g Foreign tax identification number, if any
+12h Address (number and street)
+499 WASHINGTON BLVD
+12i City or town, state or province, country, ZIP or foreign postal code
+JERSEY CITY NJ 07310
+13a Recipient’s name
+EDMUND J SPATARIU
+13b Recipient’s country code
+RO
+13c Address (number and street)
+CALEA CIRCUMVALATIUNII NR. 14 BL. 81, SC. C, APT.
+3 Chapter indicator. Enter “3” or “4” 3
+13f Ch. 3 status code 16
+13g Ch. 4 status code 23
+1 Income
+code
+06
+2 Gross income
+45.00 
+3a Exemption code 00 
+4a Exemption code 15
+4b Tax rate 0.003b Tax rate 10.00
+13l Recipient’s date of birth (YYYYMMDD)
+13d City or town, state or province, country, ZIP or foreign postal code
+TIMISOARA 300672 ROMANIA
+13h Recipient’s GIIN 13i Recipient’s foreign tax identification
+number, if any
+1741126080122
+13j LOB code
+13k Recipient’s account number
+I01-850253
+14a Primary withholding agent’s name (if applicable)
+15d Intermediary or flow-through entity’s name
+15e Intermediary or flow-through entity’s GIIN
+15f Country code 15g Foreign tax identification number, if any
+15h Address (number and street)
+15i City or town, state or province, country, ZIP or foreign postal code
+13e Recipient’s U.S. TIN, if any
+Form 1042-S (2025)
+17a State income tax withheld 17b Payer’s state tax no . 17c Name of state
+16c Payer’s GIIN 16d Ch. 3 status code 16e Ch. 4 status code
+16a Payer’s name 16b Payer’s TIN
+14b Primary withholding agent’s EIN 
+15 Check if pro-rata basis reporting
+15c Ch. 4 status code15b Ch. 3 status code15a Intermediary or flow-through entity’s EIN,if any
+1 9 7 4 1 21 6
+0.00
+0.00
+5.00
+0.00
+0.00
+5.00
+-
+COPY D for
+Recipient Attach to any
+state tax return you file
+1161855.2.0
+Page 4 of 4
+
