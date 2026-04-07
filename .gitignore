@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Uploads (user PDFs)
+uploads/
+
+# Logs
+logs/
+
+# Raw parsed data (personal financial data)
+data/*_raw.txt
+data/parsed_data.json
+data/trades.json
+data/stock_awards.json
+
+# Keep pdf_metadata.json (document type definitions)
+!data/pdf_metadata.json
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Editor
+.vscode/
+*.swp
+*.swo
