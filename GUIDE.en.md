@@ -408,11 +408,11 @@ There are 4 scenarios for capital gains from US broker sales:
 
 ## 11. D212 Form Helper — How to Fill in the Declarație Unică
 
-The D212 Form Helper (located at the bottom of the **Tax Calculation** tab) provides the exact values to copy into the ANAF online form.
+The D212 Form Helper (located at the bottom of the **Tax Calculation** tab) provides the exact values to copy into the ANAF online form. Click the **"🔗 Open D212 Form on ANAF"** button to open the form directly in a new window.
 
 ### Step-by-step: Filing D212 on ANAF portal
 
-1. Go to [ANAF SPV](https://www.anaf.ro/anaf/internet/ANAF/servicii_online/spv) and log in
+1. Click the **"🔗 Open D212 Form on ANAF"** button (or go to [ANAF D212](https://www.anaf.ro/declaratii/duf)) and log in
 2. Navigate to **Declarații** → **Declarația Unică 212**
 3. Create a new declaration for the fiscal year shown
 

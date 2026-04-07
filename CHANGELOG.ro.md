@@ -19,6 +19,7 @@
 - Titluri secțiuni corelate cu formularul ANAF D212
 
 ### Îmbunătățiri UI
+- Buton link către formularul ANAF D212 — deschide https://www.anaf.ro/declaratii/duf într-o fereastră nouă
 - Calcul impozit grupat în subsecțiuni SUA/România cu subtotaluri
 - Dropdown tipuri documente reordonat logic
 - Butonul "Se procesează" nu mai rămâne blocat

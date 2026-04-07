@@ -19,6 +19,7 @@
 - Section headers correlate with ANAF D212 form buttons
 
 ### UI Improvements
+- ANAF D212 form link button — opens https://www.anaf.ro/declaratii/duf in a new window
 - Tax Calculation grouped into US/Romania subsections with subtotals
 - Document type dropdown reordered: US brokers → RO broker → ANAF/Tax
 - Upload button no longer stuck on "Processing" when render errors occur

@@ -402,11 +402,11 @@ Sunt 4 scenarii pentru câștigurile de capital din vânzări prin brokerul SUA:
 
 ## 11. Asistentul D212 — Cum completezi Declarația Unică
 
-Asistentul D212 (situat în partea de jos a tab-ului **Calcul Impozite**) furnizează valorile exacte pe care să le copiezi în formularul ANAF.
+Asistentul D212 (situat în partea de jos a tab-ului **Calcul Impozite**) furnizează valorile exacte pe care să le copiezi în formularul ANAF. Apasă butonul **"🔗 Deschide formularul D212 pe ANAF"** pentru a deschide formularul direct într-o fereastră nouă.
 
 ### Pas cu pas: Depunerea D212 pe portalul ANAF
 
-1. Accesează [ANAF SPV](https://www.anaf.ro/anaf/internet/ANAF/servicii_online/spv) și autentifică-te
+1. Apasă butonul **"🔗 Deschide formularul D212 pe ANAF"** (sau accesează [ANAF D212](https://www.anaf.ro/declaratii/duf)) și autentifică-te
 2. Navighează la **Declarații** → **Declarația Unică 212**
 3. Creează o declarație nouă pentru anul fiscal afișat
 
