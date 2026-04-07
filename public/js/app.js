@@ -776,7 +776,7 @@ const App = (() => {
       tfoot.innerHTML = `
         <tr>
           <td colspan="3"><strong>${I18n.t('income.total')} (${data.count} trades)</strong></td>
-          <td><strong>${data.totalShares}</strong></td>
+          <td><strong>${parseFloat(data.totalShares.toFixed(6))}</strong></td>
           <td></td>
           <td><strong>${fmt(data.totalProceeds)}</strong></td>
           <td></td>
@@ -1641,10 +1641,11 @@ const App = (() => {
   // ============ HELPERS ============
   function fmt(num) {
     if (num === null || num === undefined || isNaN(num)) return '-';
-    const rounded = Math.round(num);
-    if (rounded === 0 || Object.is(rounded, -0)) return '0';
+    if (num === 0 || Object.is(num, -0)) return '0';
     const locale = (typeof I18n !== 'undefined' && I18n.getLang?.()) === 'ro' ? 'ro-RO' : 'en-US';
-    return new Intl.NumberFormat(locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(rounded);
+    // Show 2 decimals for values with meaningful fractional part, 0 for whole numbers
+    const hasDecimals = Math.abs(num - Math.round(num)) >= 0.005;
+    return new Intl.NumberFormat(locale, { minimumFractionDigits: hasDecimals ? 2 : 0, maximumFractionDigits: 2 }).format(num);
   }
 
   function esc(str) {

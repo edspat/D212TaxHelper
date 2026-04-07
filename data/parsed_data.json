@@ -1,1 +1,155 @@
-{ "years": {} }
+{
+  "years": {
+    "2025": {
+      "year": 2025,
+      "msStatement": {
+        "period": "01-Jan-2025 to 31-Dec-2025",
+        "dividends": 0.84,
+        "taxWithheld": 0.08,
+        "releases": [
+          {
+            "date": "28-Feb-2025",
+            "shares": 0.635,
+            "pricePerShare": 392.54,
+            "value": 249.26
+          },
+          {
+            "date": "28-Feb-2025",
+            "shares": 1,
+            "pricePerShare": 392.53,
+            "value": 392.53
+          },
+          {
+            "date": "17-Mar-2025",
+            "shares": 1,
+            "pricePerShare": 388.56,
+            "value": 388.56
+          },
+          {
+            "date": "02-Jun-2025",
+            "shares": 1,
+            "pricePerShare": 460.36,
+            "value": 460.36
+          },
+          {
+            "date": "02-Jun-2025",
+            "shares": 0.635,
+            "pricePerShare": 460.36,
+            "value": 292.33
+          },
+          {
+            "date": "16-Jun-2025",
+            "shares": 1,
+            "pricePerShare": 474.96,
+            "value": 474.96
+          },
+          {
+            "date": "02-Sep-2025",
+            "shares": 1,
+            "pricePerShare": 506.69,
+            "value": 506.69
+          },
+          {
+            "date": "02-Sep-2025",
+            "shares": 1,
+            "pricePerShare": 506.69,
+            "value": 506.69
+          },
+          {
+            "date": "15-Sep-2025",
+            "shares": 1,
+            "pricePerShare": 509.9,
+            "value": 509.9
+          },
+          {
+            "date": "01-Dec-2025",
+            "shares": 1,
+            "pricePerShare": 492.01,
+            "value": 492.01
+          },
+          {
+            "date": "01-Dec-2025",
+            "shares": 1,
+            "pricePerShare": 492.01,
+            "value": 492.01
+          },
+          {
+            "date": "15-Dec-2025",
+            "shares": 1,
+            "pricePerShare": 478.53,
+            "value": 478.53
+          }
+        ],
+        "closingValue": 1450.86,
+        "closingShares": 3
+      },
+      "msDividends": 0.84,
+      "msTaxWithheld": 0.08,
+      "fidelityTrades": {
+        "count": 3,
+        "totalProceeds": 4395.46,
+        "totalFees": 37.4,
+        "totalNet": 4358.06,
+        "totalShares": 9.280999999999999,
+        "trades": [
+          {
+            "year": 2025,
+            "symbol": "MSFT",
+            "company": "MICROSOFT CORP",
+            "shares": 3.646,
+            "pricePerShare": 435.1738,
+            "saleProceeds": 1586.64,
+            "fees": 12.5,
+            "netProceeds": 1574.14,
+            "saleDate": "MAY/07/2025",
+            "gainType": "short-term",
+            "source": "ms_statement"
+          },
+          {
+            "year": 2025,
+            "symbol": "MSFT",
+            "company": "MICROSOFT CORP",
+            "shares": 2.635,
+            "pricePerShare": 477.35,
+            "saleProceeds": 1257.82,
+            "fees": 12.45,
+            "netProceeds": 1245.37,
+            "saleDate": "JUN/18/2025",
+            "gainType": "short-term",
+            "source": "ms_statement"
+          },
+          {
+            "year": 2025,
+            "symbol": "MSFT",
+            "company": "MICROSOFT CORP",
+            "shares": 3,
+            "pricePerShare": 517,
+            "saleProceeds": 1551,
+            "fees": 12.45,
+            "netProceeds": 1538.55,
+            "saleDate": "SEP/17/2025",
+            "gainType": "short-term",
+            "source": "ms_statement"
+          }
+        ]
+      },
+      "form1042s": [
+        {
+          "year": 2025,
+          "source": "IRS Form 1042-S",
+          "uniqueFormId": "",
+          "incomeCode": "",
+          "incomeType": "Other ()",
+          "grossIncomeUSD": 0,
+          "taxRate": 0,
+          "federalTaxWithheldUSD": 0,
+          "totalWithholdingCreditUSD": 0,
+          "withholdingAgent": "",
+          "recipientName": "",
+          "recipientCountry": "",
+          "accountNumber": ""
+        }
+      ]
+    }
+  }
+}

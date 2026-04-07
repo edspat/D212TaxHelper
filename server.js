@@ -486,7 +486,10 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       // Load existing trades for dedup
       const tradesFile = path.join(DATA_DIR, 'trades.json');
       let trades = { trades: [] };
-      if (fs.existsSync(tradesFile)) trades = JSON.parse(fs.readFileSync(tradesFile, 'utf8'));
+      if (fs.existsSync(tradesFile)) {
+        const raw = JSON.parse(fs.readFileSync(tradesFile, 'utf8'));
+        trades = { trades: Array.isArray(raw.trades) ? raw.trades : [] };
+      }
 
       // Add sales as trades (dedup by date + shares + netProceeds)
       let newTradesAdded = 0;
@@ -562,7 +565,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
     res.json({ success: true, year: parsedYear, type, parsed });
   } catch (err) {
-    log('ERROR', 'Upload processing failed', { error: err.message, type, year: parsedYear });
+    log('ERROR', 'Upload processing failed', { error: err.message, type: req.body?.type, year: req.body?.year });
     res.status(500).json({ error: err.message });
   }
 });
