@@ -1,5 +1,30 @@
 # D212 Asistent Fiscal - Istoric versiuni
 
+## v2.1.0 (2026-04-07)
+
+### Funcționalități noi
+- **Parser Morgan Stanley Stock Plan Statement** — extras anual cu vânzări, RSU releases, dividende, reținere IRS
+- **Selector broker** în tab-ul Adăugare Date — broker SUA (Fidelity / Morgan Stanley) și broker România (XTB)
+- **Etichete dinamice broker** — meniurile Detalii Venituri și Calcul Impozit afișează brokerul real utilizat
+- **Cursuri BNR oficiale** 2019-2025 (Serii anuale, valori medii)
+- **Salariu minim brut** 2019-2026
+
+### Corecturi
+- **Algoritm fiscal**: reținerea stock awards se deduce doar din câștiguri de capital (nu din dividende)
+- **Baza CASS**: folosește venitul net după deducerea reținerii stock awards
+- **Formatare zecimale**: dividende și taxe mici afișate cu 2 zecimale
+- **Precizie floating point**: totalul acțiunilor nu mai afișează valori ca `9.280999999999999`
+- **Robustețe trades.json**: parsare defensivă previne crash pe date corupte
+- **Error handler**: corectat `ReferenceError: type is not defined`
+
+### Modificări
+- Eliminat textul static "(Fidelity / Morgan Stanley)" — acum dinamic
+- Selectorul de an afișează toți anii din cursurile de schimb (2019-2025)
+- Start.bat lansează serverul minimizat și se închide imediat
+- Curs BNR 2025 actualizat la valoarea oficială 4.4705
+
+---
+
 ## v2.0.0 (2026-03-29)
 
 ### Principal

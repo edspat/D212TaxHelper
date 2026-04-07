@@ -1,5 +1,30 @@
 # D212 Tax Helper - Changelog
 
+## v2.1.0 (2026-04-07)
+
+### New Features
+- **Morgan Stanley Stock Plan Statement parser** — yearly statement with sales, RSU releases, dividends, IRS withholding
+- **Broker selector** in Add Data tab — US broker (Fidelity / Morgan Stanley) and Romania broker (XTB)
+- **Dynamic broker labels** — Income Details and Tax Calculation show the actual broker used (auto-detected from uploads or manual selection)
+- **BNR official exchange rates** hardcoded for 2019-2025 (Serii anuale, valori medii)
+- **Minimum salary data** for 2019-2026
+
+### Fixes
+- **Tax algorithm**: stock withholding deducted from capital gains only (not dividends), per Think People methodology
+- **CASS base**: uses net income after stock withholding deduction
+- **Decimal formatting**: small USD amounts (dividends, tax) now display with 2 decimal places
+- **Floating point fix**: total shares no longer shows values like `9.280999999999999`
+- **trades.json robustness**: defensive parsing prevents crash on malformed data
+- **Error handler**: fixed `ReferenceError: type is not defined` in upload error path
+
+### Changes
+- Removed static "(Fidelity / Morgan Stanley)" text from all labels — now dynamic
+- Year selector shows all years from exchange rates (2019-2025)
+- Start.bat launches server minimized and exits immediately
+- 2025 BNR exchange rate updated to official 4.4705
+
+---
+
 ## v2.0.0 (2026-03-29)
 
 ### Major

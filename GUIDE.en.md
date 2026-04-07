@@ -1,6 +1,6 @@
 # D212 Tax Helper - User Guide
 
-**Guide version:** 1.0 | **App version:** 2.0.0 | **Last updated:** 2026-03-29
+**Guide version:** 1.1 | **App version:** 2.1.0 | **Last updated:** 2026-04-07
 
 ---
 
@@ -41,7 +41,7 @@ This application is specifically designed for:
 - Anyone filing a D212 for investment income in Romania
 
 ### Key features
-- **9 document parsers** — automatically extracts data from PDFs and images
+- **10 document parsers** — automatically extracts data from PDFs and images
 - **Bilingual** — full Romanian (RO) and English (EN) interface
 - **Offline & private** — runs entirely on your computer, no data is sent anywhere
 - **Dark theme** — easy on the eyes, responsive design
@@ -60,7 +60,7 @@ This application is specifically designed for:
 
 **Option A — From source:**
 ```bash
-cd MyFinancialApp
+cd D212TaxHelper
 npm install          # first time only
 node server.js
 ```
@@ -86,13 +86,13 @@ The application runs at **http://localhost:3000**.
 | **☰ (Hamburger)** | Toggles the navigation menu on narrow screens |
 | **Tab buttons** | 6 tabs: Dashboard, Income Details, Tax Calculation, Add Data, Import Document, Raw Data |
 | **Language selector** | Switch between **RO** (Romanian) and **EN** (English). All labels, hints, and translations update instantly. |
-| **Year selector** | Choose the fiscal year you're viewing/editing. The dropdown shows years that have data, plus the default fiscal year (previous year). All tabs update when you change the year. |
+| **Year selector** | Choose the fiscal year you're viewing/editing. The dropdown shows all years with BNR exchange rates (2019-2025) plus any year with imported data. All tabs update when you change the year. |
 
 ### Footer bar
 
 | Element | Description |
 |---------|-------------|
-| **App version** (e.g., v2.0.0) | Click to view the full changelog |
+| **App version** (e.g., v2.1.0) | Click to view the full changelog |
 | **Data source** | Shows where data comes from (ANAF, BNR, Fidelity, XTB) |
 | **Contact** | Email link to the author |
 | **Restart Server** | Restarts the Node.js server (page reloads automatically) |
@@ -170,8 +170,10 @@ Divided into 3 clearly labeled sections:
 
 #### 💰 Section A: What I Earned (Gross Income)
 Lists all income categories with their RON values:
-- US capital gains, US dividends
-- Romania capital gains (≥1yr and <1yr), Romania dividends
+- US capital gains, US dividends (with dynamic broker label: Fidelity / Morgan Stanley)
+- Stock withholding deduction (deducted from capital gains only)
+- Net US income after deduction
+- Romania capital gains (≥1yr and <1yr), Romania dividends (with broker label: XTB)
 - Interest income, Gambling income
 - **Total Investment Income**
 
@@ -232,7 +234,9 @@ Use this tab to manually enter or override financial data for the selected year.
 
 | Field | Description |
 |-------|-------------|
-| **US Dividends (USD)** | Total gross dividends received from US broker (Fidelity / Morgan Stanley) |
+| **US Broker** | Select which US broker you use: Fidelity, Morgan Stanley, or None. This determines the broker label shown in Income Details and Tax Calculation. If you upload documents from both brokers, the labels combine automatically. |
+| **Romania Broker** | Select which Romanian broker you use: XTB or None. |
+| **US Dividends (USD)** | Total gross dividends received from US broker |
 | **Romania Dividends (RON)** | Total dividends received from Romanian broker |
 | **US Stock Sales (USD)** | Total gross proceeds from US stock sales |
 | **ESPP Purchase Cost (USD)** | The cost you paid for ESPP shares. For free stock awards, enter 0. This is deducted from sale proceeds to calculate taxable capital gains. |
@@ -296,6 +300,7 @@ The extracted data is parsed and saved automatically. A success/error message ap
 | **Romania (XTB) - Dividends & Interest** | XTB account (RAPORT DIVIDENDE) | Dividends (gross, tax withheld), interest (gross, tax withheld) |
 | **Romania (XTB) - Portfolio** | XTB account (FIȘĂ PORTOFOLIU) | Long-term and short-term capital gains, tax withheld, country breakdown |
 | **US (Fidelity) - Statement** | Fidelity (periodic report) | Sold shares, stock transfers (to XTB), dividends YTD, trade totals |
+| **US (Morgan Stanley) - Stock Plan Statement** | Morgan Stanley (yearly PDF) | Stock sales (gross, fees, net), RSU releases, dividends, IRS tax withheld |
 | **Tax Form - 1042-S** | IRS form | Gross income, federal tax withheld, income code. For dividends (code 06), takes precedence over investment report. |
 
 ### Tips
@@ -328,6 +333,7 @@ adeverinta_2025_raw.txt
 declaratie_2024_raw.txt
 investment_2025_raw.txt
 fidelity_statement_2025_raw.txt
+ms_statement_2025_raw.txt
 trade_confirmation_2025_raw.txt
 xtb_dividends_2025_raw.txt
 xtb_portfolio_2025_raw.txt

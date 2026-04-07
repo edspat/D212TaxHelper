@@ -1,6 +1,6 @@
 # D212 Asistent Fiscal - Ghid de Utilizare
 
-**Versiune ghid:** 1.0 | **Versiune aplicație:** 2.0.0 | **Ultima actualizare:** 29.03.2026
+**Versiune ghid:** 1.1 | **Versiune aplicație:** 2.1.0 | **Ultima actualizare:** 07.04.2026
 
 ---
 
@@ -41,7 +41,7 @@ Aplicația este concepută special pentru:
 - Oricine depune D212 pentru venituri din investiții în România
 
 ### Funcționalități principale
-- **9 parsere de documente** — extrage automat datele din PDF-uri și imagini
+- **10 parsere de documente** — extrage automat datele din PDF-uri și imagini
 - **Bilingv** — interfață completă în Română (RO) și Engleză (EN)
 - **Offline și privat** — rulează în totalitate pe calculatorul tău, nicio dată nu este trimisă nicăieri
 - **Temă întunecată** — confortabilă pentru ochi, design responsiv
@@ -60,7 +60,7 @@ Aplicația este concepută special pentru:
 
 **Opțiunea A — Din sursă:**
 ```bash
-cd MyFinancialApp
+cd D212TaxHelper
 npm install          # doar prima dată
 node server.js
 ```
@@ -512,7 +512,7 @@ Din proiectul sursă:
 node build-portable.js
 ```
 
-Aceasta creează `MyFinancialApp-Portable/` (~172 MB) lângă folderul sursă. Versiunea portabilă:
+Aceasta creează `D212TaxHelper-Portable/` (~172 MB) lângă folderul sursă. Versiunea portabilă:
 - Descarcă Node.js v22 LTS automat
 - Copiază toate fișierele aplicației (fără date personale)
 - Instalează dependențele de producție
@@ -532,7 +532,7 @@ Aceasta creează `MyFinancialApp-Portable/` (~172 MB) lângă folderul sursă. V
 |----------|---------|
 | Portul 3000 ocupat | Setează alt port: `PORT=3001 node server.js` |
 | Node.js negăsit | Instalează Node.js 18+ de la https://nodejs.org/ |
-| Dependențe lipsă | Rulează `npm install` în folderul MyFinancialApp |
+| Dependențe lipsă | Rulează `npm install` în folderul D212TaxHelper |
 
 ### Erori la import
 

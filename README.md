@@ -10,7 +10,7 @@ A local web application that helps Romanian tax residents calculate and prepare 
 
 ## Features
 
-- **9 document parsers** — automatically extracts data from PDFs and images (Fidelity statements, 1042-S forms, XTB reports, trade confirmations, etc.)
+- **10 document parsers** — automatically extracts data from PDFs and images (Fidelity statements, Morgan Stanley statements, 1042-S forms, XTB reports, trade confirmations, etc.)
 - **Tax calculations** — income tax, capital gains tax, dividend tax, and CASS (health insurance contribution)
 - **D212 form helper** — generates the exact values needed to fill in the ANAF declaration
 - **Multi-year comparison** — compare financial data across fiscal years
@@ -59,6 +59,7 @@ Output is created in `../D212TaxHelper-Portable/`. Just double-click `Start.bat`
 | Year-End Investment Report | Fidelity |
 | Fidelity Statement | Fidelity |
 | Trade Confirmation | Fidelity |
+| Stock Plan Statement | Morgan Stanley |
 | Form 1042-S | Fidelity |
 | Adeverință venit | Employer |
 | Calcul declarație unică | Tax consultant |
