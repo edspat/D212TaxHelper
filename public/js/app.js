@@ -578,9 +578,13 @@ const App = (() => {
     }
     Charts.createYearComparison('chart-year-comparison', compData);
 
-    // Exchange rates - only show if there's financial data
+    // Exchange rates - only show if there's actual financial data uploaded
     const chartContainer = document.getElementById('chart-exchange-rates')?.closest('.chart-card');
-    if (allYears.length > 0) {
+    const hasFinancialData = allYears.some(y => {
+      const yd = appData.years?.[y];
+      return yd && Object.keys(yd).some(k => k !== 'year' && k !== 'exchangeRate' && k !== 'minSalary' && k !== 'd212Deadline' && k !== 'usBroker' && k !== 'roBroker' && k !== 'taxRates');
+    });
+    if (hasFinancialData) {
       if (chartContainer) chartContainer.style.display = '';
       const rateData = {};
       for (const [y, r] of Object.entries(exchangeRates)) {

@@ -1,18 +1,1 @@
-{
-  "trades": [
-    {
-      "year": 2025,
-      "symbol": "MSFT",
-      "company": "MICROSOFT CORP",
-      "shares": 2,
-      "pricePerShare": 431.5,
-      "saleProceeds": 863,
-      "fees": 0.03,
-      "netProceeds": 862.97,
-      "saleDate": "MAY/01/2025",
-      "settlementDate": "MAY/02/2025",
-      "refNumber": "25121-JGLBC3",
-      "participantId": "I01850253"
-    }
-  ]
-}
+{ "trades": [] }
