@@ -5,9 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "watch": "node -e \"const{execSync}=require('child_process');while(true){try{execSync('node server.js',{stdio:'inherit'})}catch(e){console.log('Server stopped. Restarting...')}}\"\n",
-    "extract": "node scripts/extract-pdfs.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "check-i18n": "node scripts/check-i18n.js"
   },
   "dependencies": {
     "express": "^5.2.1",

@@ -81,7 +81,6 @@ D212TaxHelper/
 │   │   └── i18n.js      # Internationalization
 │   └── locales/         # EN/RO translations
 ├── scripts/             # Utility scripts
-│   ├── extract-pdfs.js  # Bulk PDF extraction
 │   └── check-i18n.js    # Translation completeness checker
 ├── data/                # Parsed financial data (gitignored)
 ├── uploads/             # Uploaded PDFs (gitignored)
