@@ -518,7 +518,7 @@ From the source project:
 node build-portable.js
 ```
 
-This creates `MyFinancialApp-Portable/` (~172 MB) alongside the source folder. The portable version:
+This creates `D212TaxHelper-Portable/` (~172 MB) alongside the source folder. The portable version:
 - Downloads Node.js v22 LTS automatically
 - Copies all application files (no personal data)
 - Installs production dependencies
@@ -538,7 +538,7 @@ This creates `MyFinancialApp-Portable/` (~172 MB) alongside the source folder. T
 |---------|----------|
 | Port 3000 in use | Set a different port: `PORT=3001 node server.js` |
 | Node.js not found | Install Node.js 18+ from https://nodejs.org/ |
-| Missing dependencies | Run `npm install` in the MyFinancialApp folder |
+| Missing dependencies | Run `npm install` in the D212TaxHelper folder |
 
 ### Import errors
 
@@ -574,23 +574,18 @@ See the full changelog by clicking the version number in the app footer, or view
 - [CHANGELOG.en.md](CHANGELOG.en.md) (English)
 - [CHANGELOG.ro.md](CHANGELOG.ro.md) (Romanian)
 
-### Current Version: v2.0.0 (2026-03-29)
+### Current Version: v2.1.0 (2026-04-07)
 
 **Major changes:**
-- App renamed from "ANAF Financial Dashboard" to "D212 Tax Helper"
-- Tax Calculation tab redesigned with 3 sections: Earned / Already Paid / Still to Pay
-- 2026 tax rates support (16% income tax, 3%/6% capital gains)
-- CASS calculation uses net income (validated with case study)
-- ESPP purchase cost deduction for capital gains
-- Form 1042-S (IRS) import support
-- D212 filing deadline field
-- Capital gains calculation method reference table
-- Gambling income parsing
-- OCR fallback for scanned PDFs
-- File logging system
-- Chapter II marked optional for D212/2025+
+- Morgan Stanley Stock Plan Statement parser
+- Dynamic broker labels (auto-detected from uploads)
+- Broker selector in Add Data tab
+- BNR official exchange rates 2019-2025
+- Tax algorithm: stock withholding deducted from capital gains only
+- CASS base uses net income after withholding
+- 0 security vulnerabilities
 
-### Previous Version: v1.0.0 (2026-03-24)
+### Previous Version: v2.0.0 (2026-03-29)
 
 Initial release with full 6-tab interface, 8 document parsers, bilingual support, dark theme, and portable build.
 

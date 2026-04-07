@@ -98,7 +98,6 @@ D212TaxHelper/
 - **Frontend:** Vanilla JS, HTML, CSS
 - **PDF parsing:** pdf-parse-new
 - **OCR:** Tesseract.js
-- **Excel export:** xlsx
 
 ## Privacy
 

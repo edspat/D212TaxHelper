@@ -92,7 +92,7 @@ Aplicația rulează la **http://localhost:3000**.
 
 | Element | Descriere |
 |---------|-----------|
-| **Versiunea aplicației** (ex: v2.0.0) | Click pentru a vedea istoricul complet de versiuni |
+| **Versiunea aplicației** (ex: v2.1.0) | Click pentru a vedea istoricul complet de versiuni |
 | **Sursa datelor** | Arată de unde provin datele (ANAF, BNR, Fidelity, XTB) |
 | **Contact** | Link email către autor |
 | **Repornire Server** | Repornește serverul Node.js (pagina se reîncarcă automat) |
@@ -568,23 +568,18 @@ Vezi istoricul complet făcând click pe numărul versiunii din footer-ul aplica
 - [CHANGELOG.en.md](CHANGELOG.en.md) (Engleză)
 - [CHANGELOG.ro.md](CHANGELOG.ro.md) (Română)
 
-### Versiunea curentă: v2.0.0 (29.03.2026)
+### Versiunea curentă: v2.1.0 (07.04.2026)
 
 **Modificări majore:**
-- Aplicația redenumită din „ANAF Panou Financiar" în „D212 Asistent Fiscal"
-- Tab-ul Calcul Impozite reproiectat cu 3 secțiuni: Ce am câștigat / Ce s-a plătit deja / Ce mai am de plătit
-- Suport cote impozitare 2026 (16% impozit, 3%/6% câștiguri)
-- Calculul CASS folosește venituri nete (validat cu studiu de caz)
-- Deducere cost achiziție ESPP din câștiguri de capital
-- Import formular 1042-S (IRS)
-- Câmp termen depunere D212
-- Tabel referință metode calcul câștiguri de capital
-- Parsare venituri din jocuri de noroc
-- OCR fallback pentru PDF-uri scanate
-- Sistem de loguri
-- Capitolul II marcat opțional pentru D212/2025+
+- Parser Morgan Stanley Stock Plan Statement
+- Etichete dinamice broker (auto-detectate din documente)
+- Selector broker în tab-ul Adăugare Date
+- Cursuri BNR oficiale 2019-2025
+- Algoritm fiscal: reținerea stock awards se deduce doar din câștiguri de capital
+- Baza CASS folosește venitul net după deducere
+- 0 vulnerabilități de securitate
 
-### Versiunea anterioară: v1.0.0 (24.03.2026)
+### Versiunea anterioară: v2.0.0 (29.03.2026)
 
 Versiune inițială cu interfața completă pe 6 tab-uri, 8 parsere de documente, suport bilingv, temă întunecată și versiune portabilă.
 
