@@ -571,12 +571,18 @@ const App = (() => {
     }
     Charts.createYearComparison('chart-year-comparison', compData);
 
-    // Exchange rates
-    const rateData = {};
-    for (const [y, r] of Object.entries(exchangeRates)) {
-      rateData[y] = r.usdRon;
+    // Exchange rates - only show if there's financial data
+    const chartContainer = document.getElementById('chart-exchange-rates')?.closest('.chart-card');
+    if (allYears.length > 0) {
+      if (chartContainer) chartContainer.style.display = '';
+      const rateData = {};
+      for (const [y, r] of Object.entries(exchangeRates)) {
+        rateData[y] = r.usdRon;
+      }
+      Charts.createExchangeRates('chart-exchange-rates', rateData);
+    } else {
+      if (chartContainer) chartContainer.style.display = 'none';
     }
-    Charts.createExchangeRates('chart-exchange-rates', rateData);
   }
 
   // ============ INCOME TABLE ============

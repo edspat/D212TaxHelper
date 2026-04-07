@@ -8,11 +8,8 @@ echo   ===================================
 echo.
 
 cd /d "%~dp0"
-start /min "" node server.js
+start /b "" node server.js >nul 2>&1
 timeout /t 2 /nobreak >nul
 start http://localhost:3000
 
-echo   Server running at http://localhost:3000
-echo   Use Stop.bat to stop the server.
-echo.
 exit

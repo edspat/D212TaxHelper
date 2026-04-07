@@ -38,6 +38,11 @@ log('INFO', 'Server starting', { pid: process.pid, node: process.version, cwd: _
 
 process.on('uncaughtException', (err) => {
   log('ERROR', 'Uncaught exception: ' + err.message, { stack: err.stack });
+  // Don't exit for Tesseract/OCR errors — they happen in worker threads
+  if (err.message && err.message.includes('Error attempting to read image')) {
+    log('ERROR', 'OCR worker error — server continues running');
+    return;
+  }
   process.exit(1);
 });
 process.on('unhandledRejection', (reason) => {
@@ -285,10 +290,15 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       // Fallback: if PDF is image-based (scanned), OCR it
       if (text.replace(/\s/g, '').length < 50) {
         console.log('PDF appears to be image-based (extracted only ' + text.trim().length + ' chars), falling back to OCR...');
-        if (!Tesseract) Tesseract = require('tesseract.js');
-        const { data } = await Tesseract.recognize(buffer, 'eng+ron');
-        text = data.text;
-        usedOcrFallback = true;
+        try {
+          if (!Tesseract) Tesseract = require('tesseract.js');
+          const { data } = await Tesseract.recognize(buffer, 'eng+ron');
+          text = data.text;
+          usedOcrFallback = true;
+        } catch (ocrErr) {
+          log('ERROR', 'OCR fallback failed', { error: ocrErr.message });
+          // Continue with whatever text we have
+        }
       }
     }
 
