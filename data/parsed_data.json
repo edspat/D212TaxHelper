@@ -1,1 +1,24 @@
-{ "years": {} }
+{
+  "years": {
+    "2025": {
+      "year": 2025,
+      "form1042s": [
+        {
+          "year": 2025,
+          "source": "IRS Form 1042-S",
+          "uniqueFormId": "2500936939",
+          "incomeCode": "06",
+          "incomeType": "Dividends",
+          "grossIncomeUSD": 45,
+          "taxRate": 10,
+          "federalTaxWithheldUSD": 5,
+          "totalWithholdingCreditUSD": 5,
+          "withholdingAgent": "NATIONAL FINANCIAL SERVICES LLC",
+          "recipientName": "EDMUND J SPATARIU",
+          "recipientCountry": "RO",
+          "accountNumber": "I01-850253"
+        }
+      ]
+    }
+  }
+}

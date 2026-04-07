@@ -188,11 +188,18 @@ app.delete('/api/raw/:filename', (req, res) => {
           }
           if (type === 'fidelity_statement' && data.years[year].fidelityTransfers) {
             delete data.years[year].fidelityTransfers;
+            delete data.years[year].fidelityDividendsYTD;
+            delete data.years[year].fidelityTrades;
           }
           if (type === 'ms_statement' && data.years[year].msStatement) {
             delete data.years[year].msStatement;
             delete data.years[year].msDividends;
             delete data.years[year].msTaxWithheld;
+            delete data.years[year].fidelityTrades;
+          }
+          // form_1042s raw file key → form1042s in parsed data
+          if (type === 'form_1042s') {
+            delete data.years[year].form1042s;
           }
           if (type === 'trade_confirmation' && data.years[year].fidelityTrades) {
             delete data.years[year].fidelityTrades;
@@ -204,12 +211,21 @@ app.delete('/api/raw/:filename', (req, res) => {
               fs.writeFileSync(stockFile, JSON.stringify({ 'Stock Awards': [] }, null, 2), 'utf8');
             }
           }
-          // Clear trades.json when trade_confirmation raw file is purged
-          if (type === 'trade_confirmation') {
+          // Clear trades.json when trade_confirmation or ms_statement raw file is purged
+          if (type === 'trade_confirmation' || type === 'ms_statement' || type === 'fidelity_statement') {
             const tradesFile = path.join(DATA_DIR, 'trades.json');
             if (fs.existsSync(tradesFile)) {
-              fs.writeFileSync(tradesFile, JSON.stringify({ trades: [] }, null, 2), 'utf8');
+              // Remove trades from this source only
+              const raw = JSON.parse(fs.readFileSync(tradesFile, 'utf8'));
+              const trades = Array.isArray(raw.trades) ? raw.trades : [];
+              const sourceFilter = type === 'ms_statement' ? 'ms_statement' : (type === 'fidelity_statement' ? 'fidelity_statement' : null);
+              const filtered = sourceFilter ? trades.filter(t => t.source !== sourceFilter) : [];
+              fs.writeFileSync(tradesFile, JSON.stringify({ trades: filtered }, null, 2), 'utf8');
             }
+          }
+          // Clean up empty year objects
+          if (data.years[year] && Object.keys(data.years[year]).filter(k => k !== 'year').length === 0) {
+            delete data.years[year];
           }
           fs.writeFileSync(dataFile, JSON.stringify(data, null, 2), 'utf8');
         }
