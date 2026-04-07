@@ -13,7 +13,6 @@
     "express": "^4.21.0",
     "multer": "^1.4.5-lts.1",
     "pdf-parse-new": "^2.0.0",
-    "tesseract.js": "^5.1.1",
-    "xlsx": "^0.18.5"
+    "tesseract.js": "^5.1.1"
   }
 }

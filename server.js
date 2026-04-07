@@ -4,7 +4,6 @@ const fs = require('fs');
 const multer = require('multer');
 const pdfParse = require('pdf-parse-new');
 let Tesseract = null; // lazy-loaded on first OCR use
-const XLSX = require('xlsx');
 
 const ALLOWED_MIMES = new Set([
   'application/pdf',
