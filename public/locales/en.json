@@ -77,6 +77,8 @@
     "item": "Item",
     "amount": "Amount (RON)",
     "sectionEarned": "WHAT I EARNED (Gross Income)",
+    "subsectionUS": "United States (US Broker)",
+    "subsectionRO": "Romania (RO Broker / Banks)",
     "earnUsGains": "US capital gains (stock sales)",
     "earnUsDiv": "US dividends",
     "earnRoGainsLong": "Romania capital gains ≥1 year",

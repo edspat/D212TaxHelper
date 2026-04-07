@@ -77,6 +77,8 @@
     "item": "Element",
     "amount": "Sumă (RON)",
     "sectionEarned": "CE AM CÂȘTIGAT (Venituri brute)",
+    "subsectionUS": "Statele Unite (Broker SUA)",
+    "subsectionRO": "România (Broker RO / Bănci)",
     "earnUsGains": "Câștiguri capital SUA (vânzare acțiuni)",
     "earnUsDiv": "Dividende SUA",
     "earnRoGainsLong": "Câștiguri capital România ≥1 an",
