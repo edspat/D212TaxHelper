@@ -1632,14 +1632,18 @@ const App = (() => {
     resultDiv.innerHTML = allResultsHtml || `<p style="color: var(--danger)">${I18n.t('import.error')}</p>`;
 
     if (anySuccess) {
-      await loadAllData();
-      populateYears();
-      const uploadedYear = parseInt(yearVal, 10);
-      if (uploadedYear) {
-        selectedYear = uploadedYear;
-        document.getElementById('year-select').value = selectedYear;
+      try {
+        await loadAllData();
+        populateYears();
+        const uploadedYear = parseInt(yearVal, 10);
+        if (uploadedYear) {
+          selectedYear = uploadedYear;
+          document.getElementById('year-select').value = selectedYear;
+        }
+        render();
+      } catch (renderErr) {
+        console.error('Post-upload render error:', renderErr);
       }
-      render();
     }
     formControls.forEach(c => c.disabled = false);
     submitBtn.textContent = I18n.t('import.upload');
