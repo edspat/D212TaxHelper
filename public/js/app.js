@@ -404,6 +404,20 @@ const App = (() => {
       const gainsUSD = parseFloat(yd.fidelityGains) || 0;
       capitalGainsTaxableRON = (gainsUSD - capitalGainsCostUSD) * rate;
     }
+    // Manual override: RO gains from country rows
+    if (yd.roGainsCountries && yd.roGainsCountries.length > 0) {
+      let manualLong = 0, manualShort = 0, manualTax = 0;
+      for (const c of yd.roGainsCountries) {
+        manualLong += c.longGain || 0;
+        manualShort += c.shortGain || 0;
+        manualTax += c.taxWithheld || 0;
+      }
+      roLongTermGainRON = manualLong;
+      roShortTermGainRON = manualShort;
+      capitalGainsRON_ro = manualLong + manualShort;
+      roPortTaxWithheld = manualTax;
+    }
+    // Legacy single-field overrides (backward compat)
     if (yd.roGainsLong !== undefined && yd.roGainsLong !== '') roLongTermGainRON = parseFloat(yd.roGainsLong) || 0;
     if (yd.roGainsShort !== undefined && yd.roGainsShort !== '') roShortTermGainRON = parseFloat(yd.roGainsShort) || 0;
     if (yd.roGainsLong !== undefined || yd.roGainsShort !== undefined) capitalGainsRON_ro = roLongTermGainRON + roShortTermGainRON;
@@ -800,6 +814,33 @@ const App = (() => {
             rate: (data.roShortRate * 100) + '%',
             withheld: c.shortTax,
             net: Math.max(0, (c.shortGain - c.shortLoss) * data.roShortRate - c.shortTax)
+          });
+        }
+      }
+    }
+    // Manual country rows from Add Data
+    const manualCountries = yd.roGainsCountries || [];
+    if (manualCountries.length > 0 && !tvPort.countries?.length && !xtbPort.longTerm?.gainRON) {
+      for (const c of manualCountries) {
+        const broker = yd.roBroker || 'RO Broker';
+        if (c.longGain > 0) {
+          rows.push({
+            cat: I18n.t('income.roGainsLong') + ' (' + broker + ')',
+            country: c.country,
+            gross: c.longGain,
+            rate: (data.roLongRate * 100) + '%',
+            withheld: 0,
+            net: 0
+          });
+        }
+        if (c.shortGain > 0) {
+          rows.push({
+            cat: I18n.t('income.roGainsShort') + ' (' + broker + ')',
+            country: c.country,
+            gross: c.shortGain,
+            rate: (data.roShortRate * 100) + '%',
+            withheld: 0,
+            net: 0
           });
         }
       }
@@ -1379,14 +1420,14 @@ const App = (() => {
     document.getElementById('input-ro-dividends').value = yd.xtbDividends || '';
     document.getElementById('input-us-gains').value = yd.fidelityGains || '';
     document.getElementById('input-us-cost').value = yd.fidelityCost || '';
-    document.getElementById('input-ro-gains-long').value = yd.roGainsLong || '';
-    document.getElementById('input-ro-gains-short').value = yd.roGainsShort || '';
-    document.getElementById('input-ro-gains-tax').value = yd.roGainsTaxWithheld || '';
     document.getElementById('input-interest').value = yd.interestIncome || '';
     document.getElementById('input-exchange-rate').value = yd.exchangeRate || rate;
     document.getElementById('input-min-salary').value = yd.minSalary || defaultMinSalary;
     document.getElementById('input-d212-deadline').value = yd.d212Deadline || d212DefaultDeadline(selectedYear);
     document.getElementById('input-stock-withholding').value = yd.stockWithholdingPaid || '';
+
+    // Populate RO gains country rows
+    renderRoGainsRows(yd.roGainsCountries || []);
 
     // Update fieldset legend with year
     const legend = document.getElementById('legend-rates');
@@ -1406,6 +1447,63 @@ const App = (() => {
     if (btnTaxRates) btnTaxRates.textContent = `${I18n.t('input.saveTaxRates')} (${selectedYear})`;
   }
 
+  // ============ RO GAINS COUNTRY ROWS ============
+  const RO_COUNTRIES = ['US', 'RO', 'NL', 'DE', 'FR', 'GB', 'IE', 'LU', 'CH', 'AT', 'BE', 'IT', 'ES'];
+
+  function renderRoGainsRows(rows) {
+    const container = document.getElementById('ro-gains-rows');
+    container.innerHTML = '';
+    if (!rows || rows.length === 0) {
+      addRoGainsRow(container);
+    } else {
+      rows.forEach(r => addRoGainsRow(container, r));
+    }
+  }
+
+  function addRoGainsRow(container, data) {
+    const row = document.createElement('div');
+    row.className = 'ro-gains-row';
+    row.style.cssText = 'display:grid;grid-template-columns:80px 1fr 1fr 1fr 30px;gap:0.5rem;align-items:center;margin-bottom:0.5rem;padding:0.5rem;background:var(--bg-secondary);border-radius:var(--radius);';
+    const countryOpts = RO_COUNTRIES.map(c => `<option value="${c}"${data?.country === c ? ' selected' : ''}>${c}</option>`).join('');
+    row.innerHTML = `
+      <select class="ro-country" style="padding:0.3rem;">${countryOpts}</select>
+      <div><small>${I18n.t('input.roGainsLong')}</small><input type="number" step="0.01" class="ro-long" value="${data?.longGain || ''}" style="width:100%;"></div>
+      <div><small>${I18n.t('input.roGainsShort')}</small><input type="number" step="0.01" class="ro-short" value="${data?.shortGain || ''}" style="width:100%;"></div>
+      <div><small>${I18n.t('input.roGainsTaxWithheld')}</small><input type="number" step="0.01" class="ro-tax" value="${data?.taxWithheld || ''}" style="width:100%;"></div>
+      <button type="button" class="ro-remove-btn" style="background:var(--danger);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:1rem;padding:0.2rem;">✕</button>
+    `;
+    row.querySelector('.ro-remove-btn').addEventListener('click', () => {
+      row.remove();
+      if (!container.children.length) addRoGainsRow(container);
+    });
+    container.appendChild(row);
+  }
+
+  function collectRoGainsRows() {
+    const rows = document.querySelectorAll('#ro-gains-rows .ro-gains-row');
+    const result = [];
+    rows.forEach(row => {
+      const country = row.querySelector('.ro-country').value;
+      const longGain = row.querySelector('.ro-long').value;
+      const shortGain = row.querySelector('.ro-short').value;
+      const taxWithheld = row.querySelector('.ro-tax').value;
+      if (longGain || shortGain || taxWithheld) {
+        result.push({
+          country,
+          longGain: parseFloat(longGain) || 0,
+          shortGain: parseFloat(shortGain) || 0,
+          taxWithheld: parseFloat(taxWithheld) || 0
+        });
+      }
+    });
+    return result;
+  }
+
+  // Add country button
+  document.getElementById('btn-add-ro-row')?.addEventListener('click', () => {
+    addRoGainsRow(document.getElementById('ro-gains-rows'));
+  });
+
   async function handleDataSubmit(e) {
     e.preventDefault();
     const payload = {
@@ -1415,9 +1513,7 @@ const App = (() => {
       roDividends: document.getElementById('input-ro-dividends').value,
       usGains: document.getElementById('input-us-gains').value,
       usCost: document.getElementById('input-us-cost').value,
-      roGainsLong: document.getElementById('input-ro-gains-long').value,
-      roGainsShort: document.getElementById('input-ro-gains-short').value,
-      roGainsTaxWithheld: document.getElementById('input-ro-gains-tax').value,
+      roGainsCountries: collectRoGainsRows(),
       interestIncome: document.getElementById('input-interest').value,
       stockWithholdingPaid: document.getElementById('input-stock-withholding').value
     };

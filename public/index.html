@@ -350,19 +350,13 @@
               <input type="number" step="0.01" id="input-us-cost" name="usCost">
               <small data-i18n="input.usCostHint">Cost of ESPP shares purchased at preferential price. Stock awards (free) = 0.</small>
             </div>
-            <div class="form-row">
-              <label data-i18n="input.roGainsLong">Romania Gains ≥1 year (RON)</label>
-              <input type="number" step="0.01" id="input-ro-gains-long" name="roGainsLong">
-            </div>
-            <div class="form-row">
-              <label data-i18n="input.roGainsShort">Romania Gains <1 year (RON)</label>
-              <input type="number" step="0.01" id="input-ro-gains-short" name="roGainsShort">
-            </div>
-            <div class="form-row">
-              <label data-i18n="input.roGainsTaxWithheld">RO Broker Tax Withheld (RON)</label>
-              <input type="number" step="0.01" id="input-ro-gains-tax" name="roGainsTaxWithheld">
-              <small data-i18n="input.roGainsTaxHint">Total capital gains tax withheld by Romanian broker (XTB / Tradeville)</small>
-            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend data-i18n="input.roCapitalGains">Romania Broker Capital Gains (per country)</legend>
+            <p class="subtitle" style="font-size:0.8rem;" data-i18n="input.roCapitalGainsHint">Add capital gains from Romanian broker (XTB / Tradeville) per country of origin. All are treated as final tax withheld by broker.</p>
+            <div id="ro-gains-rows"></div>
+            <button type="button" id="btn-add-ro-row" class="btn-primary" style="font-size:0.8rem;padding:0.4rem 0.8rem;margin-top:0.5rem;" data-i18n="input.addCountryRow">+ Add Country</button>
           </fieldset>
 
           <fieldset>
