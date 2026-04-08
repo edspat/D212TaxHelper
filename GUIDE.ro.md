@@ -1,6 +1,6 @@
 # D212 Asistent Fiscal - Ghid de Utilizare
 
-**Versiune ghid:** 1.3 | **Versiune aplicație:** 2.3.0 | **Ultima actualizare:** 08.04.2026
+**Versiune ghid:** 1.4 | **Versiune aplicație:** 2.4.0 | **Ultima actualizare:** 08.04.2026
 
 ---
 
@@ -92,7 +92,7 @@ Aplicația rulează la **http://localhost:3000**.
 
 | Element | Descriere |
 |---------|-----------|
-| **Versiunea aplicației** (ex: v2.3.0) | Click pentru a vedea istoricul complet de versiuni |
+| **Versiunea aplicației** (ex: v2.4.0) | Click pentru a vedea istoricul complet de versiuni |
 | **Sursa datelor** | Arată de unde provin datele (ANAF, BNR, Fidelity, XTB) |
 | **Contact** | Link email către autor |
 | **Repornire Server** | Repornește serverul Node.js (pagina se reîncarcă automat) |
@@ -568,16 +568,17 @@ Vezi istoricul complet făcând click pe numărul versiunii din footer-ul aplica
 - [CHANGELOG.en.md](CHANGELOG.en.md) (Engleză)
 - [CHANGELOG.ro.md](CHANGELOG.ro.md) (Română)
 
-### Versiunea curentă: v2.3.0 (08.04.2026)
+### Versiunea curentă: v2.4.0 (08.04.2026)
 
 **Modificări majore:**
-- Audit conformitate ANAF: 7 corecturi de calcul
-- Asistent D212 cu detalii cost ESPP, credit fiscal, broker RO
-- Calcul impozit grupat în subsecțiuni SUA/România cu subtotaluri
-- Purge șterge complet toate datele asociate
-- RON rotunjit la lei întregi conform ANAF
+- Parser Tradeville Portfolio
+- Câștiguri broker RO pe țară (40 țări)
+- Brokeri text liber cu sugestii
+- Date Brute ca listă cu Vizualizează/Șterge
+- Link formular ANAF D212
+- Purge corect per sursă tranzacții
 
-### Versiunea anterioară: v2.2.0 (07.04.2026)
+### Versiunea anterioară: v2.3.0 (08.04.2026)
 
 Versiune inițială cu interfața completă pe 6 tab-uri, 8 parsere de documente, suport bilingv, temă întunecată și versiune portabilă.
 

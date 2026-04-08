@@ -1,5 +1,22 @@
 # D212 Asistent Fiscal - Istoric versiuni
 
+## v2.4.0 (2026-04-08)
+
+### Funcționalități noi
+- **Parser Tradeville Portfolio** — România (Tradeville) - Fișă de Portofoliu (Câștiguri Capital)
+- **Câștiguri RO pe țară** — tab Adăugare Date: rânduri dinamice per țară (40 țări)
+- **Broker text liber** — scrie orice broker sau alege din sugestii
+- **Listă fișiere Date Brute** — tabel cu nume, dată, butoane Vizualizează/Șterge
+- **Link ANAF D212** — buton pe Calcul Impozit deschide formularul ANAF
+
+### Corecturi
+- Purge șterge doar tranzacțiile din sursa specifică
+- Purge recalculează agregatele după ștergere
+- Vânzări Acțiuni SUA "Plătit" = 0 (reținerea stock awards e deducere, nu impozit)
+- API Date Brute returnează metadate fișiere
+
+---
+
 ## v2.3.0 (2026-04-08)
 
 ### Corecturi calcul (Audit conformitate ANAF)

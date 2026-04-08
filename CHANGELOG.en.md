@@ -1,5 +1,22 @@
 # D212 Tax Helper - Changelog
 
+## v2.4.0 (2026-04-08)
+
+### New Features
+- **Tradeville Portfolio parser** — Romania (Tradeville) - Fișă de Portofoliu (Capital Gains)
+- **Per-country RO gains input** — Add Data tab: dynamic rows for capital gains per country (40 countries)
+- **Free-text broker input** — type any broker name or pick from suggestions
+- **Raw Data file list** — table with name, upload date, View/Purge buttons (replaces dropdown)
+- **ANAF D212 link** — button on Tax Calculation opens anaf.ro/declaratii/duf in new window
+
+### Fixes
+- Purge correctly removes only source-specific trades (MS/Fidelity/trade confirmation)
+- Purge recalculates trade aggregates after deletion
+- US Stock Sales "Paid" column = 0 (stock withholding is deduction, not tax paid)
+- Raw Data API returns file metadata (date, size)
+
+---
+
 ## v2.3.0 (2026-04-08)
 
 ### Calculation Fixes (ANAF Compliance Audit)
