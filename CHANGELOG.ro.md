@@ -1,5 +1,15 @@
 # D212 Asistent Fiscal - Istoric versiuni
 
+## v3.1.2 (2026-04-09)
+
+### Îmbunătățiri
+- **Bară de progres pe butonul Upload** — gradient verde se umple stânga-dreapta în timpul procesării; pentru fișiere multiple arată progresul per fișier
+- **Bară de progres pe butoanele Upgrade/Downgrade** — arată "Se instalează... X%" cu progres în timp real din utilizarea discului, "Se șterge... X%" cu animație inversă
+- **Lățimea butonului blocată** în timpul animațiilor de progres pentru a preveni saltările de layout
+- **Fix setup_paddleocr.js** — `stdio: 'inherit'` înlocuit cu pipe explicit pentru a preveni blocarea procesului child când e apelat prin API-ul serverului
+
+---
+
 ## v3.1.1 (2026-04-09)
 
 ### Corecturi

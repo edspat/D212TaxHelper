@@ -1,5 +1,15 @@
 # D212 Tax Helper - Changelog
 
+## v3.1.2 (2026-04-09)
+
+### Improvements
+- **Progress bar on Upload button** — green gradient fills left-to-right during document processing; for multiple files shows per-file progress
+- **Progress bar on Upgrade/Downgrade buttons** — shows "Installing... X%" with real-time progress from disk usage, "Removing... X%" with reverse animation
+- **Button width locked** during progress animations to prevent layout jumps
+- **setup_paddleocr.js fix** — `stdio: 'inherit'` replaced with explicit pipe to prevent child process hang when called via server API
+
+---
+
 ## v3.1.1 (2026-04-09)
 
 ### Fixes

@@ -233,6 +233,7 @@
     "ocrUpgradeInstalling": "Installing...",
     "ocrUpgraded": "PaddleOCR installed successfully! Now using PaddleOCR.",
     "ocrDowngradeBtn": "Downgrade to Lite",
+    "ocrDowngradeRemoving": "Removing...",
     "ocrDowngradeHint": "Save disk space by removing PaddleOCR ({size}). Click here for details.",
     "ocrDowngradeConfirm": "This will delete the Python/PaddleOCR folder ({size}) and switch back to Tesseract.js. You can re-install later. Continue?",
     "ocrDowngraded": "PaddleOCR removed. Now using Tesseract.js."

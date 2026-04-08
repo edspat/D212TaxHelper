@@ -112,7 +112,7 @@ async function setup(targetDir) {
   log('Installing pip...');
   execSync(`"${pythonExe}" "${getPipPath}" --no-warn-script-location`, {
     cwd: pythonDir,
-    stdio: 'inherit',
+    stdio: ['pipe', process.stdout, process.stderr],
   });
 
   // 5. Install PaddleOCR and dependencies
@@ -120,7 +120,7 @@ async function setup(targetDir) {
   const pipCmd = `"${pythonExe}" -m pip install --no-warn-script-location ${PIP_PACKAGES.join(' ')}`;
   execSync(pipCmd, {
     cwd: pythonDir,
-    stdio: 'inherit',
+    stdio: ['pipe', process.stdout, process.stderr],
     timeout: 600000, // 10 min
   });
 

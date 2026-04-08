@@ -1,6 +1,6 @@
 # D212 Tax Helper - User Guide
 
-**Guide version:** 1.7 | **App version:** 3.1.1 | **Last updated:** 2026-04-09
+**Guide version:** 1.8 | **App version:** 3.1.2 | **Last updated:** 2026-04-09
 
 ---
 
@@ -622,16 +622,15 @@ See the full changelog by clicking the version number in the app footer, or view
 - [CHANGELOG.en.md](CHANGELOG.en.md) (English)
 - [CHANGELOG.ro.md](CHANGELOG.ro.md) (Romanian)
 
-### Current Version: v3.1.1 (2026-04-09)
+### Current Version: v3.1.2 (2026-04-09)
 
 **Major changes:**
-- In-app OCR engine management (Upgrade to Full / Downgrade to Lite buttons)
-- PaddleOCR install/remove from the Import tab — no restart needed
+- Progress bars on Upload, Upgrade, and Downgrade buttons
+- In-app OCR engine management (Upgrade to Full / Downgrade to Lite)
+- PaddleOCR install/remove from the Import tab
 - Bulk delete in Raw Data with Select All and Delete Selected
 - Back to Top button in Changelog, README, and Guide modals
-- Anchor links work inside modals (Table of Contents navigation)
-- Changelog links in Guide open stacked modal
-- Portable build includes all .bat files and README.ro.md
+- Anchor links and changelog links work inside modals
 
 ### Previous Version: v3.0.0 (2026-04-08)
 

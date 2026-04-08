@@ -1,6 +1,6 @@
 # D212 Asistent Fiscal - Ghid de Utilizare
 
-**Versiune ghid:** 1.7 | **Versiune aplicație:** 3.1.1 | **Ultima actualizare:** 09.04.2026
+**Versiune ghid:** 1.8 | **Versiune aplicație:** 3.1.2 | **Ultima actualizare:** 09.04.2026
 
 ---
 
@@ -616,16 +616,15 @@ Vezi istoricul complet făcând click pe numărul versiunii din footer-ul aplica
 - [CHANGELOG.en.md](CHANGELOG.en.md) (Engleză)
 - [CHANGELOG.ro.md](CHANGELOG.ro.md) (Română)
 
-### Versiunea curentă: v3.1.1 (09.04.2026)
+### Versiunea curentă: v3.1.2 (09.04.2026)
 
 **Modificări majore:**
-- Gestionare motor OCR din aplicație (butoane Upgrade la Full / Downgrade la Lite)
-- Instalare/dezinstalare PaddleOCR din tab-ul Importă Document — fără repornire
+- Bare de progres pe butoanele Upload, Upgrade și Downgrade
+- Gestionare motor OCR din aplicație (Upgrade la Full / Downgrade la Lite)
+- Instalare/dezinstalare PaddleOCR din tab-ul Importă Document
 - Ștergere multiplă în Date Brute cu Selectează tot și Șterge Selectate
-- Buton Înapoi sus în ferestrele Istoric versiuni, Citește-mă și Ghid
-- Linkurile ancora funcționează în ferestre (navigare Cuprins)
-- Linkurile Changelog din Ghid deschid fereastră suprapusă
-- Build-ul portabil include toate fișierele .bat și README.ro.md
+- Buton Înapoi sus în ferestrele modale
+- Linkurile ancora și changelog funcționează în ferestre
 
 ### Versiunea anterioară: v3.0.0 (08.04.2026)
 

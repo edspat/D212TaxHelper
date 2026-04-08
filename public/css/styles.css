@@ -811,9 +811,12 @@ footer {
   font-size: 0.78rem;
   padding: 0.3rem 0.7rem;
   white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.3s ease;
 }
 .ocr-action-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.85;
   cursor: wait;
 }
 .ocr-action-upgrade {

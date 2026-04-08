@@ -1880,20 +1880,38 @@ const App = (() => {
           actionBtn.onclick = async () => {
             const msg = I18n.t('import.ocrDowngradeConfirm').replace('{size}', sizeLabel);
             if (!confirm(msg)) return;
+            // Lock button width
+            actionBtn.style.minWidth = actionBtn.offsetWidth + 'px';
             actionBtn.disabled = true;
+            const removingLabel = I18n.t('import.ocrDowngradeRemoving');
+            actionBtn.textContent = removingLabel + ' 100%';
+            actionBtn.style.background = `linear-gradient(90deg, var(--danger) 100%, var(--text-muted) 100%)`;
+            let revPct = 100;
+            const revInterval = setInterval(() => {
+              revPct = Math.max(0, revPct - 5);
+              actionBtn.textContent = removingLabel + ' ' + revPct + '%';
+              actionBtn.style.background = `linear-gradient(90deg, var(--danger) ${revPct}%, var(--text-muted) ${revPct}%)`;
+            }, 40);
             try {
               const r = await fetch('/api/ocr-downgrade', { method: 'POST' });
               const result = await r.json();
+              clearInterval(revInterval);
               if (result.success) {
+                actionBtn.textContent = removingLabel + ' 0%';
+                actionBtn.style.background = 'var(--text-muted)';
                 showToast(I18n.t('import.ocrDowngraded'), 'success');
+                actionBtn.style.minWidth = '';
                 await fetchOcrStatus();
               } else {
                 showToast(result.error, 'error');
               }
             } catch (err) {
+              clearInterval(revInterval);
               showToast(err.message, 'error');
             } finally {
               actionBtn.disabled = false;
+              actionBtn.style.background = '';
+              actionBtn.style.minWidth = '';
             }
           };
           // Hint: info about downgrading (opens guide)
@@ -1911,21 +1929,45 @@ const App = (() => {
           actionBtn.onclick = async () => {
             const msg = I18n.t('import.ocrUpgradeConfirm');
             if (!confirm(msg)) return;
+            // Lock button width
+            actionBtn.style.minWidth = actionBtn.offsetWidth + 'px';
             actionBtn.disabled = true;
-            actionBtn.textContent = I18n.t('import.ocrUpgradeInstalling');
+            const installingLabel = I18n.t('import.ocrUpgradeInstalling');
+            actionBtn.textContent = installingLabel + ' 0%';
+            const TARGET_MB = 1028;
+            // Poll progress via pythonSizeMB
+            const progressInterval = setInterval(async () => {
+              try {
+                const ps = await fetch('/api/ocr-status');
+                const psData = await ps.json();
+                const mb = psData.pythonSizeMB || 0;
+                const pct = Math.min(99, Math.round(mb / TARGET_MB * 100));
+                actionBtn.textContent = installingLabel + ' ' + pct + '%';
+                actionBtn.style.background = `linear-gradient(90deg, var(--success) ${pct}%, var(--accent) ${pct}%)`;
+              } catch {}
+            }, 3000);
             try {
               const r = await fetch('/api/ocr-upgrade', { method: 'POST' });
               const result = await r.json();
+              clearInterval(progressInterval);
               if (result.success) {
+                actionBtn.textContent = installingLabel + ' 100%';
+                actionBtn.style.background = 'var(--success)';
                 showToast(I18n.t('import.ocrUpgraded'), 'success');
+                actionBtn.style.minWidth = '';
                 await fetchOcrStatus();
               } else {
                 showToast(result.error, 'error');
                 actionBtn.textContent = I18n.t('import.ocrUpgradeBtn');
+                actionBtn.style.background = '';
+                actionBtn.style.minWidth = '';
               }
             } catch (err) {
+              clearInterval(progressInterval);
               showToast(err.message, 'error');
               actionBtn.textContent = I18n.t('import.ocrUpgradeBtn');
+              actionBtn.style.background = '';
+              actionBtn.style.minWidth = '';
             } finally {
               actionBtn.disabled = false;
             }
@@ -1949,11 +1991,12 @@ const App = (() => {
     const files = document.getElementById('upload-file').files;
 
     const resultDiv = document.getElementById('upload-result');
-    const submitBtn = document.querySelector('#upload-form .btn-primary');
+    const submitBtn = document.getElementById('upload-submit-btn');
     const uploadForm = document.getElementById('upload-form');
     // Disable all form controls during processing
     const formControls = uploadForm.querySelectorAll('input, select, button');
     formControls.forEach(c => c.disabled = true);
+    submitBtn.style.minWidth = submitBtn.offsetWidth + 'px';
     submitBtn.textContent = I18n.t('import.processing');
     resultDiv.className = 'card';
     resultDiv.innerHTML = `<p style="color: var(--text-secondary)">${I18n.t('import.processing')}</p>`;
@@ -1962,6 +2005,21 @@ const App = (() => {
     let anySuccess = false;
     const fileCount = files.length;
 
+    // Progress bar on button
+    function updateBtnProgress(pct) {
+      submitBtn.style.setProperty('background', `linear-gradient(90deg, var(--success) ${pct}%, var(--accent) ${pct}%)`, 'important');
+    }
+    if (fileCount <= 1) {
+      // Indeterminate: animate 0→90% slowly
+      let indPct = 0;
+      var indInterval = setInterval(() => {
+        indPct = Math.min(90, indPct + 2);
+        updateBtnProgress(indPct);
+      }, 200);
+    } else {
+      updateBtnProgress(0);
+    }
+
     for (let fi = 0; fi < fileCount; fi++) {
       const form = new FormData();
       form.append('year', yearVal);
@@ -1969,6 +2027,8 @@ const App = (() => {
       form.append('file', files[fi]);
 
       if (fileCount > 1) {
+        const pct = Math.round((fi / fileCount) * 100);
+        updateBtnProgress(pct);
         resultDiv.innerHTML = `<p style="color: var(--text-secondary)">${I18n.t('import.processing')} (${fi + 1}/${fileCount})</p>`;
       }
 
@@ -2072,6 +2132,9 @@ const App = (() => {
     }
     formControls.forEach(c => c.disabled = false);
     submitBtn.textContent = I18n.t('import.upload');
+    submitBtn.style.removeProperty('background');
+    submitBtn.style.minWidth = '';
+    if (typeof indInterval !== 'undefined') clearInterval(indInterval);
   }
 
   // ============ RAW DATA ============

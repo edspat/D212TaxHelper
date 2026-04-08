@@ -231,6 +231,7 @@
     "ocrUpgradeInstalling": "Se instalează...",
     "ocrUpgraded": "PaddleOCR instalat cu succes! Se folosește acum PaddleOCR.",
     "ocrDowngradeBtn": "Downgrade la Lite",
+    "ocrDowngradeRemoving": "Se șterge...",
     "ocrDowngradeHint": "Eliberați spațiu pe disc ștergând PaddleOCR ({size}). Click aici pentru detalii.",
     "ocrDowngradeConfirm": "Aceasta va șterge folderul Python/PaddleOCR ({size}) și va reveni la Tesseract.js. Puteți reinstala ulterior. Continuați?",
     "ocrDowngraded": "PaddleOCR a fost șters. Se folosește acum Tesseract.js."
