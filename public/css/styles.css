@@ -365,6 +365,17 @@ legend {
 }
 
 /* ============ Raw Data ============ */
+.raw-bulk-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+}
 .raw-text-box {
   background: var(--bg-secondary);
   border: 1px solid var(--border);

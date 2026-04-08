@@ -240,7 +240,13 @@
     "fileSaved": "Fișierul a fost salvat cu succes.",
     "confirmPurge": "Sunteți sigur că doriți să ștergeți '{file}' și datele asociate? Această acțiune nu poate fi anulată.",
     "purged": "'{file}' a fost șters cu succes.",
-    "noData": "Nu există date brute. Rulați mai întâi scriptul de extracție."
+    "noData": "Nu există date brute. Rulați mai întâi scriptul de extracție.",
+    "selectAll": "Selectează tot",
+    "selectedCount": "{count} fișier(e) selectat(e)",
+    "deleteSelected": "Șterge Selectate",
+    "confirmDeleteSelected": "Sunteți sigur că doriți să ștergeți {count} fișier(e) selectat(e) și datele asociate? Această acțiune nu poate fi anulată.",
+    "confirmDeleteAll": "Sunteți sigur că doriți să ștergeți TOATE cele {count} fișier(e) și datele asociate? Această acțiune nu poate fi anulată.",
+    "deletedCount": "{count} fișier(e) șters(e) cu succes."
   },
   "footer": {
     "appName": "D212 Asistent Fiscal",

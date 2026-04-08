@@ -242,7 +242,13 @@
     "fileSaved": "File saved successfully.",
     "confirmPurge": "Are you sure you want to delete '{file}' and its associated data? This cannot be undone.",
     "purged": "'{file}' has been deleted successfully.",
-    "noData": "No raw data available. Run the extraction script first."
+    "noData": "No raw data available. Run the extraction script first.",
+    "selectAll": "Select all",
+    "selectedCount": "{count} file(s) selected",
+    "deleteSelected": "Delete Selected",
+    "confirmDeleteSelected": "Are you sure you want to delete {count} selected file(s) and their associated data? This cannot be undone.",
+    "confirmDeleteAll": "Are you sure you want to delete ALL {count} file(s) and their associated data? This cannot be undone.",
+    "deletedCount": "{count} file(s) deleted successfully."
   },
   "footer": {
     "appName": "D212 Tax Helper",

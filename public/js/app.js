@@ -1980,9 +1980,16 @@ const App = (() => {
     // Render file list as table
     const locale = I18n.getLang?.() === 'ro' ? 'ro-RO' : 'en-US';
     listDiv.innerHTML = `
+      <div id="raw-bulk-toolbar" class="raw-bulk-toolbar hidden">
+        <span id="raw-selected-count"></span>
+        <button type="button" id="raw-delete-selected-btn" class="btn-primary" style="font-size:0.8rem;padding:0.4rem 0.8rem;background:var(--danger);">
+          ${I18n.t('raw.deleteSelected')}
+        </button>
+      </div>
       <table style="width:100%;font-size:0.85rem;">
         <thead>
           <tr>
+            <th style="padding:0.5rem;width:2rem;"><input type="checkbox" id="raw-select-all" title="${I18n.t('raw.selectAll')}"></th>
             <th style="text-align:left;padding:0.5rem;">${I18n.t('raw.fileName')}</th>
             <th style="text-align:left;padding:0.5rem;">${I18n.t('raw.uploadDate')}</th>
             <th style="text-align:right;padding:0.5rem;">${I18n.t('raw.actions')}</th>
@@ -1993,6 +2000,7 @@ const App = (() => {
             const label = f.name.replace('_raw.txt', '');
             const date = new Date(f.date).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
             return `<tr>
+              <td style="padding:0.5rem;"><input type="checkbox" class="raw-file-cb" data-file="${esc(f.name)}"></td>
               <td style="padding:0.5rem;"><strong>${esc(label)}</strong></td>
               <td style="padding:0.5rem;color:var(--text-muted);">${date}</td>
               <td style="padding:0.5rem;text-align:right;">
@@ -2004,6 +2012,57 @@ const App = (() => {
         </tbody>
       </table>
     `;
+
+    // Checkbox selection logic
+    const selectAllCb = document.getElementById('raw-select-all');
+    const bulkToolbar = document.getElementById('raw-bulk-toolbar');
+    const fileCbs = listDiv.querySelectorAll('.raw-file-cb');
+
+    function updateBulkToolbar() {
+      const checked = listDiv.querySelectorAll('.raw-file-cb:checked');
+      const count = checked.length;
+      if (count > 0) {
+        bulkToolbar.classList.remove('hidden');
+        document.getElementById('raw-selected-count').textContent =
+          I18n.t('raw.selectedCount').replace('{count}', count);
+      } else {
+        bulkToolbar.classList.add('hidden');
+      }
+      selectAllCb.checked = count === fileCbs.length && count > 0;
+      selectAllCb.indeterminate = count > 0 && count < fileCbs.length;
+    }
+
+    selectAllCb.addEventListener('change', () => {
+      fileCbs.forEach(cb => cb.checked = selectAllCb.checked);
+      updateBulkToolbar();
+    });
+    fileCbs.forEach(cb => cb.addEventListener('change', updateBulkToolbar));
+
+    // Delete Selected button
+    document.getElementById('raw-delete-selected-btn').addEventListener('click', async () => {
+      const checked = [...listDiv.querySelectorAll('.raw-file-cb:checked')];
+      if (!checked.length) return;
+      const count = checked.length;
+      const total = fileCbs.length;
+      const msg = count === total
+        ? I18n.t('raw.confirmDeleteAll').replace('{count}', count)
+        : I18n.t('raw.confirmDeleteSelected').replace('{count}', count);
+      if (!confirm(msg)) return;
+      let deleted = 0;
+      for (const cb of checked) {
+        try {
+          const resp = await fetch(`/api/raw/${cb.dataset.file}`, { method: 'DELETE' });
+          const result = await resp.json();
+          if (result.success) deleted++;
+        } catch {}
+      }
+      if (deleted > 0) {
+        showToast(I18n.t('raw.deletedCount').replace('{count}', deleted), 'success');
+        await loadAllData();
+        render();
+        loadRawFiles();
+      }
+    });
 
     // View buttons
     listDiv.querySelectorAll('.raw-view-btn').forEach(btn => {

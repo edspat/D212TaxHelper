@@ -1,5 +1,14 @@
 # D212 Tax Helper - Changelog
 
+## v3.0.1 (2026-04-08)
+
+### Improvements
+- **Bulk delete in Raw Data** — checkboxes on each file row with "Select All" and "Delete Selected" toolbar
+- Separate confirmation dialogs for partial vs. full deletion
+- Bilingual support (EN/RO) for all new bulk delete strings
+
+---
+
 ## v3.0.0 (2026-04-08)
 
 ### New Feature: PaddleOCR Integration

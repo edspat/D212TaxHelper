@@ -1,5 +1,14 @@
 # D212 Asistent Fiscal - Istoric versiuni
 
+## v3.0.1 (2026-04-08)
+
+### Îmbunătățiri
+- **Ștergere multiplă în Date Brute** — căsuțe de selectare pe fiecare rând cu "Selectează tot" și bara "Șterge Selectate"
+- Mesaje de confirmare separate pentru ștergere parțială vs. totală
+- Suport bilingv (EN/RO) pentru toate textele noi de ștergere multiplă
+
+---
+
 ## v3.0.0 (2026-04-08)
 
 ### Funcționalitate nouă: Integrare PaddleOCR
