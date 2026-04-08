@@ -29,6 +29,11 @@ const APP_ITEMS = [
   'public',
   'scripts',
   'LICENSE',
+  'README.md',
+  'CHANGELOG.en.md',
+  'CHANGELOG.ro.md',
+  'GUIDE.en.md',
+  'GUIDE.ro.md',
 ];
 
 // Traineddata files for Tesseract OCR
