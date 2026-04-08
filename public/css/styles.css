@@ -438,6 +438,29 @@ textarea.raw-text-box {
 .scroll-top-btn:hover { transform: scale(1.05); }
 .scroll-top-btn.hidden { opacity: 0; pointer-events: none; transform: translateY(10px); }
 
+.doc-scroll-top {
+  position: absolute;
+  bottom: 1rem;
+  right: 1.5rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  transition: opacity 0.3s, transform 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  z-index: 10;
+}
+.doc-scroll-top span { font-size: 1rem; }
+.doc-scroll-top small { font-size: 0.7rem; }
+.doc-scroll-top:hover { transform: scale(1.05); }
+.doc-scroll-top.hidden { opacity: 0; pointer-events: none; }
+
 /* ============ Utility ============ */
 .hidden { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
@@ -755,6 +778,13 @@ footer {
 }
 
 /* OCR Engine Badge */
+.ocr-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
 .ocr-badge {
   display: inline-flex;
   align-items: center;
@@ -763,7 +793,6 @@ footer {
   border-radius: var(--radius);
   font-size: 0.8rem;
   font-weight: 500;
-  margin-top: 0.5rem;
 }
 .ocr-badge.paddle {
   background: rgba(76, 175, 80, 0.15);
@@ -777,4 +806,35 @@ footer {
 }
 .ocr-badge-icon {
   font-size: 0.9rem;
+}
+.ocr-action-btn {
+  font-size: 0.78rem;
+  padding: 0.3rem 0.7rem;
+  white-space: nowrap;
+}
+.ocr-action-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.ocr-action-upgrade {
+  background: var(--accent);
+}
+.ocr-action-downgrade {
+  background: var(--text-muted);
+}
+.ocr-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius);
+  background: rgba(33, 150, 243, 0.1);
+  border: 1px solid rgba(33, 150, 243, 0.25);
+  color: #64b5f6;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.ocr-hint:hover {
+  background: rgba(33, 150, 243, 0.2);
 }

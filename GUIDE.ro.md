@@ -1,6 +1,6 @@
 # D212 Asistent Fiscal - Ghid de Utilizare
 
-**Versiune ghid:** 1.5 | **Versiune aplicație:** 3.0.0 | **Ultima actualizare:** 08.04.2026
+**Versiune ghid:** 1.7 | **Versiune aplicație:** 3.1.1 | **Ultima actualizare:** 09.04.2026
 
 ---
 
@@ -301,6 +301,7 @@ Datele extrase sunt parsate și salvate automat. Un mesaj de succes/eroare apare
 
 ### Sfaturi
 - **Motor OCR:** Aplicația detectează automat PaddleOCR (versiunea Full) sau revine la Tesseract.js (versiunea Lite). Motorul activ este afișat ca insignă în partea de sus a tab-ului Import.
+- **Butoane Upgrade / Downgrade:** Lângă insignă, click pe **Upgrade la Full** pentru a instala PaddleOCR (~1,7 GB) sau **Downgrade la Lite** pentru a-l șterge — totul din aplicație, fără repornire.
 - **PaddleOCR** oferă rezultate mult mai bune pentru documente scanate, în special tabele complexe precum Fișa de Portofoliu Tradeville.
 - **Imaginile** (capturi de ecran, fotografii) sunt procesate cu OCR. Durează câteva secunde.
 - Dacă calitatea OCR este prea scăzută, aplicația te va îndruma să introduci datele manual în tab-ul Adaugă Date.
@@ -517,18 +518,38 @@ Varianta **Full** include Python Embeddable 3.12 și PaddleOCR pentru OCR superi
 | `Start.bat` | Lansează aplicația (deschide browserul automat) |
 | `Stop.bat` | Oprește serverul |
 | `Upgrade-to-Full.bat` | *(doar Lite build)* Descarcă Python + PaddleOCR pentru upgrade motor OCR |
+| `Downgrade-to-Lite.bat` | Șterge folderul Python/PaddleOCR pentru a elibera spațiu pe disc |
 | `README.md` | Instrucțiuni de pornire rapidă |
 
 ### Upgrade de la Lite la Full
 
-Dacă ai versiunea Lite și vrei PaddleOCR:
+Poți face upgrade în două moduri:
 
+**Opțiunea A — Din aplicație (recomandat):**
+1. Deschide tab-ul **Importă Document**
+2. Click pe butonul **Upgrade la Full** de lângă insigna OCR
+3. Confirmă când ești întrebat (descarcă ~1,7 GB)
+4. Așteaptă finalizarea instalării — insigna va deveni verde automat
+
+**Opțiunea B — Cu fișierul batch:**
 1. Dublu-click pe **Upgrade-to-Full.bat**
-2. Confirmă când ești întrebat (descarcă ~1,7 GB)
-3. Așteaptă finalizarea instalării
-4. Repornește aplicația — insigna OCR va deveni verde
+2. Confirmă când ești întrebat
+3. Repornește aplicația
 
-Acesta descarcă Python Embeddable 3.12 și instalează PaddleOCR în `app/python/`. Datele existente sunt păstrate.
+### Downgrade de la Full la Lite
+
+Pentru a elibera spațiu pe disc (~1 GB+):
+
+**Opțiunea A — Din aplicație:**
+1. Deschide tab-ul **Importă Document**
+2. Click pe butonul **Downgrade la Lite**
+3. Confirmă — folderul python/ este șters și insigna trece pe galben
+
+**Opțiunea B — Cu fișierul batch:**
+1. Dublu-click pe **Downgrade-to-Lite.bat**
+2. Repornește aplicația
+
+Datele tale sunt păstrate în ambele cazuri. Poți comuta între variante oricând.
 
 ### Construirea versiunii portabile
 

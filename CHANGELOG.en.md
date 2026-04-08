@@ -1,5 +1,42 @@
 # D212 Tax Helper - Changelog
 
+## v3.1.1 (2026-04-09)
+
+### Fixes
+- **Changelog links in Guide** — clicking CHANGELOG.en.md / CHANGELOG.ro.md links in the Guide now opens a stacked Changelog modal instead of navigating away
+- **Portable build: README.ro.md** — Romanian README was missing from portable builds
+- **Portable build: Upgrade-to-Full.bat** — now included in both Lite and Full builds (needed after downgrade)
+- **Portable build: generated README** — lists Upgrade-to-Full.bat and Downgrade-to-Lite.bat, mentions in-app upgrade button
+
+---
+
+## v3.1.0 (2026-04-09)
+
+### OCR Engine Management
+- **Upgrade to Full / Downgrade to Lite buttons** — switch between PaddleOCR and Tesseract.js directly from the Import tab
+- **In-app PaddleOCR installation** — "Upgrade to Full" button downloads Python 3.12 + PaddleOCR (~1.7 GB) without leaving the app
+- **In-app PaddleOCR removal** — "Downgrade to Lite" button deletes the python/ folder to free disk space
+- **Real disk usage** — downgrade hint shows actual PaddleOCR folder size (not estimated)
+- **Info hint** — clickable ℹ message opens the User Guide for upgrade/downgrade details
+- OCR badge, button, and hint update live after install/remove (no restart needed)
+- OCR detection cache fix — upgrade no longer silently fails due to stale detection
+
+### Raw Data Improvements
+- **Bulk delete** — checkboxes on each file with "Select All" and "Delete Selected" toolbar
+- Separate confirmation dialogs for partial vs. full deletion
+
+### Document Viewer Improvements
+- **Back to Top button** — ↑ button in Changelog, README, and Guide modals (appears on scroll)
+- **Anchor links work inside modals** — Table of Contents links scroll within the modal instead of navigating away
+- **Em dash handling** — headings with — characters generate correct anchor IDs
+- Guide/README links with `#section` anchors now scroll smoothly to the target heading
+
+### Bug Fixes
+- OCR badge and hints translate correctly on language switch
+- Fixed stale PaddleOCR detection cache preventing upgrade/downgrade
+
+---
+
 ## v3.0.1 (2026-04-08)
 
 ### Improvements

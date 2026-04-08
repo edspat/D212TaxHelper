@@ -224,7 +224,16 @@
     "ocrTradevilleHint": "OCR nu a putut extrage datele din tabel. Fișa de Portofoliu Tradeville folosește un format de tabel complex pe care OCR nu îl poate citi. Vă rugăm să introduceți datele manual în tab-ul Adăugare Date → 'Câștiguri capital broker România (pe țară)'.",
     "processing": "Se procesează... OCR pe imagini poate dura câteva momente.",
     "ocrEnginePaddle": "Motor OCR: PaddleOCR (PP-StructureV3)",
-    "ocrEngineTesseract": "Motor OCR: Tesseract.js (Lite)"
+    "ocrEngineTesseract": "Motor OCR: Tesseract.js (Lite)",
+    "ocrUpgradeBtn": "Upgrade la Full",
+    "ocrUpgradeHint": "PaddleOCR oferă acuratețe mai bună pentru documente scanate. Click aici pentru detalii.",
+    "ocrUpgradeConfirm": "Se va descărca Python 3.12 și pachetele PaddleOCR (~1,7 GB). Necesită conexiune la internet. Poate dura câteva minute. Continuați?",
+    "ocrUpgradeInstalling": "Se instalează...",
+    "ocrUpgraded": "PaddleOCR instalat cu succes! Se folosește acum PaddleOCR.",
+    "ocrDowngradeBtn": "Downgrade la Lite",
+    "ocrDowngradeHint": "Eliberați spațiu pe disc ștergând PaddleOCR ({size}). Click aici pentru detalii.",
+    "ocrDowngradeConfirm": "Aceasta va șterge folderul Python/PaddleOCR ({size}) și va reveni la Tesseract.js. Puteți reinstala ulterior. Continuați?",
+    "ocrDowngraded": "PaddleOCR a fost șters. Se folosește acum Tesseract.js."
   },
   "raw": {
     "title": "Date Brute Extrase",

@@ -55,7 +55,7 @@ Output is created alongside the source folder. Just double-click `Start.bat` to 
 
 The **Full** build includes PaddleOCR for superior text extraction from scanned documents (especially Tradeville portfolio tables that Tesseract cannot read).
 
-The **Lite** build includes `Upgrade-to-Full.bat` — double-click it to download Python + PaddleOCR (~1.7 GB) and upgrade in place.
+You can switch between Lite and Full at any time — either from the **Import Document** tab (Upgrade to Full / Downgrade to Lite buttons) or using `Upgrade-to-Full.bat` / `Downgrade-to-Lite.bat`.
 
 ## Supported Documents
 

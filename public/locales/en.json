@@ -226,7 +226,16 @@
     "ocrTradevilleHint": "OCR could not extract table data from this document. The Tradeville Portfolio Statement uses a complex table format that OCR cannot parse reliably. Please enter the data manually in the Add Data tab \u2192 'Romania Broker Capital Gains (per country)'.",
     "processing": "Processing... OCR on images may take a moment.",
     "ocrEnginePaddle": "OCR Engine: PaddleOCR (PP-StructureV3)",
-    "ocrEngineTesseract": "OCR Engine: Tesseract.js (Lite)"
+    "ocrEngineTesseract": "OCR Engine: Tesseract.js (Lite)",
+    "ocrUpgradeBtn": "Upgrade to Full",
+    "ocrUpgradeHint": "PaddleOCR offers better accuracy for scanned documents. Click here for details.",
+    "ocrUpgradeConfirm": "This will download Python 3.12 and PaddleOCR packages (~1.7 GB). Requires internet connection. This may take several minutes. Continue?",
+    "ocrUpgradeInstalling": "Installing...",
+    "ocrUpgraded": "PaddleOCR installed successfully! Now using PaddleOCR.",
+    "ocrDowngradeBtn": "Downgrade to Lite",
+    "ocrDowngradeHint": "Save disk space by removing PaddleOCR ({size}). Click here for details.",
+    "ocrDowngradeConfirm": "This will delete the Python/PaddleOCR folder ({size}) and switch back to Tesseract.js. You can re-install later. Continue?",
+    "ocrDowngraded": "PaddleOCR removed. Now using Tesseract.js."
   },
   "raw": {
     "title": "Raw Extracted Data",

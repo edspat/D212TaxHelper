@@ -1,6 +1,6 @@
 # D212 Tax Helper - User Guide
 
-**Guide version:** 1.5 | **App version:** 3.0.0 | **Last updated:** 2026-04-08
+**Guide version:** 1.7 | **App version:** 3.1.1 | **Last updated:** 2026-04-09
 
 ---
 
@@ -306,6 +306,7 @@ The extracted data is parsed and saved automatically. A success/error message ap
 
 ### Tips
 - **OCR Engine:** The app auto-detects PaddleOCR (Full build) or falls back to Tesseract.js (Lite build). The active engine is shown as a badge at the top of the Import tab.
+- **Upgrade / Downgrade buttons:** Next to the badge, click **Upgrade to Full** to install PaddleOCR (~1.7 GB download) or **Downgrade to Lite** to remove it — all from within the app, no restart needed.
 - **PaddleOCR** provides much better results for scanned documents, especially complex tables like Tradeville Portfolio Statements.
 - **Images** (screenshots, photos) are processed using OCR. This takes a few seconds.
 - If OCR quality is too low, the app will tell you to enter data manually in the Add Data tab.
@@ -523,18 +524,38 @@ The **Full** build includes Python Embeddable 3.12 and PaddleOCR for superior OC
 | `Start.bat` | Launch the application (opens browser automatically) |
 | `Stop.bat` | Stop the server |
 | `Upgrade-to-Full.bat` | *(Lite build only)* Downloads Python + PaddleOCR to upgrade OCR engine |
+| `Downgrade-to-Lite.bat` | Removes Python/PaddleOCR folder to free disk space |
 | `README.md` | Quick start instructions |
 
 ### Upgrading Lite to Full
 
-If you have the Lite build and want PaddleOCR:
+You can upgrade in two ways:
 
+**Option A — From the app (recommended):**
+1. Open the **Import Document** tab
+2. Click the **Upgrade to Full** button next to the OCR badge
+3. Confirm when prompted (downloads ~1.7 GB)
+4. Wait for installation to complete — the badge will turn green automatically
+
+**Option B — Using the batch file:**
 1. Double-click **Upgrade-to-Full.bat**
-2. Confirm when prompted (downloads ~1.7 GB)
-3. Wait for installation to complete
-4. Restart the app — the OCR badge will turn green
+2. Confirm when prompted
+3. Restart the app
 
-This downloads Python Embeddable 3.12 and installs PaddleOCR into `app/python/`. Your existing data is preserved.
+### Downgrading Full to Lite
+
+To free disk space (~1 GB+):
+
+**Option A — From the app:**
+1. Open the **Import Document** tab
+2. Click the **Downgrade to Lite** button
+3. Confirm — the python/ folder is deleted and the badge switches to yellow
+
+**Option B — Using the batch file:**
+1. Double-click **Downgrade-to-Lite.bat**
+2. Restart the app
+
+Your data is preserved in both cases. You can switch back and forth at any time.
 
 ### Building a portable version
 

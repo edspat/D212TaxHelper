@@ -76,6 +76,7 @@ const App = (() => {
       await I18n.loadLanguage(e.target.value);
       render();
       checkNavOverflow();
+      fetchOcrStatus();
     });
 
     // Tab navigation
@@ -174,12 +175,26 @@ const App = (() => {
       let inTable = false, tableRows = [];
 
       function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+      function slugify(text) {
+        return text.toLowerCase()
+          .replace(/&amp;/g, '&').replace(/&lt;/g, '').replace(/&gt;/g, '')
+          .replace(/<[^>]+>/g, '')
+          .replace(/[\u2014\u2013]/g, '-')
+          .replace(/[^\w\s\u00C0-\u024F-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/^-|-$/g, '');
+      }
       function inl(s) {
         return esc(s)
           .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
           .replace(/\*([^*]+)\*/g, '<em>$1</em>')
           .replace(/`([^`]+)`/g, '<code style="background:var(--bg-secondary);padding:0.1rem 0.35rem;border-radius:3px;font-size:0.9em;">$1</code>')
-          .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--accent)">$1</a>');
+          .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, href) => {
+            if (href.startsWith('#')) {
+              return `<a href="${href}" class="doc-anchor-link" style="color:var(--accent)">${text}</a>`;
+            }
+            return `<a href="${href}" target="_blank" rel="noopener" style="color:var(--accent)">${text}</a>`;
+          });
       }
       function flushTable() {
         if (!tableRows.length) return '';
@@ -231,10 +246,10 @@ const App = (() => {
         if (trimmed === '') { html += '<br>'; continue; }
 
         // Headings
-        if (trimmed.startsWith('#### ')) { html += '<h5 style="margin:0.8rem 0 0.3rem;">' + inl(trimmed.slice(5)) + '</h5>'; continue; }
-        if (trimmed.startsWith('### ')) { html += '<h4 style="margin:1rem 0 0.4rem;">' + inl(trimmed.slice(4)) + '</h4>'; continue; }
-        if (trimmed.startsWith('## ')) { html += '<h3 style="margin:1.2rem 0 0.5rem;border-bottom:1px solid var(--border);padding-bottom:0.3rem;">' + inl(trimmed.slice(3)) + '</h3>'; continue; }
-        if (trimmed.startsWith('# ')) { html += '<h2 style="margin:1.2rem 0 0.5rem;">' + inl(trimmed.slice(2)) + '</h2>'; continue; }
+        if (trimmed.startsWith('#### ')) { const t = inl(trimmed.slice(5)); html += `<h5 id="${slugify(trimmed.slice(5))}" style="margin:0.8rem 0 0.3rem;">${t}</h5>`; continue; }
+        if (trimmed.startsWith('### ')) { const t = inl(trimmed.slice(4)); html += `<h4 id="${slugify(trimmed.slice(4))}" style="margin:1rem 0 0.4rem;">${t}</h4>`; continue; }
+        if (trimmed.startsWith('## ')) { const t = inl(trimmed.slice(3)); html += `<h3 id="${slugify(trimmed.slice(3))}" style="margin:1.2rem 0 0.5rem;border-bottom:1px solid var(--border);padding-bottom:0.3rem;">${t}</h3>`; continue; }
+        if (trimmed.startsWith('# ')) { const t = inl(trimmed.slice(2)); html += `<h2 id="${slugify(trimmed.slice(2))}" style="margin:1.2rem 0 0.5rem;">${t}</h2>`; continue; }
 
         // Horizontal rule
         if (/^-{3,}$/.test(trimmed)) { html += '<hr style="border:none;border-top:1px solid var(--border);margin:1rem 0;">'; continue; }
@@ -256,6 +271,34 @@ const App = (() => {
       return html;
     }
 
+    // Handle anchor links inside modals — scroll within the modal body
+    function bindAnchorLinks(container) {
+      container.querySelectorAll('a.doc-anchor-link').forEach(a => {
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          const id = a.getAttribute('href').slice(1);
+          const target = container.querySelector('#' + CSS.escape(id));
+          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+      // Intercept changelog file links — open in changelog modal
+      container.querySelectorAll('a[href$="CHANGELOG.en.md"], a[href$="CHANGELOG.ro.md"]').forEach(a => {
+        a.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const lang = a.getAttribute('href').includes('.ro.') ? 'ro' : 'en';
+          clTitle.textContent = lang === 'ro' ? 'Istoric versiuni' : 'Changelog';
+          clBody.innerHTML = lang === 'ro' ? '<p>Se încarcă...</p>' : '<p>Loading...</p>';
+          clModal.classList.remove('hidden');
+          try {
+            const resp = await fetch(`/api/changelog/${lang}`);
+            const text = await resp.text();
+            clBody.innerHTML = md2html(text);
+            bindAnchorLinks(clBody);
+          } catch { clBody.innerHTML = '<p>Error loading changelog</p>'; }
+        });
+      });
+    }
+
     if (vLink && clModal) {
       vLink.addEventListener('click', async (e) => {
         e.preventDefault();
@@ -267,10 +310,20 @@ const App = (() => {
           const resp = await fetch(`/api/changelog/${lang}`);
           const text = await resp.text();
           clBody.innerHTML = md2html(text);
+          bindAnchorLinks(clBody);
         } catch { clBody.innerHTML = '<p>Error loading changelog</p>'; }
       });
       clClose.addEventListener('click', () => clModal.classList.add('hidden'));
       clModal.addEventListener('click', (e) => { if (e.target === clModal) clModal.classList.add('hidden'); });
+
+      // Changelog scroll-to-top button
+      const clScrollBtn = document.getElementById('changelog-scroll-top');
+      if (clScrollBtn) {
+        clScrollBtn.addEventListener('click', () => clBody.scrollTo({ top: 0, behavior: 'smooth' }));
+        clBody.addEventListener('scroll', () => {
+          clScrollBtn.classList.toggle('hidden', clBody.scrollTop < 300);
+        });
+      }
     }
 
     // Doc modal (README / Guide)
@@ -290,6 +343,7 @@ const App = (() => {
             const resp = await fetch(`/api/doc/${name}/${lang}`);
             const text = await resp.text();
             docBody.innerHTML = md2html(text);
+            bindAnchorLinks(docBody);
           } catch { docBody.innerHTML = '<p>Error loading document</p>'; }
         };
       }
@@ -299,6 +353,15 @@ const App = (() => {
       if (guideLink) guideLink.addEventListener('click', openDoc('guide', 'User Guide', 'Ghid de Utilizare'));
       docClose.addEventListener('click', () => docModal.classList.add('hidden'));
       docModal.addEventListener('click', (e) => { if (e.target === docModal) docModal.classList.add('hidden'); });
+
+      // Doc modal scroll-to-top button
+      const docScrollBtn = document.getElementById('doc-scroll-top');
+      if (docScrollBtn) {
+        docScrollBtn.addEventListener('click', () => docBody.scrollTo({ top: 0, behavior: 'smooth' }));
+        docBody.addEventListener('scroll', () => {
+          docScrollBtn.classList.toggle('hidden', docBody.scrollTop < 300);
+        });
+      }
     }
 
     // Populate year selector
@@ -1797,14 +1860,82 @@ const App = (() => {
       const status = await resp.json();
       const badge = document.getElementById('ocr-engine-badge');
       const label = document.getElementById('ocr-engine-label');
+      const actionBtn = document.getElementById('ocr-action-btn');
+      const hint = document.getElementById('ocr-hint');
+      const hintText = document.getElementById('ocr-hint-text');
       if (badge && label) {
         badge.style.display = 'inline-flex';
+        actionBtn.classList.remove('hidden');
+        hint.classList.remove('hidden');
         if (status.paddleocr) {
           badge.className = 'ocr-badge paddle';
           label.textContent = I18n.t('import.ocrEnginePaddle');
+          // Button: Downgrade to Lite
+          actionBtn.textContent = I18n.t('import.ocrDowngradeBtn');
+          actionBtn.className = 'btn-primary ocr-action-btn ocr-action-downgrade';
+          const sizeMB = status.pythonSizeMB;
+          const sizeLabel = sizeMB >= 1024
+            ? (sizeMB / 1024).toFixed(1) + ' GB'
+            : sizeMB + ' MB';
+          actionBtn.onclick = async () => {
+            const msg = I18n.t('import.ocrDowngradeConfirm').replace('{size}', sizeLabel);
+            if (!confirm(msg)) return;
+            actionBtn.disabled = true;
+            try {
+              const r = await fetch('/api/ocr-downgrade', { method: 'POST' });
+              const result = await r.json();
+              if (result.success) {
+                showToast(I18n.t('import.ocrDowngraded'), 'success');
+                await fetchOcrStatus();
+              } else {
+                showToast(result.error, 'error');
+              }
+            } catch (err) {
+              showToast(err.message, 'error');
+            } finally {
+              actionBtn.disabled = false;
+            }
+          };
+          // Hint: info about downgrading (opens guide)
+          hintText.textContent = I18n.t('import.ocrDowngradeHint').replace('{size}', sizeLabel);
+          hint.onclick = () => {
+            const guideLink = document.getElementById('doc-guide-link');
+            if (guideLink) guideLink.click();
+          };
         } else {
           badge.className = 'ocr-badge tesseract';
           label.textContent = I18n.t('import.ocrEngineTesseract');
+          // Button: Upgrade to Full
+          actionBtn.textContent = I18n.t('import.ocrUpgradeBtn');
+          actionBtn.className = 'btn-primary ocr-action-btn ocr-action-upgrade';
+          actionBtn.onclick = async () => {
+            const msg = I18n.t('import.ocrUpgradeConfirm');
+            if (!confirm(msg)) return;
+            actionBtn.disabled = true;
+            actionBtn.textContent = I18n.t('import.ocrUpgradeInstalling');
+            try {
+              const r = await fetch('/api/ocr-upgrade', { method: 'POST' });
+              const result = await r.json();
+              if (result.success) {
+                showToast(I18n.t('import.ocrUpgraded'), 'success');
+                await fetchOcrStatus();
+              } else {
+                showToast(result.error, 'error');
+                actionBtn.textContent = I18n.t('import.ocrUpgradeBtn');
+              }
+            } catch (err) {
+              showToast(err.message, 'error');
+              actionBtn.textContent = I18n.t('import.ocrUpgradeBtn');
+            } finally {
+              actionBtn.disabled = false;
+            }
+          };
+          // Hint: info about upgrading (opens guide)
+          hintText.textContent = I18n.t('import.ocrUpgradeHint');
+          hint.onclick = () => {
+            const guideLink = document.getElementById('doc-guide-link');
+            if (guideLink) guideLink.click();
+          };
         }
       }
     } catch { /* non-critical */ }

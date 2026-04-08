@@ -457,9 +457,16 @@
       <div class="card">
         <h2 data-i18n="import.title">Import Document</h2>
         <p class="subtitle" data-i18n="import.subtitle">Upload a PDF or image (screenshot) of your declarations, investment reports, or income certificates. Images will be processed with OCR.</p>
-        <div id="ocr-engine-badge" class="ocr-badge" style="display:none;">
-          <span class="ocr-badge-icon">⚙</span>
-          <span id="ocr-engine-label"></span>
+        <div class="ocr-status-row">
+          <div id="ocr-engine-badge" class="ocr-badge" style="display:none;">
+            <span class="ocr-badge-icon">⚙</span>
+            <span id="ocr-engine-label"></span>
+          </div>
+          <button type="button" id="ocr-action-btn" class="btn-primary ocr-action-btn hidden"></button>
+          <div id="ocr-hint" class="ocr-hint hidden">
+            <span class="ocr-hint-icon">ℹ</span>
+            <span id="ocr-hint-text"></span>
+          </div>
         </div>
 
         <form id="upload-form" enctype="multipart/form-data">
@@ -535,25 +542,27 @@
   <div id="toast" class="toast hidden"></div>
   <button id="scroll-top-btn" class="scroll-top-btn hidden"><span>&uarr;</span><small id="scroll-top-label" data-i18n="footer.backToTop">Top</small></button>
 
-  <!-- Changelog Modal -->
-  <div id="changelog-modal" class="modal-overlay hidden">
-    <div class="modal-content">
+  <!-- Changelog Modal (z-index higher to stack over doc modal) -->
+  <div id="changelog-modal" class="modal-overlay hidden" style="z-index:1010;">
+    <div class="modal-content" style="position:relative;">
       <div class="modal-header">
         <h3 id="changelog-title">Changelog</h3>
         <button type="button" id="changelog-close" class="modal-close">&times;</button>
       </div>
       <div id="changelog-body" class="changelog-body"></div>
+      <button type="button" id="changelog-scroll-top" class="doc-scroll-top hidden"><span>&uarr;</span><small data-i18n="footer.backToTop">Top</small></button>
     </div>
   </div>
 
   <!-- Doc Modal (README / Guide) -->
   <div id="doc-modal" class="modal-overlay hidden">
-    <div class="modal-content">
+    <div class="modal-content" style="position:relative;">
       <div class="modal-header">
         <h3 id="doc-modal-title">Document</h3>
         <button type="button" id="doc-modal-close" class="modal-close">&times;</button>
       </div>
       <div id="doc-modal-body" class="changelog-body"></div>
+      <button type="button" id="doc-scroll-top" class="doc-scroll-top hidden"><span>&uarr;</span><small data-i18n="footer.backToTop">Top</small></button>
     </div>
   </div>
 

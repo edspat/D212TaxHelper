@@ -174,11 +174,28 @@ const upload = multer({
 // GET /api/ocr-status - Return OCR engine availability
 app.get('/api/ocr-status', (req, res) => {
   const paddle = checkPaddleOcrAvailable();
+  let pythonSizeMB = null;
+  const pythonDir = path.join(__dirname, 'python');
+  if (fs.existsSync(pythonDir)) {
+    try {
+      let total = 0;
+      const walk = (dir) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          const p = path.join(dir, entry.name);
+          if (entry.isDirectory()) walk(p);
+          else total += fs.statSync(p).size;
+        }
+      };
+      walk(pythonDir);
+      pythonSizeMB = Math.round(total / (1024 * 1024));
+    } catch { /* ignore */ }
+  }
   res.json({
     paddleocr: paddle.available,
     paddleocrDetail: paddle.reason || null,
     tesseract: true, // always available (bundled via tesseract.js)
     engine: paddle.available ? 'paddleocr' : 'tesseract',
+    pythonSizeMB,
   });
 });
 
@@ -1823,6 +1840,50 @@ app.post('/api/restart', (req, res) => {
     child.unref();
     process.exit(0);
   }, 500);
+});
+
+// POST /api/ocr-downgrade - Remove PaddleOCR (python/ folder) and restart
+app.post('/api/ocr-downgrade', (req, res) => {
+  const pythonDir = path.join(__dirname, 'python');
+  if (!fs.existsSync(pythonDir)) {
+    return res.json({ success: false, error: 'PaddleOCR is not installed (no python/ folder found).' });
+  }
+  try {
+    fs.rmSync(pythonDir, { recursive: true, force: true });
+    _paddleOcrAvailable = null; // reset cache
+    log('INFO', 'PaddleOCR downgraded — python/ folder removed');
+    res.json({ success: true });
+  } catch (err) {
+    log('ERROR', 'Failed to remove python/ folder: ' + err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/ocr-upgrade - Install PaddleOCR (run setup_paddleocr.js)
+app.post('/api/ocr-upgrade', (req, res) => {
+  // Fresh check (ignore cache) — user explicitly wants to install
+  _paddleOcrAvailable = null;
+  const status = checkPaddleOcrAvailable();
+  if (status.available) {
+    return res.json({ success: false, error: 'PaddleOCR is already installed.' });
+  }
+  _paddleOcrAvailable = null; // reset again so post-install check is fresh
+  log('INFO', 'PaddleOCR upgrade requested — starting installation...');
+  const { execFile: ef } = require('child_process');
+  ef(process.execPath, [path.join(__dirname, 'setup_paddleocr.js'), '--target', __dirname], {
+    cwd: __dirname,
+    timeout: 600000,
+    maxBuffer: 50 * 1024 * 1024,
+  }, (err, stdout, stderr) => {
+    if (err) {
+      log('ERROR', 'PaddleOCR upgrade failed: ' + err.message);
+      log('ERROR', stderr || stdout);
+      return res.status(500).json({ success: false, error: 'Installation failed. Check server logs for details.' });
+    }
+    _paddleOcrAvailable = null;
+    log('INFO', 'PaddleOCR upgrade complete');
+    res.json({ success: true });
+  });
 });
 
 // Serve the main page for all non-API routes

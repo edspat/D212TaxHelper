@@ -55,7 +55,7 @@ Rezultatul este creat lângă folderul sursă. Dublu-click pe `Start.bat` pentru
 
 Varianta **Full** include PaddleOCR pentru extragere superioară de text din documente scanate (mai ales tabelele Fișă de Portofoliu Tradeville pe care Tesseract nu le poate citi).
 
-Varianta **Lite** include `Upgrade-to-Full.bat` — dublu-click pentru a descărca Python + PaddleOCR (~1,7 GB) și a face upgrade pe loc.
+Poți comuta între Lite și Full oricând — fie din tab-ul **Importă Document** (butoanele Upgrade la Full / Downgrade la Lite), fie cu `Upgrade-to-Full.bat` / `Downgrade-to-Lite.bat`.
 
 ## Documente acceptate
 

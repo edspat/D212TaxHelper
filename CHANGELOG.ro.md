@@ -1,5 +1,42 @@
 # D212 Asistent Fiscal - Istoric versiuni
 
+## v3.1.1 (2026-04-09)
+
+### Corecturi
+- **Linkuri Changelog în Ghid** — click pe CHANGELOG.en.md / CHANGELOG.ro.md din Ghid deschide acum o fereastră Changelog suprapusă în loc să navigheze în afară
+- **Build portabil: README.ro.md** — README-ul în română lipsea din build-urile portabile
+- **Build portabil: Upgrade-to-Full.bat** — acum inclus în ambele build-uri Lite și Full (necesar după downgrade)
+- **Build portabil: README generat** — listează Upgrade-to-Full.bat și Downgrade-to-Lite.bat, menționează butonul de upgrade din aplicație
+
+---
+
+## v3.1.0 (2026-04-09)
+
+### Gestionare Motor OCR
+- **Butoane Upgrade la Full / Downgrade la Lite** — comutare între PaddleOCR și Tesseract.js direct din tab-ul Importă Document
+- **Instalare PaddleOCR din aplicație** — butonul "Upgrade la Full" descarcă Python 3.12 + PaddleOCR (~1,7 GB) fără a părăsi aplicația
+- **Dezinstalare PaddleOCR din aplicație** — butonul "Downgrade la Lite" șterge folderul python/ pentru a elibera spațiu pe disc
+- **Spațiu real pe disc** — mesajul de downgrade arată dimensiunea reală a folderului PaddleOCR (nu estimată)
+- **Mesaj informativ** — mesajul ℹ deschide Ghidul de Utilizare cu detalii despre upgrade/downgrade
+- Insigna OCR, butonul și mesajul se actualizează live după instalare/dezinstalare (fără repornire)
+- Fix cache detectare OCR — upgrade-ul nu mai eșuează silențios din cauza cache-ului învechit
+
+### Îmbunătățiri Date Brute
+- **Ștergere multiplă** — căsuțe de selectare pe fiecare fișier cu "Selectează tot" și bara "Șterge Selectate"
+- Mesaje de confirmare separate pentru ștergere parțială vs. totală
+
+### Îmbunătățiri Vizualizator Documente
+- **Buton Înapoi sus** — buton ↑ în ferestrele Istoric versiuni, Citește-mă și Ghid (apare la derulare)
+- **Linkurile ancora funcționează în ferestre** — linkurile din Cuprins derulează în fereastra modală în loc să navigheze în afară
+- **Tratare liniuță em** — titlurile cu caractere — generează ID-uri ancora corecte
+- Linkurile din Ghid/Citește-mă cu ancore #secțiune derulează lin la titlul țintă
+
+### Corecturi
+- Insigna și mesajele OCR se traduc corect la schimbarea limbii
+- Fix cache detectare PaddleOCR care împiedica upgrade/downgrade
+
+---
+
 ## v3.0.1 (2026-04-08)
 
 ### Îmbunătățiri

@@ -37,6 +37,7 @@ const APP_ITEMS = [
   'scripts',
   'LICENSE',
   'README.md',
+  'README.ro.md',
   'CHANGELOG.en.md',
   'CHANGELOG.ro.md',
   'GUIDE.en.md',
@@ -214,8 +215,8 @@ timeout /t 2 /nobreak >nul
 `;
   fs.writeFileSync(path.join(DIST, 'Stop.bat'), stopBat, 'utf8');
 
-  // 6b. Create Upgrade-to-Full.bat (Lite build only)
-  if (!BUILD_FULL) {
+  // 6b. Create Upgrade-to-Full.bat (both builds — useful after downgrade)
+  {
     const upgradeBat = `@echo off
 echo ============================================
 echo   D212TaxHelper - Upgrade to Full (PaddleOCR)
@@ -252,6 +253,43 @@ pause
     fs.writeFileSync(path.join(DIST, 'Upgrade-to-Full.bat'), upgradeBat, 'utf8');
   }
 
+  // 6c. Create Downgrade-to-Lite.bat (both builds — useful after upgrade)
+  {
+    const downgradeBat = `@echo off
+echo ============================================
+echo   D212TaxHelper - Downgrade to Lite
+echo ============================================
+echo.
+echo This will remove the Python/PaddleOCR folder
+echo (~1.7 GB) and switch back to Tesseract.js.
+echo You can re-install later with Upgrade-to-Full.bat.
+echo.
+set /p CONFIRM="Continue? (Y/N): "
+if /i not "%CONFIRM%"=="Y" (
+  echo Cancelled.
+  timeout /t 2 /nobreak >nul
+  exit
+)
+echo.
+set "PORTABLE_DIR=%~dp0"
+set "PYTHON_DIR=%PORTABLE_DIR%app\\python"
+if exist "%PYTHON_DIR%" (
+  echo Removing PaddleOCR...
+  rmdir /s /q "%PYTHON_DIR%"
+  echo.
+  echo ============================================
+  echo   Downgrade complete! Restart the app.
+  echo   OCR will now use Tesseract.js.
+  echo ============================================
+) else (
+  echo.
+  echo PaddleOCR is not installed (no python folder found).
+)
+pause
+`;
+    fs.writeFileSync(path.join(DIST, 'Downgrade-to-Lite.bat'), downgradeBat, 'utf8');
+  }
+
   // 7. Create README
   const variant = BUILD_FULL ? ' (Full - PaddleOCR)' : ' (Lite - Tesseract)';
   const readme = `# D212TaxHelper - Portable${variant}
@@ -266,11 +304,13 @@ pause
 - \`app/\` - Application files and data${BUILD_FULL ? '\n- `app/python/` - Portable Python + PaddleOCR (PP-StructureV3)' : ''}
 - \`Start.bat\` - Launch the application
 - \`Stop.bat\` - Stop the server
+- \`Upgrade-to-Full.bat\` - Install PaddleOCR for better OCR${BUILD_FULL ? '' : ' (included)'}
+- \`Downgrade-to-Lite.bat\` - Remove PaddleOCR to free disk space
 
 ## OCR Engine
 ${BUILD_FULL
   ? 'This is the **Full** build with PaddleOCR (PP-StructureV3) for superior table extraction from scanned documents (e.g., Tradeville portfolio statements). Tesseract.js is available as fallback.'
-  : 'This is the **Lite** build using Tesseract.js for OCR. For better table extraction from scanned documents, use the Full build with PaddleOCR.'}
+  : 'This is the **Lite** build using Tesseract.js for OCR. For better table extraction from scanned documents, click **Upgrade to Full** in the Import Document tab, or run `Upgrade-to-Full.bat`.'}
 
 ## Data
 Your financial data is stored in \`app/data/\`. Back up this folder to preserve your data.
