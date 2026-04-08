@@ -55,6 +55,8 @@ Output is created alongside the source folder. Just double-click `Start.bat` to 
 
 The **Full** build includes PaddleOCR for superior text extraction from scanned documents (especially Tradeville portfolio tables that Tesseract cannot read).
 
+The **Lite** build includes `Upgrade-to-Full.bat` — double-click it to download Python + PaddleOCR (~1.7 GB) and upgrade in place.
+
 ## Supported Documents
 
 | Document | Source |
@@ -67,7 +69,8 @@ The **Full** build includes PaddleOCR for superior text extraction from scanned 
 | Adeverință venit | Employer |
 | Calcul declarație unică | Tax consultant |
 | Dividends report | XTB |
-| Portfolio report | XTB |\n| Portfolio (Fișă Portofoliu) | Tradeville |
+| Portfolio report | XTB |
+| Portfolio (Fișă Portofoliu) | Tradeville |
 | Images (OCR) | Any (via PaddleOCR / Tesseract.js) |
 
 ## Project Structure

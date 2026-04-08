@@ -165,21 +165,98 @@ const App = (() => {
     const clClose = document.getElementById('changelog-close');
     const clBody = document.getElementById('changelog-body');
     const clTitle = document.getElementById('changelog-title');
-    if (vLink && clModal) {
-      // Simple markdown to HTML converter
-      function md2html(md) {
-        return md
-          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-          .replace(/^### (.+)$/gm, '<h4>$1</h4>')
-          .replace(/^## (.+)$/gm, '<h3>$1</h3>')
-          .replace(/^# (.+)$/gm, '<h2>$1</h2>')
-          .replace(/^---$/gm, '<hr>')
+    // Markdown to HTML converter (line-by-line parser)
+    function md2html(md) {
+      md = md.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      const lines = md.split('\n');
+      let html = '';
+      let inCode = false, codeLines = [];
+      let inTable = false, tableRows = [];
+
+      function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+      function inl(s) {
+        return esc(s)
           .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-          .replace(/^- (.+)$/gm, '<li>$1</li>')
-          .replace(/(<li>.*<\/li>\n?)+/g, (m) => '<ul>' + m + '</ul>')
-          .replace(/\n{2,}/g, '<br><br>')
-          .replace(/\n/g, '\n');
+          .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+          .replace(/`([^`]+)`/g, '<code style="background:var(--bg-secondary);padding:0.1rem 0.35rem;border-radius:3px;font-size:0.9em;">$1</code>')
+          .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--accent)">$1</a>');
       }
+      function flushTable() {
+        if (!tableRows.length) return '';
+        let t = '<div style="overflow-x:auto;margin:0.5rem 0;"><table style="width:100%;border-collapse:collapse;font-size:0.9rem;">';
+        tableRows.forEach((cells, i) => {
+          if (i === 0) {
+            t += '<thead><tr>' + cells.map(c => '<th style="padding:0.4rem 0.6rem;border:1px solid var(--border);background:var(--bg-secondary);text-align:left;font-weight:600;">' + c + '</th>').join('') + '</tr></thead><tbody>';
+          } else {
+            t += '<tr>' + cells.map(c => '<td style="padding:0.4rem 0.6rem;border:1px solid var(--border);">' + c + '</td>').join('') + '</tr>';
+          }
+        });
+        t += '</tbody></table></div>';
+        tableRows = [];
+        return t;
+      }
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmed = line.trimEnd();
+
+        // Code block toggle
+        if (trimmed.startsWith('```')) {
+          if (inCode) {
+            html += '<pre style="background:var(--bg-secondary);padding:0.75rem;border-radius:var(--radius);overflow-x:auto;font-size:0.85rem;line-height:1.6;white-space:pre;"><code>' + codeLines.join('\n') + '</code></pre>';
+            codeLines = []; inCode = false;
+          } else {
+            if (inTable) { html += flushTable(); inTable = false; }
+            inCode = true;
+          }
+          continue;
+        }
+        if (inCode) { codeLines.push(esc(line)); continue; }
+
+        // Table separator row — skip
+        if (/^\|[-\s:|]+\|$/.test(trimmed)) { continue; }
+
+        // Table data row
+        if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+          if (!inTable) { inTable = true; tableRows = []; }
+          const cells = trimmed.slice(1, -1).split('|').map(c => inl(c.trim()));
+          tableRows.push(cells);
+          continue;
+        }
+
+        // Flush table if we left it
+        if (inTable) { html += flushTable(); inTable = false; }
+
+        // Empty line
+        if (trimmed === '') { html += '<br>'; continue; }
+
+        // Headings
+        if (trimmed.startsWith('#### ')) { html += '<h5 style="margin:0.8rem 0 0.3rem;">' + inl(trimmed.slice(5)) + '</h5>'; continue; }
+        if (trimmed.startsWith('### ')) { html += '<h4 style="margin:1rem 0 0.4rem;">' + inl(trimmed.slice(4)) + '</h4>'; continue; }
+        if (trimmed.startsWith('## ')) { html += '<h3 style="margin:1.2rem 0 0.5rem;border-bottom:1px solid var(--border);padding-bottom:0.3rem;">' + inl(trimmed.slice(3)) + '</h3>'; continue; }
+        if (trimmed.startsWith('# ')) { html += '<h2 style="margin:1.2rem 0 0.5rem;">' + inl(trimmed.slice(2)) + '</h2>'; continue; }
+
+        // Horizontal rule
+        if (/^-{3,}$/.test(trimmed)) { html += '<hr style="border:none;border-top:1px solid var(--border);margin:1rem 0;">'; continue; }
+
+        // List items
+        if (trimmed.startsWith('- ')) { html += '<li style="margin-bottom:0.15rem;">' + inl(trimmed.slice(2)) + '</li>'; continue; }
+        if (/^\d+\.\s/.test(trimmed)) { html += '<li style="margin-bottom:0.15rem;">' + inl(trimmed.replace(/^\d+\.\s+/, '')) + '</li>'; continue; }
+
+        // Regular text
+        html += '<p style="margin:0.3rem 0;">' + inl(trimmed) + '</p>';
+      }
+
+      // Flush remaining
+      if (inCode) html += '<pre style="background:var(--bg-secondary);padding:0.75rem;border-radius:var(--radius);overflow-x:auto;font-size:0.85rem;line-height:1.6;white-space:pre;"><code>' + codeLines.join('\n') + '</code></pre>';
+      if (inTable) html += flushTable();
+
+      // Wrap consecutive <li> in <ul>
+      html = html.replace(/((?:<li[^>]*>.*?<\/li>)+)/g, '<ul style="margin:0.3rem 0 0.3rem 1.2rem;padding:0;">$1</ul>');
+      return html;
+    }
+
+    if (vLink && clModal) {
       vLink.addEventListener('click', async (e) => {
         e.preventDefault();
         const lang = I18n.getLang?.() || 'en';
@@ -194,6 +271,34 @@ const App = (() => {
       });
       clClose.addEventListener('click', () => clModal.classList.add('hidden'));
       clModal.addEventListener('click', (e) => { if (e.target === clModal) clModal.classList.add('hidden'); });
+    }
+
+    // Doc modal (README / Guide)
+    const docModal = document.getElementById('doc-modal');
+    const docClose = document.getElementById('doc-modal-close');
+    const docBody = document.getElementById('doc-modal-body');
+    const docTitle = document.getElementById('doc-modal-title');
+    if (docModal) {
+      function openDoc(name, titleEn, titleRo) {
+        return async (e) => {
+          e.preventDefault();
+          const lang = I18n.getLang?.() || 'en';
+          docTitle.textContent = lang === 'ro' ? titleRo : titleEn;
+          docBody.innerHTML = lang === 'ro' ? '<p>Se încarcă...</p>' : '<p>Loading...</p>';
+          docModal.classList.remove('hidden');
+          try {
+            const resp = await fetch(`/api/doc/${name}/${lang}`);
+            const text = await resp.text();
+            docBody.innerHTML = md2html(text);
+          } catch { docBody.innerHTML = '<p>Error loading document</p>'; }
+        };
+      }
+      const readmeLink = document.getElementById('doc-readme-link');
+      const guideLink = document.getElementById('doc-guide-link');
+      if (readmeLink) readmeLink.addEventListener('click', openDoc('readme', 'README', 'README'));
+      if (guideLink) guideLink.addEventListener('click', openDoc('guide', 'User Guide', 'Ghid de Utilizare'));
+      docClose.addEventListener('click', () => docModal.classList.add('hidden'));
+      docModal.addEventListener('click', (e) => { if (e.target === docModal) docModal.classList.add('hidden'); });
     }
 
     // Populate year selector

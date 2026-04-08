@@ -247,6 +247,8 @@
     "source": "Sursa datelor: ANAF, BNR",
     "contact": "Contact",
     "restart": "Repornire Server",
+    "readme": "Citește-mă",
+    "guide": "Ghid",
     "confirmRestart": "Repornești serverul? Pagina se va reîncărca automat.",
     "restarting": "Serverul se repornește...",
     "backToTop": "Înapoi sus"

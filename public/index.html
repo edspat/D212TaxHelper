@@ -526,7 +526,7 @@
   </main>
 
   <footer>
-    <p><span data-i18n="footer.appName">D212 Tax Helper</span> &copy; 2026 | <a href="#" id="app-version-link" title="View changelog" style="color:var(--accent);text-decoration:none;">v<span id="app-version">...</span></a> | <span data-i18n="footer.source">Data source: ANAF, BNR, Fidelity, XTB</span>
+    <p><span data-i18n="footer.appName">D212 Tax Helper</span> &copy; 2026 | <a href="#" id="app-version-link" title="View changelog" style="color:var(--accent);text-decoration:none;">v<span id="app-version">...</span></a> | <a href="#" id="doc-readme-link" style="color:var(--accent);text-decoration:none;" data-i18n="footer.readme">README</a> | <a href="#" id="doc-guide-link" style="color:var(--accent);text-decoration:none;" data-i18n="footer.guide">Guide</a> | <span data-i18n="footer.source">Data source: ANAF, BNR, Fidelity, XTB</span>
       | <span data-i18n="footer.contact">Contact</span>: <a href="mailto:edmund.spatariu@microsoft.com?subject=About%20D212%20Tax%20Helper" style="color:var(--accent);">Edmund Spatariu</a>
       <button type="button" id="restart-btn" class="restart-btn" data-i18n="footer.restart">Restart Server</button>
     </p>
@@ -543,6 +543,17 @@
         <button type="button" id="changelog-close" class="modal-close">&times;</button>
       </div>
       <div id="changelog-body" class="changelog-body"></div>
+    </div>
+  </div>
+
+  <!-- Doc Modal (README / Guide) -->
+  <div id="doc-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="doc-modal-title">Document</h3>
+        <button type="button" id="doc-modal-close" class="modal-close">&times;</button>
+      </div>
+      <div id="doc-modal-body" class="changelog-body"></div>
     </div>
   </div>
 

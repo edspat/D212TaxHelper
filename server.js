@@ -894,6 +894,23 @@ app.get('/api/changelog/:lang', (req, res) => {
   }
 });
 
+// GET /api/doc/:name/:lang - Serve markdown docs (README, GUIDE)
+app.get('/api/doc/:name/:lang', (req, res) => {
+  const lang = req.params.lang === 'ro' ? 'ro' : 'en';
+  const allowed = { readme: 'README', guide: 'GUIDE' };
+  const base = allowed[req.params.name];
+  if (!base) return res.status(400).json({ error: 'Unknown document' });
+  // README has no lang suffix for EN, GUIDE always has suffix
+  const file = base === 'README'
+    ? path.join(__dirname, lang === 'ro' ? 'README.ro.md' : 'README.md')
+    : path.join(__dirname, `${base}.${lang}.md`);
+  if (fs.existsSync(file)) {
+    res.type('text/plain').send(fs.readFileSync(file, 'utf8'));
+  } else {
+    res.status(404).json({ error: 'Document not found' });
+  }
+});
+
 // GET /api/tax-rates - Romanian tax rates reference
 app.get('/api/tax-rates', (req, res) => {
   res.json({

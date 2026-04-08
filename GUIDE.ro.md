@@ -516,7 +516,19 @@ Varianta **Full** include Python Embeddable 3.12 și PaddleOCR pentru OCR superi
 | `app/python/` | *(doar Full build)* Python 3.12 + PaddleOCR |
 | `Start.bat` | Lansează aplicația (deschide browserul automat) |
 | `Stop.bat` | Oprește serverul |
+| `Upgrade-to-Full.bat` | *(doar Lite build)* Descarcă Python + PaddleOCR pentru upgrade motor OCR |
 | `README.md` | Instrucțiuni de pornire rapidă |
+
+### Upgrade de la Lite la Full
+
+Dacă ai versiunea Lite și vrei PaddleOCR:
+
+1. Dublu-click pe **Upgrade-to-Full.bat**
+2. Confirmă când ești întrebat (descarcă ~1,7 GB)
+3. Așteaptă finalizarea instalării
+4. Repornește aplicația — insigna OCR va deveni verde
+
+Acesta descarcă Python Embeddable 3.12 și instalează PaddleOCR în `app/python/`. Datele existente sunt păstrate.
 
 ### Construirea versiunii portabile
 

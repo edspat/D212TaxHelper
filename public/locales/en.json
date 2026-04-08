@@ -249,6 +249,8 @@
     "source": "Data source: ANAF, BNR",
     "contact": "Contact",
     "restart": "Restart Server",
+    "readme": "Readme",
+    "guide": "Guide",
     "confirmRestart": "Restart the server? The page will reload automatically.",
     "restarting": "Server restarting...",
     "backToTop": "Back to Top"

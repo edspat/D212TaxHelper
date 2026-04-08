@@ -30,6 +30,7 @@ const TEMP = path.resolve(__dirname, '..', '_portable_temp');
 const APP_ITEMS = [
   'server.js',
   'ocr_service.py', // PaddleOCR service (used if Python available)
+  'setup_paddleocr.js', // Enables Lite→Full upgrade
   'package.json',
   'package-lock.json',
   'public',
@@ -212,6 +213,44 @@ echo Done.
 timeout /t 2 /nobreak >nul
 `;
   fs.writeFileSync(path.join(DIST, 'Stop.bat'), stopBat, 'utf8');
+
+  // 6b. Create Upgrade-to-Full.bat (Lite build only)
+  if (!BUILD_FULL) {
+    const upgradeBat = `@echo off
+echo ============================================
+echo   D212TaxHelper - Upgrade to Full (PaddleOCR)
+echo ============================================
+echo.
+echo This will download Python 3.12 (~30 MB) and install
+echo PaddleOCR packages (~1.7 GB). Requires internet.
+echo.
+set /p CONFIRM="Continue? (Y/N): "
+if /i not "%CONFIRM%"=="Y" (
+  echo Cancelled.
+  timeout /t 2 /nobreak >nul
+  exit
+)
+echo.
+set "PORTABLE_DIR=%~dp0"
+set "NODE=%PORTABLE_DIR%node\\node.exe"
+echo Installing PaddleOCR...
+"%NODE%" "%PORTABLE_DIR%app\\setup_paddleocr.js" --target "%PORTABLE_DIR%app"
+echo.
+if %ERRORLEVEL% EQU 0 (
+  echo ============================================
+  echo   Upgrade complete! Restart the app to use
+  echo   PaddleOCR for superior OCR extraction.
+  echo ============================================
+) else (
+  echo ============================================
+  echo   Upgrade failed. Check your internet
+  echo   connection and try again.
+  echo ============================================
+)
+pause
+`;
+    fs.writeFileSync(path.join(DIST, 'Upgrade-to-Full.bat'), upgradeBat, 'utf8');
+  }
 
   // 7. Create README
   const variant = BUILD_FULL ? ' (Full - PaddleOCR)' : ' (Lite - Tesseract)';

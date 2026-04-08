@@ -522,7 +522,19 @@ The **Full** build includes Python Embeddable 3.12 and PaddleOCR for superior OC
 | `app/python/` | *(Full build only)* Python 3.12 + PaddleOCR |
 | `Start.bat` | Launch the application (opens browser automatically) |
 | `Stop.bat` | Stop the server |
+| `Upgrade-to-Full.bat` | *(Lite build only)* Downloads Python + PaddleOCR to upgrade OCR engine |
 | `README.md` | Quick start instructions |
+
+### Upgrading Lite to Full
+
+If you have the Lite build and want PaddleOCR:
+
+1. Double-click **Upgrade-to-Full.bat**
+2. Confirm when prompted (downloads ~1.7 GB)
+3. Wait for installation to complete
+4. Restart the app — the OCR badge will turn green
+
+This downloads Python Embeddable 3.12 and installs PaddleOCR into `app/python/`. Your existing data is preserved.
 
 ### Building a portable version
 
