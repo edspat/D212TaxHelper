@@ -630,8 +630,8 @@ const App = (() => {
         ron: data.capitalGainsTaxableRON || (data.tradeProceedsUSD || 0) * data.exchangeRate,
         usTaxRate: '-',
         usTaxPaid: 0,
-        taxRate: '10%',
-        paid: data.stockWithholding || 0,
+        taxRate: (data.capGainsTaxRate * 100) + '%',
+        paid: 0,
         tax: data.capitalGainsTaxRON
       },
       {

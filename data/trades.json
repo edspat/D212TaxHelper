@@ -41,6 +41,45 @@
       "settlementDate": "MAY/08/2025",
       "refNumber": "25127-L8RTPQ",
       "participantId": "I01850253"
+    },
+    {
+      "year": 2025,
+      "symbol": "MSFT",
+      "company": "MICROSOFT CORP",
+      "shares": 3.646,
+      "pricePerShare": 435.1738,
+      "saleProceeds": 1586.64,
+      "fees": 12.5,
+      "netProceeds": 1574.14,
+      "saleDate": "MAY/07/2025",
+      "gainType": "short-term",
+      "source": "ms_statement"
+    },
+    {
+      "year": 2025,
+      "symbol": "MSFT",
+      "company": "MICROSOFT CORP",
+      "shares": 2.635,
+      "pricePerShare": 477.35,
+      "saleProceeds": 1257.82,
+      "fees": 12.45,
+      "netProceeds": 1245.37,
+      "saleDate": "JUN/18/2025",
+      "gainType": "short-term",
+      "source": "ms_statement"
+    },
+    {
+      "year": 2025,
+      "symbol": "MSFT",
+      "company": "MICROSOFT CORP",
+      "shares": 3,
+      "pricePerShare": 517,
+      "saleProceeds": 1551,
+      "fees": 12.45,
+      "netProceeds": 1538.55,
+      "saleDate": "SEP/17/2025",
+      "gainType": "short-term",
+      "source": "ms_statement"
     }
   ]
 }
