@@ -13,7 +13,9 @@
 - Purge șterge doar tranzacțiile din sursa specifică
 - Purge recalculează agregatele după ștergere
 - Vânzări Acțiuni SUA "Plătit" = 0 (reținerea stock awards e deducere, nu impozit)
+- Tradeville OCR: avertisment bilingv când tabelul nu poate fi citit
 - API Date Brute returnează metadate fișiere
+- Etichete tipuri documente: "Portfolio Statement" în engleză pentru XTB și Tradeville
 
 ---
 

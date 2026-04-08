@@ -13,7 +13,9 @@
 - Purge correctly removes only source-specific trades (MS/Fidelity/trade confirmation)
 - Purge recalculates trade aggregates after deletion
 - US Stock Sales "Paid" column = 0 (stock withholding is deduction, not tax paid)
+- Tradeville OCR: shows bilingual warning when table can't be parsed, suggests manual entry
 - Raw Data API returns file metadata (date, size)
+- Document type labels: "Portfolio Statement" in English for XTB and Tradeville
 
 ---
 
