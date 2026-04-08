@@ -155,6 +155,7 @@
     "roCapitalGains": "Romania Broker Capital Gains (per country)",
     "roCapitalGainsHint": "Add capital gains from Romanian broker (XTB / Tradeville) per country of origin. All are treated as final tax withheld by broker.",
     "addCountryRow": "+ Add Country",
+    "country": "Country",
     "roGains": "Romania Stock Sales (RON)",
     "interestIncome": "Interest Income",
     "interestRON": "Interest Income (RON)",

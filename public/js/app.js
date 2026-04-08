@@ -1448,7 +1448,12 @@ const App = (() => {
   }
 
   // ============ RO GAINS COUNTRY ROWS ============
-  const RO_COUNTRIES = ['US', 'RO', 'NL', 'DE', 'FR', 'GB', 'IE', 'LU', 'CH', 'AT', 'BE', 'IT', 'ES'];
+  const RO_COUNTRIES = [
+    'AT', 'AU', 'BE', 'BG', 'BR', 'CA', 'CH', 'CN', 'CY', 'CZ',
+    'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GB', 'GR', 'HR', 'HU',
+    'IE', 'IL', 'IN', 'IT', 'JP', 'KR', 'LT', 'LU', 'LV', 'MT',
+    'NL', 'NO', 'PL', 'PT', 'RO', 'SE', 'SG', 'SI', 'SK', 'US'
+  ];
 
   function renderRoGainsRows(rows) {
     const container = document.getElementById('ro-gains-rows');
@@ -1463,14 +1468,28 @@ const App = (() => {
   function addRoGainsRow(container, data) {
     const row = document.createElement('div');
     row.className = 'ro-gains-row';
-    row.style.cssText = 'display:grid;grid-template-columns:80px 1fr 1fr 1fr 30px;gap:0.5rem;align-items:center;margin-bottom:0.5rem;padding:0.5rem;background:var(--bg-secondary);border-radius:var(--radius);';
+    row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:0.75rem;align-items:end;margin-bottom:0.75rem;';
     const countryOpts = RO_COUNTRIES.map(c => `<option value="${c}"${data?.country === c ? ' selected' : ''}>${c}</option>`).join('');
     row.innerHTML = `
-      <select class="ro-country" style="padding:0.3rem;">${countryOpts}</select>
-      <div><small>${I18n.t('input.roGainsLong')}</small><input type="number" step="0.01" class="ro-long" value="${data?.longGain || ''}" style="width:100%;"></div>
-      <div><small>${I18n.t('input.roGainsShort')}</small><input type="number" step="0.01" class="ro-short" value="${data?.shortGain || ''}" style="width:100%;"></div>
-      <div><small>${I18n.t('input.roGainsTaxWithheld')}</small><input type="number" step="0.01" class="ro-tax" value="${data?.taxWithheld || ''}" style="width:100%;"></div>
-      <button type="button" class="ro-remove-btn" style="background:var(--danger);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:1rem;padding:0.2rem;">✕</button>
+      <div class="form-row" style="margin-bottom:0;">
+        <label>${I18n.t('input.country')}</label>
+        <select class="ro-country">${countryOpts}</select>
+      </div>
+      <div class="form-row" style="margin-bottom:0;">
+        <label>${I18n.t('input.roGainsLong')}</label>
+        <input type="number" step="0.01" class="ro-long" value="${data?.longGain || ''}">
+      </div>
+      <div class="form-row" style="margin-bottom:0;">
+        <label>${I18n.t('input.roGainsShort')}</label>
+        <input type="number" step="0.01" class="ro-short" value="${data?.shortGain || ''}">
+      </div>
+      <div class="form-row" style="margin-bottom:0;">
+        <label>${I18n.t('input.roGainsTaxWithheld')}</label>
+        <input type="number" step="0.01" class="ro-tax" value="${data?.taxWithheld || ''}">
+      </div>
+      <div style="padding-bottom:0.2rem;">
+        <button type="button" class="btn-primary ro-remove-btn" style="background:var(--danger);font-size:0.85rem;padding:0.45rem 0.7rem;">✕</button>
+      </div>
     `;
     row.querySelector('.ro-remove-btn').addEventListener('click', () => {
       row.remove();
