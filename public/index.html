@@ -310,18 +310,20 @@
             <legend data-i18n="input.brokers">Brokers</legend>
             <div class="form-row">
               <label data-i18n="input.usBrokerLabel">US Broker used</label>
-              <select id="input-us-broker" name="usBroker">
-                <option value="" data-i18n="input.brokerNone">-- None --</option>
-                <option value="fidelity" data-i18n="input.brokerFidelity">Fidelity</option>
-                <option value="morgan_stanley" data-i18n="input.brokerMS">Morgan Stanley</option>
-              </select>
+              <input type="text" id="input-us-broker" name="usBroker" list="us-broker-list" placeholder="e.g. Fidelity, Morgan Stanley">
+              <datalist id="us-broker-list">
+                <option value="Fidelity">
+                <option value="Morgan Stanley">
+              </datalist>
             </div>
             <div class="form-row">
               <label data-i18n="input.roBrokerLabel">Romania Broker used</label>
-              <select id="input-ro-broker" name="roBroker">
-                <option value="" data-i18n="input.brokerNone">-- None --</option>
-                <option value="xtb" data-i18n="input.brokerXTB">XTB</option>
-              </select>
+              <input type="text" id="input-ro-broker" name="roBroker" list="ro-broker-list" placeholder="e.g. XTB, Tradeville">
+              <datalist id="ro-broker-list">
+                <option value="XTB">
+                <option value="Tradeville">
+                <option value="Interactive Brokers">
+              </datalist>
             </div>
           </fieldset>
 

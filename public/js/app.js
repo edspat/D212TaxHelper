@@ -355,23 +355,21 @@ const App = (() => {
     if (yd.fidelityTransfers || yd.fidelityDividendsYTD) tradeSources.add('Fidelity');
     if (fd.dividends) tradeSources.add('Fidelity');
     if (inv.totalDividends > 0) tradeSources.add('Fidelity');
-    // Manual broker selection from Add Data form
-    if (yd.usBroker === 'fidelity') tradeSources.add('Fidelity');
-    if (yd.usBroker === 'morgan_stanley') tradeSources.add('Morgan Stanley');
+    // Manual broker selection from Add Data form (free text)
+    if (yd.usBroker) tradeSources.add(yd.usBroker);
     // Dividend sources
     const divSources = new Set();
     if (yd.msStatement && yd.msStatement.dividends > 0) divSources.add('Morgan Stanley');
     if (yd.msDividends > 0) divSources.add('Morgan Stanley');
     if (fd.dividends?.grossUSD > 0 || f1042sDivUSD > 0 || inv.totalDividends > 0 || yd.fidelityDividendsYTD > 0) divSources.add('Fidelity');
     // Manual broker for dividends too
-    if (yd.usBroker === 'fidelity') divSources.add('Fidelity');
-    if (yd.usBroker === 'morgan_stanley') divSources.add('Morgan Stanley');
+    if (yd.usBroker) divSources.add(yd.usBroker);
     const usBrokerLabel = tradeSources.size > 0 ? ' (' + [...tradeSources].join(' & ') + ')' : '';
     const usDivBrokerLabel = divSources.size > 0 ? ' (' + [...divSources].join(' & ') + ')' : '';
     // Romania broker label
     const roSources = new Set();
     if (yd.xtbDividendsReport || yd.xtbPortfolio) roSources.add('XTB');
-    if (yd.roBroker === 'xtb') roSources.add('XTB');
+    if (yd.roBroker) roSources.add(yd.roBroker);
     const roBrokerLabel = roSources.size > 0 ? ' (' + [...roSources].join(' & ') + ')' : '';
     if (!capitalGainsSaleUSD && tradeProceedsUSD > 0) {
       capitalGainsSaleUSD = trades.totalProceeds || 0;
