@@ -608,6 +608,16 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     // Tradeville Portfolio (Capital Gains)
     if (type === 'tradeville_portfolio') {
       const parsed = parseTradevillePortfolio(text, parsedYear);
+      // Check if OCR produced usable data
+      if (parsed.countries.length === 0 && parsed.totalGainNetRON === 0) {
+        return res.json({
+          success: false,
+          ocrLowQuality: true,
+          year: parsedYear,
+          type,
+          message: 'OCR could not extract table data from this document. The Tradeville Fișă de Portofoliu uses a complex table format that OCR cannot parse reliably. Please enter the data manually in the Add Data tab → "Câștiguri capital broker România (pe țară)".'
+        });
+      }
       const dataFile7 = path.join(DATA_DIR, 'parsed_data.json');
       let data7 = { years: {} };
       if (fs.existsSync(dataFile7)) data7 = JSON.parse(fs.readFileSync(dataFile7, 'utf8'));
