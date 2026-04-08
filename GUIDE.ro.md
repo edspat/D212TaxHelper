@@ -616,19 +616,20 @@ Vezi istoricul complet făcând click pe numărul versiunii din footer-ul aplica
 - [CHANGELOG.en.md](CHANGELOG.en.md) (Engleză)
 - [CHANGELOG.ro.md](CHANGELOG.ro.md) (Română)
 
-### Versiunea curentă: v2.4.0 (08.04.2026)
+### Versiunea curentă: v3.1.1 (09.04.2026)
 
 **Modificări majore:**
-- Parser Tradeville Portfolio
-- Câștiguri broker RO pe țară (40 țări)
-- Brokeri text liber cu sugestii
-- Date Brute ca listă cu Vizualizează/Șterge
-- Link formular ANAF D212
-- Purge corect per sursă tranzacții
+- Gestionare motor OCR din aplicație (butoane Upgrade la Full / Downgrade la Lite)
+- Instalare/dezinstalare PaddleOCR din tab-ul Importă Document — fără repornire
+- Ștergere multiplă în Date Brute cu Selectează tot și Șterge Selectate
+- Buton Înapoi sus în ferestrele Istoric versiuni, Citește-mă și Ghid
+- Linkurile ancora funcționează în ferestre (navigare Cuprins)
+- Linkurile Changelog din Ghid deschid fereastră suprapusă
+- Build-ul portabil include toate fișierele .bat și README.ro.md
 
-### Versiunea anterioară: v2.3.0 (08.04.2026)
+### Versiunea anterioară: v3.0.0 (08.04.2026)
 
-Versiune inițială cu interfața completă pe 6 tab-uri, 8 parsere de documente, suport bilingv, temă întunecată și versiune portabilă.
+Integrare PaddleOCR via subprocess Python, auto-detectare OCR, două variante build (Lite/Full), 11 parsere de documente, extragere Tradeville Portfolio.
 
 ---
 

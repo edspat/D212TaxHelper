@@ -622,19 +622,20 @@ See the full changelog by clicking the version number in the app footer, or view
 - [CHANGELOG.en.md](CHANGELOG.en.md) (English)
 - [CHANGELOG.ro.md](CHANGELOG.ro.md) (Romanian)
 
-### Current Version: v2.4.0 (2026-04-08)
+### Current Version: v3.1.1 (2026-04-09)
 
 **Major changes:**
-- Tradeville Portfolio parser
-- Per-country Romania broker gains input with 40 countries
-- Free-text broker names with suggestions
-- Raw Data as file list with View/Purge
-- ANAF D212 form link
-- Purge correctly handles per-source trades
+- In-app OCR engine management (Upgrade to Full / Downgrade to Lite buttons)
+- PaddleOCR install/remove from the Import tab — no restart needed
+- Bulk delete in Raw Data with Select All and Delete Selected
+- Back to Top button in Changelog, README, and Guide modals
+- Anchor links work inside modals (Table of Contents navigation)
+- Changelog links in Guide open stacked modal
+- Portable build includes all .bat files and README.ro.md
 
-### Previous Version: v2.3.0 (2026-04-08)
+### Previous Version: v3.0.0 (2026-04-08)
 
-Initial release with full 6-tab interface, 8 document parsers, bilingual support, dark theme, and portable build.
+PaddleOCR integration via Python subprocess, OCR auto-detection, two build variants (Lite/Full), 11 document parsers, Tradeville Portfolio extraction.
 
 ---
 
