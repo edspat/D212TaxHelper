@@ -215,16 +215,37 @@ app.delete('/api/raw/:filename', (req, res) => {
               fs.writeFileSync(stockFile, JSON.stringify({ 'Stock Awards': [] }, null, 2), 'utf8');
             }
           }
-          // Clear trades.json when trade_confirmation or ms_statement raw file is purged
+          // Clear trades from trades.json based on source
           if (type === 'trade_confirmation' || type === 'ms_statement' || type === 'fidelity_statement') {
             const tradesFile = path.join(DATA_DIR, 'trades.json');
             if (fs.existsSync(tradesFile)) {
-              // Remove trades from this source only
               const raw = JSON.parse(fs.readFileSync(tradesFile, 'utf8'));
               const trades = Array.isArray(raw.trades) ? raw.trades : [];
-              const sourceFilter = type === 'ms_statement' ? 'ms_statement' : (type === 'fidelity_statement' ? 'fidelity_statement' : null);
-              const filtered = sourceFilter ? trades.filter(t => t.source !== sourceFilter) : [];
+              let filtered;
+              if (type === 'ms_statement') {
+                filtered = trades.filter(t => t.source !== 'ms_statement');
+              } else if (type === 'fidelity_statement') {
+                filtered = trades.filter(t => t.source !== 'fidelity_statement');
+              } else {
+                // trade_confirmation: remove trades without a source (legacy) or with no source field
+                filtered = trades.filter(t => t.source === 'ms_statement' || t.source === 'fidelity_statement');
+              }
               fs.writeFileSync(tradesFile, JSON.stringify({ trades: filtered }, null, 2), 'utf8');
+
+              // Recalculate fidelityTrades aggregate for this year
+              const yearTrades = filtered.filter(t => t.year === parseInt(year, 10));
+              if (yearTrades.length > 0) {
+                data.years[year].fidelityTrades = {
+                  count: yearTrades.length,
+                  totalProceeds: yearTrades.reduce((s, t) => s + (t.saleProceeds || 0), 0),
+                  totalFees: yearTrades.reduce((s, t) => s + (t.fees || 0), 0),
+                  totalNet: yearTrades.reduce((s, t) => s + (t.netProceeds || 0), 0),
+                  totalShares: yearTrades.reduce((s, t) => s + (t.shares || 0), 0),
+                  trades: yearTrades
+                };
+              } else if (data.years[year]) {
+                delete data.years[year].fidelityTrades;
+              }
             }
           }
           // Clean up empty year objects

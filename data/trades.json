@@ -1,1 +1,46 @@
-{ "trades": [] }
+{
+  "trades": [
+    {
+      "year": 2025,
+      "symbol": "MSFT",
+      "company": "MICROSOFT CORP",
+      "shares": 2,
+      "pricePerShare": 431.5,
+      "saleProceeds": 863,
+      "fees": 0.03,
+      "netProceeds": 862.97,
+      "saleDate": "MAY/01/2025",
+      "settlementDate": "MAY/02/2025",
+      "refNumber": "25121-JGLBC3",
+      "participantId": "I01850253"
+    },
+    {
+      "year": 2025,
+      "symbol": "MSFT",
+      "company": "MICROSOFT CORP",
+      "shares": 2,
+      "pricePerShare": 435.4032,
+      "saleProceeds": 870.81,
+      "fees": 0.03,
+      "netProceeds": 870.78,
+      "saleDate": "MAY/07/2025",
+      "settlementDate": "MAY/08/2025",
+      "refNumber": "25127-L8RTPR",
+      "participantId": "I01850253"
+    },
+    {
+      "year": 2025,
+      "symbol": "MSFT",
+      "company": "MICROSOFT CORP",
+      "shares": 0.158,
+      "pricePerShare": 435.4,
+      "saleProceeds": 68.79,
+      "fees": 0,
+      "netProceeds": 68.79,
+      "saleDate": "MAY/07/2025",
+      "settlementDate": "MAY/08/2025",
+      "refNumber": "25127-L8RTPQ",
+      "participantId": "I01850253"
+    }
+  ]
+}

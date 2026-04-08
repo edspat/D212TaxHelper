@@ -11,7 +11,69 @@
         "salaryIncome": 0,
         "salaryTax": 0,
         "sections": []
-      }
+      },
+      "xtbPortfolio": {
+        "year": 2025,
+        "source": "XTB Romania",
+        "longTerm": {
+          "gainRON": 5457,
+          "lossRON": 0,
+          "taxWithheldRON": 55
+        },
+        "shortTerm": {
+          "gainRON": 2296,
+          "lossRON": 0,
+          "taxWithheldRON": 69
+        },
+        "country": "Statele Unite",
+        "currency": "RON",
+        "totalGainRON": 7753,
+        "totalTaxWithheldRON": 124
+      },
+      "xtbDividendsReport": {
+        "year": 2025,
+        "source": "XTB Romania",
+        "dividends": {
+          "grossRON": 45.24,
+          "taxWithheldRON": 13.65,
+          "netRON": 31.59,
+          "category": "Instrumente cu detinere (OMI) din Statele Unite"
+        },
+        "interest": {
+          "grossRON": 3,
+          "taxWithheldRON": 0,
+          "netRON": 3,
+          "payer": "XTB S.A. Varsovia Sucursala București"
+        }
+      },
+      "investment": {
+        "year": 2025,
+        "accountValue": 5959.05,
+        "beginningValue": 9055.15,
+        "dividends": {
+          "total": 46.69
+        },
+        "taxesWithheld": 4.52,
+        "totalDividends": 46.69,
+        "netGains": 0
+      },
+      "form1042s": [
+        {
+          "year": 2025,
+          "source": "IRS Form 1042-S",
+          "uniqueFormId": "2500936939",
+          "incomeCode": "06",
+          "incomeType": "Dividends",
+          "grossIncomeUSD": 45,
+          "taxRate": 10,
+          "federalTaxWithheldUSD": 5,
+          "totalWithholdingCreditUSD": 5,
+          "withholdingAgent": "NATIONAL FINANCIAL SERVICES LLC",
+          "recipientName": "EDMUND J SPATARIU",
+          "recipientCountry": "RO",
+          "accountNumber": "I01-850253"
+        }
+      ]
     }
   }
 }

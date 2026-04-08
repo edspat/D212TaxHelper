@@ -1,1 +1,19 @@
-{ "Stock Awards": [] }
+{
+  "Stock Awards": [
+    {
+      "datastat": "28-Feb-2025",
+      "stock_award_bik": 1184,
+      "stock_withholding": 681
+    },
+    {
+      "datastat": "30-Jun-2025",
+      "stock_award_bik": 1307,
+      "stock_withholding": 751
+    },
+    {
+      "datastat": "31-Dec-2025",
+      "stock_award_bik": 1376,
+      "stock_withholding": 791
+    }
+  ]
+}
