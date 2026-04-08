@@ -404,7 +404,10 @@ const App = (() => {
       const gainsUSD = parseFloat(yd.fidelityGains) || 0;
       capitalGainsTaxableRON = (gainsUSD - capitalGainsCostUSD) * rate;
     }
-    if (yd.xtbGains !== undefined && yd.xtbGains !== '') capitalGainsRON_ro = parseFloat(yd.xtbGains) || 0;
+    if (yd.roGainsLong !== undefined && yd.roGainsLong !== '') roLongTermGainRON = parseFloat(yd.roGainsLong) || 0;
+    if (yd.roGainsShort !== undefined && yd.roGainsShort !== '') roShortTermGainRON = parseFloat(yd.roGainsShort) || 0;
+    if (yd.roGainsLong !== undefined || yd.roGainsShort !== undefined) capitalGainsRON_ro = roLongTermGainRON + roShortTermGainRON;
+    if (yd.roGainsTaxWithheld !== undefined && yd.roGainsTaxWithheld !== '') roPortTaxWithheld = parseFloat(yd.roGainsTaxWithheld) || 0;
     if (yd.interestIncome !== undefined && yd.interestIncome !== '') interestIncomeRON = parseFloat(yd.interestIncome) || 0;
     if (yd.exchangeRate !== undefined && yd.exchangeRate !== '') {
       // recalc with new rate if manually entered
@@ -1376,7 +1379,9 @@ const App = (() => {
     document.getElementById('input-ro-dividends').value = yd.xtbDividends || '';
     document.getElementById('input-us-gains').value = yd.fidelityGains || '';
     document.getElementById('input-us-cost').value = yd.fidelityCost || '';
-    document.getElementById('input-ro-gains').value = yd.xtbGains || '';
+    document.getElementById('input-ro-gains-long').value = yd.roGainsLong || '';
+    document.getElementById('input-ro-gains-short').value = yd.roGainsShort || '';
+    document.getElementById('input-ro-gains-tax').value = yd.roGainsTaxWithheld || '';
     document.getElementById('input-interest').value = yd.interestIncome || '';
     document.getElementById('input-exchange-rate').value = yd.exchangeRate || rate;
     document.getElementById('input-min-salary').value = yd.minSalary || defaultMinSalary;
@@ -1410,7 +1415,9 @@ const App = (() => {
       roDividends: document.getElementById('input-ro-dividends').value,
       usGains: document.getElementById('input-us-gains').value,
       usCost: document.getElementById('input-us-cost').value,
-      roGains: document.getElementById('input-ro-gains').value,
+      roGainsLong: document.getElementById('input-ro-gains-long').value,
+      roGainsShort: document.getElementById('input-ro-gains-short').value,
+      roGainsTaxWithheld: document.getElementById('input-ro-gains-tax').value,
       interestIncome: document.getElementById('input-interest').value,
       stockWithholdingPaid: document.getElementById('input-stock-withholding').value
     };

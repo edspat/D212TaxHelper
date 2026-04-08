@@ -124,6 +124,24 @@
             "participantId": "I01850253"
           }
         ]
+      },
+      "tradevillePortfolio": {
+        "year": 2025,
+        "source": "Tradeville",
+        "longTerm": {
+          "gainRON": 0,
+          "lossRON": 0,
+          "taxWithheldRON": 0
+        },
+        "shortTerm": {
+          "gainRON": 0,
+          "lossRON": 0,
+          "taxWithheldRON": 0
+        },
+        "countries": [],
+        "totalGainImpozabilRON": 0,
+        "totalGainNetRON": 0,
+        "totalTaxWithheldRON": 0
       }
     }
   }

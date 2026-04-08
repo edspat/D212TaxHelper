@@ -351,8 +351,17 @@
               <small data-i18n="input.usCostHint">Cost of ESPP shares purchased at preferential price. Stock awards (free) = 0.</small>
             </div>
             <div class="form-row">
-              <label data-i18n="input.roGains">Romania Stock Sales (RON)</label>
-              <input type="number" step="0.01" id="input-ro-gains" name="roGains">
+              <label data-i18n="input.roGainsLong">Romania Gains ≥1 year (RON)</label>
+              <input type="number" step="0.01" id="input-ro-gains-long" name="roGainsLong">
+            </div>
+            <div class="form-row">
+              <label data-i18n="input.roGainsShort">Romania Gains <1 year (RON)</label>
+              <input type="number" step="0.01" id="input-ro-gains-short" name="roGainsShort">
+            </div>
+            <div class="form-row">
+              <label data-i18n="input.roGainsTaxWithheld">RO Broker Tax Withheld (RON)</label>
+              <input type="number" step="0.01" id="input-ro-gains-tax" name="roGainsTaxWithheld">
+              <small data-i18n="input.roGainsTaxHint">Total capital gains tax withheld by Romanian broker (XTB / Tradeville)</small>
             </div>
           </fieldset>
 
