@@ -640,7 +640,7 @@ const App = (() => {
     const capitalGainsTaxRON = fd.capitalGains?.taxPaidRON || decl.capitalGains?.taxDueRON || (usNetGainsRON * capGainsTaxRate + roGainsTaxNet);
     const interestTaxRate = (tr.roInterestRate != null ? tr.roInterestRate / 100 : (year >= 2026 ? 0.16 : 0.10));
     const interestTaxGross = interestIncomeRON * interestTaxRate;
-    const interestTaxPaid = adv.interestTax || 0;
+    const interestTaxPaid = (yd.interestTaxPaid !== undefined && yd.interestTaxPaid !== '' ? parseFloat(yd.interestTaxPaid) : null) ?? adv.interestTax ?? 0;
     const interestTax = Math.max(0, interestTaxGross - interestTaxPaid);
 
     // ---- Additional income types ----
@@ -899,7 +899,8 @@ const App = (() => {
         usTaxPaid: 0,
         taxRate: data.divTaxRateLabel,
         paid: data.roDivTaxWithheld || 0,
-        tax: Math.max(0, data.dividendsRON_ro * data.divTaxRate - (data.roDivTaxWithheld || 0))
+        tax: Math.max(0, data.dividendsRON_ro * data.divTaxRate - (data.roDivTaxWithheld || 0)),
+        tooltip: data.roDivTaxWithheld ? I18n.t('misc.creditFiscalTooltip') : undefined
       },
       {
         cat: I18n.t('income.usGains') + data.usBrokerLabel + (data.tradeCount ? ` (${data.tradeCount} trades)` : ''),
@@ -921,7 +922,8 @@ const App = (() => {
         usTaxPaid: 0,
         taxRate: (data.roLongRate * 100) + '%',
         paid: data.roPortTaxWithheld > 0 ? Math.min(data.roPortTaxWithheld, data.roLongTermGainRON * data.roLongRate) : data.roLongTermGainRON * data.roLongRate,
-        tax: 0
+        tax: 0,
+        tooltip: I18n.t('misc.roWithheldTooltip')
       },
       {
         cat: I18n.t('income.roGainsShort') + data.roBrokerLabel + ' ' + I18n.t('misc.roWithheld'),
@@ -932,10 +934,11 @@ const App = (() => {
         usTaxPaid: 0,
         taxRate: (data.roShortRate * 100) + '%',
         paid: data.roShortTermGainRON * data.roShortRate,
-        tax: 0
+        tax: 0,
+        tooltip: I18n.t('misc.roWithheldTooltip')
       },
       {
-        cat: I18n.t('income.interestIncome'),
+        cat: I18n.t('income.interestIncome') + (data.interestTax === 0 && (data.interestTaxPaid || 0) > 0 ? ' ' + I18n.t('misc.roWithheld') : ''),
         usd: '-',
         rate: '-',
         ron: data.interestIncomeRON,
@@ -943,14 +946,15 @@ const App = (() => {
         usTaxPaid: 0,
         taxRate: (data.interestTaxRate * 100) + '%',
         paid: data.interestTaxPaid || 0,
-        tax: data.interestTax
+        tax: data.interestTax,
+        tooltip: (data.interestTax === 0 && (data.interestTaxPaid || 0) > 0) ? I18n.t('misc.roWithheldTooltip') : undefined
       }
     ];
 
     // Add gambling income if present
     if (data.gamblingIncome > 0) {
       rows.push({
-        cat: I18n.t('income.gamblingIncome'),
+        cat: I18n.t('income.gamblingIncome') + ((data.gamblingTax || 0) > 0 ? ' ' + I18n.t('misc.roWithheld') : ''),
         usd: '-',
         rate: '-',
         ron: data.gamblingIncome,
@@ -958,44 +962,47 @@ const App = (() => {
         usTaxPaid: 0,
         taxRate: '10%',
         paid: data.gamblingTax || 0,
-        tax: 0  // Already withheld at source
+        tax: 0,  // Already withheld at source
+        tooltip: (data.gamblingTax || 0) > 0 ? I18n.t('misc.roWithheldTooltip') : undefined
       });
     }
 
     // Add rental income if present
     if (data.rentalGross > 0) {
       rows.push({
-        cat: I18n.t('income.rentalIncome'),
+        cat: I18n.t('income.rentalIncome') + (data.rentalTaxToPay === 0 && (data.rentalTaxPaid || 0) > 0 ? ' ' + I18n.t('misc.roWithheld') : ''),
         usd: '-',
         rate: '-',
         ron: data.rentalGross,
         usTaxRate: '-',
         usTaxPaid: 0,
-        taxRate: (data.interestTaxRate * 100) + '%',
+        taxRate: (data.interestTaxRate * 100) + '% *',
         paid: data.rentalTaxPaid || 0,
-        tax: data.rentalTaxToPay
+        tax: data.rentalTaxToPay,
+        tooltip: I18n.t('income.deductionNote') + (data.rentalTaxToPay === 0 && (data.rentalTaxPaid || 0) > 0 ? ' ' + I18n.t('misc.roWithheldTooltip') : '')
       });
     }
 
     // Add royalty income if present
     if (data.royaltyGross > 0) {
       rows.push({
-        cat: I18n.t('income.royaltyIncome'),
+        cat: I18n.t('income.royaltyIncome') + (data.royaltyTaxToPay === 0 && (data.royaltyTaxPaid || 0) > 0 ? ' ' + I18n.t('misc.roWithheld') : ''),
         usd: '-',
         rate: '-',
         ron: data.royaltyGross,
         usTaxRate: '-',
         usTaxPaid: 0,
-        taxRate: (data.interestTaxRate * 100) + '%',
+        taxRate: (data.interestTaxRate * 100) + '% *',
         paid: data.royaltyTaxPaid || 0,
-        tax: data.royaltyTaxToPay
+        tax: data.royaltyTaxToPay,
+        tooltip: I18n.t('income.deductionNote') + (data.royaltyTaxToPay === 0 && (data.royaltyTaxPaid || 0) > 0 ? ' ' + I18n.t('misc.roWithheldTooltip') : '')
       });
     }
 
     // Add other income if present
     if (data.otherGross > 0) {
       rows.push({
-        cat: I18n.t('income.otherIncome'),
+        cat: I18n.t('income.otherIncome') + (data.otherTaxToPay === 0 && (data.otherTaxPaid || 0) > 0 ? ' ' + I18n.t('misc.roWithheld') : ''),
         usd: '-',
         rate: '-',
         ron: data.otherGross,
@@ -1003,15 +1010,17 @@ const App = (() => {
         usTaxPaid: 0,
         taxRate: (data.interestTaxRate * 100) + '%',
         paid: data.otherTaxPaid || 0,
-        tax: data.otherTaxToPay
+        tax: data.otherTaxToPay,
+        tooltip: (data.otherTaxToPay === 0 && (data.otherTaxPaid || 0) > 0) ? I18n.t('misc.roWithheldTooltip') : undefined
       });
     }
 
     const totalPaid = rows.reduce((s, r) => s + (r.paid || 0), 0);
     const totalUsTaxPaid = rows.reduce((s, r) => s + (r.usTaxPaid || 0), 0);
 
+    const deductionTooltip = I18n.t('income.deductionNote');
     tbody.innerHTML = rows.map(r => `
-      <tr>
+      <tr${r.tooltip ? ` title="${esc(r.tooltip)}" style="cursor:help;"` : ''}>
         <td>${esc(r.cat)}</td>
         <td>${r.usd === '-' ? '-' : fmtUSD(r.usd)}</td>
         <td>${r.rate === '-' ? '-' : r.rate.toFixed(4)}</td>
@@ -1024,6 +1033,7 @@ const App = (() => {
       </tr>
     `).join('');
 
+    const hasDeduction = (data.rentalGross > 0) || (data.royaltyGross > 0);
     tfoot.innerHTML = `
       <tr>
         <td colspan="3"><strong>${I18n.t('income.total')}</strong></td>
@@ -1034,6 +1044,7 @@ const App = (() => {
         <td><strong>${fmt(totalPaid)}</strong></td>
         <td><strong>${fmt(data.totalTax)}</strong></td>
       </tr>
+      ${hasDeduction ? `<tr><td colspan="9" style="font-size:0.75rem;color:var(--text-muted);border:none;padding-top:0.5rem;">* ${I18n.t('income.deductionNote')}</td></tr>` : ''}
     `;
   }
 
@@ -1779,6 +1790,7 @@ const App = (() => {
     document.getElementById('input-us-gains').value = yd.fidelityGains || '';
     document.getElementById('input-us-cost').value = yd.fidelityCost || '';
     document.getElementById('input-interest').value = yd.interestIncome || '';
+    document.getElementById('input-interest-tax-paid').value = yd.interestTaxPaid || '';
     document.getElementById('input-rental-income').value = yd.rentalIncome || '';
     document.getElementById('input-rental-tax-paid').value = yd.rentalTaxPaid || '';
     document.getElementById('input-royalty-income').value = yd.royaltyIncome || '';
@@ -1903,6 +1915,7 @@ const App = (() => {
       fidelityCost: document.getElementById('input-us-cost').value,
       roGainsCountries: collectRoGainsRows(),
       interestIncome: document.getElementById('input-interest').value,
+      interestTaxPaid: document.getElementById('input-interest-tax-paid').value,
       rentalIncome: document.getElementById('input-rental-income').value,
       rentalTaxPaid: document.getElementById('input-rental-tax-paid').value,
       royaltyIncome: document.getElementById('input-royalty-income').value,

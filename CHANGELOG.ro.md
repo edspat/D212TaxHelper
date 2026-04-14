@@ -1,5 +1,19 @@
 # D212 Asistent Fiscal - Istoric versiuni
 
+## v3.2.1 (2026-04-14)
+
+### Îmbunătățiri UX
+- **Tooltip-uri detaliate** pe toate rândurile tabelului de venituri explicând tratamentul fiscal:
+  - Rândurile "(reținut la sursă)": explică impozitul final, nu se declară pe D212, contează pentru CASS
+  - Rândurile "(credit fiscal)": explică formula creditului fiscal străin (max(0, impozit RO - impozit străin))
+  - Rândurile chirii/drepturi IP: explică deducerea forfetară 40% cu exemplu de calcul
+- **Câmp impozit dobânzi plătit** — input manual pentru impozit deja reținut pe dobânzi
+- **Etichetă "Citește"** — redenumit din "Citește-mă"
+- **Grafice ascunse fără date** — toate cele 5 grafice apar doar când există date financiare
+- **Notă de subsol tabel venituri** — asterisc (*) cu explicație detaliată deducere 40% pentru chirii/drepturi IP
+
+---
+
 ## v3.2.0 (2026-04-14)
 
 ### Noi Tipuri de Venituri

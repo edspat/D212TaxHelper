@@ -1,5 +1,19 @@
 # D212 Tax Helper - Changelog
 
+## v3.2.1 (2026-04-14)
+
+### UX Improvements
+- **Detailed hover tooltips** on all income table rows explaining tax treatment:
+  - "(withheld at source)" rows: explains final tax, not declared on D212, counts for CASS
+  - "(tax credit)" rows: explains foreign tax credit formula (max(0, RO tax - foreign tax))
+  - Rental/Royalty rows: explains 40% flat deduction with example calculation
+- **Interest tax paid field** — manual input for tax already withheld on interest income
+- **"Citește" label** — renamed from "Citește-mă" for cleaner footer
+- **Charts hidden when no data** — all 5 charts only appear when financial data exists
+- **Income table footnote** — asterisk (*) with detailed 40% deduction explanation for rental/royalty
+
+---
+
 ## v3.2.0 (2026-04-14)
 
 ### New Income Types

@@ -1,6 +1,6 @@
 # D212 Tax Helper - User Guide
 
-**Guide version:** 2.0 | **App version:** 3.2.0 | **Last updated:** 2026-04-14
+**Guide version:** 2.1 | **App version:** 3.2.1 | **Last updated:** 2026-04-14
 
 ---
 
@@ -622,21 +622,18 @@ See the full changelog by clicking the version number in the app footer, or view
 - [CHANGELOG.en.md](CHANGELOG.en.md) (English)
 - [CHANGELOG.ro.md](CHANGELOG.ro.md) (Romanian)
 
-### Current Version: v3.2.0 (2026-04-14)
+### Current Version: v3.2.1 (2026-04-14)
 
 **Major changes:**
-- 4 new income types: Rental, Royalties, Gambling, Other Sources
-- US/RO dividend tax withheld manual inputs
-- Tax rate fixes for 2019-2022 (dividends 5%, RO gains 10% flat)
-- CASS correctly excludes gambling and other income (Art. 174)
-- 5 dashboard tiles: Income, Already Paid, Income Tax, CASS, Total D212
-- Charts with percentages, all tax types, minimum salary evolution
-- Manual data appears in Raw Data tab for edit/purge
-- Async server startup (PaddleOCR detection in background)
+- Detailed hover tooltips on all income rows (withholding, credits, deductions)
+- Interest tax paid manual input
+- Charts hidden when no data
+- 40% deduction footnote with example on rental/royalty rows
+- 4 new income types, ANAF tax compliance fixes, dashboard overhaul
 
-### Previous Version: v3.1.2 (2026-04-09)
+### Previous Version: v3.2.0 (2026-04-14)
 
-Progress bars on buttons, in-app OCR management, bulk delete, modal improvements.
+4 new income types (rental, royalties, gambling, other), US/RO dividend tax fields, tax rate fixes for 2019-2022, CASS compliance, 5 dashboard tiles, minimum salary chart, async startup.
 
 ---
 

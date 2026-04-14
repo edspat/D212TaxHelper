@@ -1,6 +1,6 @@
 # D212 Asistent Fiscal - Ghid de Utilizare
 
-**Versiune ghid:** 2.0 | **Versiune aplicație:** 3.2.0 | **Ultima actualizare:** 14.04.2026
+**Versiune ghid:** 2.1 | **Versiune aplicație:** 3.2.1 | **Ultima actualizare:** 14.04.2026
 
 ---
 
@@ -616,21 +616,18 @@ Vezi istoricul complet făcând click pe numărul versiunii din footer-ul aplica
 - [CHANGELOG.en.md](CHANGELOG.en.md) (Engleză)
 - [CHANGELOG.ro.md](CHANGELOG.ro.md) (Română)
 
-### Versiunea curentă: v3.2.0 (14.04.2026)
+### Versiunea curentă: v3.2.1 (14.04.2026)
 
 **Modificări majore:**
-- 4 tipuri noi de venituri: Chirii, Drepturi IP, Jocuri noroc, Alte surse
-- Inputuri manuale impozit dividende SUA/RO reținut
-- Cote impozit corectate 2019-2022 (dividende 5%, câștiguri RO 10% flat)
-- CASS exclude corect jocuri noroc și alte venituri (Art. 174)
-- 5 căsuțe panou: Venit, Deja Plătit, Impozit Venit, CASS, Total D212
-- Grafice cu procente, toate tipurile impozite, evoluție salariu minim
-- Datele manuale apar în Date Brute pentru editare/ștergere
-- Pornire server asincronă (detectare PaddleOCR în fundal)
+- Tooltip-uri detaliate pe toate rândurile de venituri (rețineri, credite, deduceri)
+- Input manual impozit dobânzi plătit
+- Grafice ascunse fără date
+- Notă de subsol cu exemplu deducere 40% pe chirii/drepturi IP
+- 4 tipuri noi de venituri, corecturi conformitate ANAF, refacere panou principal
 
-### Versiunea anterioară: v3.1.2 (09.04.2026)
+### Versiunea anterioară: v3.2.0 (14.04.2026)
 
-Bare de progres pe butoane, gestionare OCR din aplicație, ștergere multiplă, îmbunătățiri ferestre modale.
+4 tipuri noi de venituri (chirii, drepturi IP, jocuri noroc, alte surse), câmpuri impozit dividende SUA/RO, cote corectate 2019-2022, conformitate CASS, 5 căsuțe panou, grafic salariu minim, pornire asincronă.
 
 ---
 

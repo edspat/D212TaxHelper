@@ -399,7 +399,7 @@ app.delete('/api/raw/:filename', (req, res) => {
             const manualKeys = [
               'usBroker', 'roBroker', 'fidelityDividends', 'usDivTaxPaid',
               'xtbDividends', 'roDivTaxPaid', 'fidelityGains', 'fidelityCost',
-              'interestIncome', 'rentalIncome', 'rentalTaxPaid', 'royaltyIncome',
+              'interestIncome', 'interestTaxPaid', 'rentalIncome', 'rentalTaxPaid', 'royaltyIncome',
               'royaltyTaxPaid', 'gamblingIncome', 'gamblingTaxPaid', 'otherIncome',
               'otherTaxPaid', 'stockWithholdingPaid', 'exchangeRate', 'minSalary',
               'd212Deadline', 'roGainsCountries', 'taxRates'
