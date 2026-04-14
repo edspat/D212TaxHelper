@@ -1,5 +1,20 @@
 # D212 Tax Helper - Changelog
 
+## v3.2.3 (2026-04-14)
+
+### New Features
+- **ANAF D-212 import (XFA PDFs)** — imports official ANAF Declarație Unică D-212 PDFs by extracting embedded XML data directly from FlateDecode streams (no OCR needed)
+- **ANAF D-212 import (rendered/image PDFs)** — parses ANAF-rendered PDFs with text layers containing "FORMULAR VALIDAT" signature, handling the special number format (e.g., "18 .424" = 18424)
+- **Extracted fields** — capital gains (taxable income, tax due), dividends (gross, foreign tax, tax due RO), CASS contribution, total tax obligations
+- **Automatic format detection** — the declaratie parser now handles 3 PDF formats: XFA dynamic forms, ANAF rendered PDFs, and Think People advisory reports
+
+### Bug Fixes
+- **Hidden CMD/PS windows** — all child process operations (PaddleOCR detection, OCR processing, server restart, upgrade/downgrade) now run with `windowsHide: true` so no console windows flash on screen
+- **Slow PaddleOCR on ANAF PDFs** — ANAF-format PDFs with text layers ("FORMULAR VALIDAT") now skip unnecessary PaddleOCR table extraction, making import near-instant
+- **Year Comparison chart decimals** — values now display as whole numbers in both axis labels and tooltips
+
+---
+
 ## v3.2.2 (2026-04-14)
 
 ### Bug Fixes

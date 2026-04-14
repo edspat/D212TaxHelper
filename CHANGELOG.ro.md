@@ -1,5 +1,20 @@
 # D212 Asistent Fiscal - Istoric versiuni
 
+## v3.2.3 (2026-04-14)
+
+### Funcționalități Noi
+- **Import ANAF D-212 (PDF-uri XFA)** — importă PDF-urile oficiale ANAF Declarația Unică D-212 extragând datele XML încorporate direct din stream-urile FlateDecode (fără OCR)
+- **Import ANAF D-212 (PDF-uri randate/imagine)** — parsează PDF-urile randate ANAF cu straturi text conținând semnătura "FORMULAR VALIDAT", gestionând formatul special de numere (ex: "18 .424" = 18424)
+- **Câmpuri extrase** — câștiguri capital (venit impozabil, impozit datorat), dividende (brut, impozit străin, impozit datorat RO), contribuție CASS, total obligații fiscale
+- **Detecție automată format** — parserul declarației gestionează acum 3 formate PDF: formulare dinamice XFA, PDF-uri randate ANAF și rapoarte Think People
+
+### Corecturi
+- **Ferestre CMD/PS ascunse** — toate operațiile cu procese (detecție PaddleOCR, procesare OCR, restart server, upgrade/downgrade) rulează acum cu `windowsHide: true` fără ferestre de consolă vizibile
+- **PaddleOCR lent pe PDF-uri ANAF** — PDF-urile ANAF cu straturi text ("FORMULAR VALIDAT") sar acum extracția inutilă PaddleOCR, importul fiind aproape instant
+- **Zecimale grafic Comparație Ani** — valorile se afișează acum ca numere întregi în etichetele axei și tooltip-uri
+
+---
+
 ## v3.2.2 (2026-04-14)
 
 ### Corecturi

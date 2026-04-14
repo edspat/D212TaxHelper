@@ -254,6 +254,11 @@ const Charts = (() => {
           legend: {
             position: 'bottom',
             labels: { color: c.text, font: { size: 13 } }
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ctx.dataset.label + ': ' + Math.round(ctx.raw).toLocaleString() + ' RON'
+            }
           }
         },
         scales: {
@@ -262,7 +267,7 @@ const Charts = (() => {
             grid: { color: c.grid }
           },
           y: {
-            ticks: { color: c.text, callback: v => v.toLocaleString() + ' RON' },
+            ticks: { color: c.text, precision: 0, callback: v => Math.round(v).toLocaleString() + ' RON' },
             grid: { color: c.grid }
           }
         }

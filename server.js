@@ -23,7 +23,7 @@ function findPython() {
     try {
       const resolved = path.isAbsolute(p) ? p : p;
       if (path.isAbsolute(p) && !fs.existsSync(p)) continue;
-      require('child_process').execFileSync(resolved, ['--version'], { stdio: 'pipe', timeout: 5000 });
+      require('child_process').execFileSync(resolved, ['--version'], { stdio: 'pipe', timeout: 5000, windowsHide: true });
       return resolved;
     } catch { /* try next */ }
   }
@@ -50,7 +50,7 @@ function _checkPaddleOcrSync() {
 
   try {
     require('child_process').execFileSync(pythonExe, ['-c', 'from paddleocr import PaddleOCR; print("OK")'], {
-      stdio: 'pipe', timeout: 30000,
+      stdio: 'pipe', timeout: 30000, windowsHide: true,
       env: { ...process.env, PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: 'True', GLOG_minloglevel: '2' }
     });
     _paddleOcrAvailable = { available: true, python: pythonExe };
@@ -74,7 +74,7 @@ function detectPaddleOcrAsync() {
   }
   const { execFile } = require('child_process');
   execFile(pythonExe, ['-c', 'from paddleocr import PaddleOCR; print("OK")'], {
-    timeout: 30000,
+    timeout: 30000, windowsHide: true,
     env: { ...process.env, PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: 'True', GLOG_minloglevel: '2' }
   }, (err) => {
     if (err) {
@@ -104,6 +104,7 @@ function runPaddleOcr(filePath, mode = 'auto') {
       timeout: 120000, // 2 min per document
       maxBuffer: 50 * 1024 * 1024, // 50 MB for large table results
       cwd: __dirname,
+      windowsHide: true,
       env: { ...process.env, PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: 'True', GLOG_minloglevel: '2' },
     }, (err, stdout, stderr) => {
       if (err) {
@@ -587,9 +588,40 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       const pdfData = await pdfParse(buffer);
       text = pdfData.text;
 
-      // Check if PDF is image-based (scanned) or has very little text
-      if (text.replace(/\s/g, '').length < 50) {
-        console.log('PDF appears to be image-based (extracted only ' + text.trim().length + ' chars), falling back to OCR...');
+      // Check if PDF is image-based (scanned), XFA dynamic form, or has very little text
+      const isXfaPlaceholder = /Please wait[\s\S]*?Adobe Reader/i.test(text);
+
+      // For ANAF D-212 XFA PDFs: extract embedded XML data directly (no OCR needed)
+      if (isXfaPlaceholder && type === 'declaratie') {
+        const xmlData = extractAnafD212Xml(buffer);
+        if (xmlData) {
+          log('INFO', 'Extracted ANAF D-212 data from embedded XML');
+          // Save raw XML for reference
+          const rawFile = `${type}_${parsedYear}_raw.txt`;
+          fs.writeFileSync(path.join(DATA_DIR, rawFile), '[ANAF D-212 XML]\n' + JSON.stringify(xmlData, null, 2), 'utf8');
+          // Clean up
+          fs.unlinkSync(req.file.path);
+          if (paddleFilePath !== req.file.path && fs.existsSync(paddleFilePath)) fs.unlinkSync(paddleFilePath);
+          // Store parsed data
+          const dataFile = path.join(DATA_DIR, 'parsed_data.json');
+          let data = { years: {} };
+          if (fs.existsSync(dataFile)) data = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+          if (!data.years[parsedYear]) data.years[parsedYear] = { year: parsedYear };
+          data.years[parsedYear][type] = xmlData;
+          fs.writeFileSync(dataFile, JSON.stringify(data, null, 2), 'utf8');
+          return res.json({ success: true, year: parsedYear, type, parsed: xmlData, ocrEngine: 'xml' });
+        }
+        // If XML extraction failed, fall through to OCR
+        log('WARN', 'ANAF D-212 XML extraction failed, trying OCR...');
+      }
+
+      if (text.replace(/\s/g, '').length < 50 || isXfaPlaceholder) {
+        if (isXfaPlaceholder) {
+          log('INFO', 'PDF is an XFA/dynamic form (ANAF D-212 style), falling back to OCR...');
+          console.log('PDF is an XFA/dynamic form (ANAF style), falling back to OCR...');
+        } else {
+          console.log('PDF appears to be image-based (extracted only ' + text.trim().length + ' chars), falling back to OCR...');
+        }
 
         // Try PaddleOCR first for scanned PDFs (superior table extraction)
         if (paddleStatus.available) {
@@ -617,8 +649,9 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
             // Continue with whatever text we have
           }
         }
-      } else if (preferPaddleOcr && paddleStatus.available) {
+      } else if (preferPaddleOcr && paddleStatus.available && !/FORMULAR VALIDAT/i.test(text)) {
         // Even for text-based PDFs, run PaddleOCR in table mode for table-heavy documents
+        // Skip for ANAF D-212 rendered PDFs — their text layer is sufficient
         try {
           paddleResult = await runPaddleOcr(paddleFilePath, 'table');
           log('INFO', 'PaddleOCR table extraction on text PDF');
@@ -1090,6 +1123,10 @@ app.get('/api/exchange-rates', (req, res) => {
 function parsePdfText(text, type, year) {
   switch (type) {
     case 'declaratie':
+      // ANAF rendered/image PDFs have "FORMULAR VALIDAT" signature
+      if (/FORMULAR VALIDAT/i.test(text)) {
+        return parseAnafD212FlatText(text, year);
+      }
       return parseDeclaratie(text, year);
     case 'investment':
       return parseInvestment(text, year);
@@ -1103,6 +1140,202 @@ function parsePdfText(text, type, year) {
 function parseNumber(str) {
   if (!str) return 0;
   return parseFloat(str.toString().replace(/,/g, ''));
+}
+
+// Extract structured data from ANAF D-212 XFA PDF (embedded XML in FlateDecode streams)
+function extractAnafD212Xml(pdfBuffer) {
+  const zlib = require('zlib');
+  const raw = pdfBuffer.toString('latin1');
+  let xml = '';
+  let idx = 0;
+  // Scan all FlateDecode streams and concatenate D212-related XML
+  while (true) {
+    const si = raw.indexOf('stream\r\n', idx);
+    if (si < 0) break;
+    const ei = raw.indexOf('endstream', si);
+    if (ei < 0) break;
+    const data = pdfBuffer.slice(si + 8, ei);
+    try {
+      const dec = zlib.inflateSync(data).toString('utf8');
+      if (dec.includes('<d212 ') || dec.includes('mfp:anaf:dgti:d212') || dec.includes('xfa:data') || dec.includes('anRealizat')) {
+        xml += dec + '\n';
+      }
+    } catch { /* not a valid zlib stream */ }
+    idx = ei + 9;
+  }
+  if (!xml || !xml.includes('<d212 ')) return null;
+
+  // Parse ANAF D-212 XML categories:
+  // str_categ_venit codes: 2012=capital gains (transferul titlurilor), 2018=dividends (dubla impunere)
+  // See ANAF schema: mfp:anaf:dgti:d212:declaratie:v11
+  const result = {
+    year: 0,
+    dividends: { grossUSD: 0, grossRON: 0, foreignTaxUSD: 0, foreignTaxRON: 0, taxDueRON: 0 },
+    capitalGains: { saleUSD: 0, saleRON: 0, costUSD: 0, costRON: 0, salaryDeductionRON: 0, taxableRON: 0, taxDueRON: 0 },
+    totalTax: 0,
+    cassContribution: 0,
+    exchangeRate: 0,
+    anafXml: true
+  };
+
+  // Extract income year from anRealizat (XFA data) — this is the tax year
+  // Fallback to an_r (filing deadline year) minus 1
+  const anRealizat = xml.match(/<anRealizat[^>]*>\s*(\d{4})/);
+  const anR = xml.match(/an_r="(\d{4})"/);
+  if (anRealizat) {
+    result.year = parseInt(anRealizat[1], 10);
+  } else if (anR) {
+    result.year = parseInt(anR[1], 10) - 1; // filing year is income year + 1
+  }
+
+  // Parse cap14 entries (summary lines with category codes)
+  const cap14Pattern = /<cap14\s+([^/]*?)\/>/g;
+  let match;
+  while ((match = cap14Pattern.exec(xml)) !== null) {
+    const attrs = match[1];
+    const categ = attrs.match(/str_categ_venit="(\d+)"/);
+    if (!categ) continue;
+    const code = categ[1];
+    const getAttr = (name) => {
+      const m = attrs.match(new RegExp(name + '="([^"]*)"'));
+      return m ? parseFloat(m[1]) || 0 : 0;
+    };
+
+    if (code === '2012') {
+      // Capital gains (Câștiguri din transferul titlurilor de valoare)
+      result.capitalGains.taxableRON = getAttr('str_venit_net_anual');
+      result.capitalGains.taxDueRON = getAttr('str_impozit_datorat_Ro');
+    } else if (code === '2018') {
+      // Dividends (Venituri din dividende — dubla impunere)
+      result.dividends.grossRON = getAttr('str_venit_brut') || getAttr('str_venit_net_anual');
+      result.dividends.taxDueRON = getAttr('str_impozit_datorat_Ro');
+      result.dividends.foreignTaxRON = getAttr('str_impozit_platit');
+    }
+  }
+
+  // Parse obligatii fiscale totals from oblig_realizat
+  const obligMatch = xml.match(/<oblig_realizat\s+([^/]*?)\/>/);
+  if (obligMatch) {
+    const attrs = obligMatch[1];
+    const totalImp = attrs.match(/oblimpoz_real_total="(\d+)"/);
+    if (totalImp) result.totalTax = parseInt(totalImp[1], 10);
+  }
+
+  // Parse CASS from the XFA data section (only within the cass18 element)
+  const cassSection = xml.match(/<cass18[\s\S]*?<\/cass18/);
+  if (cassSection) {
+    const cassDtr = cassSection[0].match(/<dtr1[^/]>(\d+)/);
+    if (cassDtr) result.cassContribution = parseInt(cassDtr[1], 10);
+  }
+
+  return result;
+}
+
+// Parse ANAF D-212 "FORMULAR VALIDAT" flat text (rendered/image PDFs with text layers)
+// Numbers use ANAF format with spaces before dots: "18 .424" = 18424, "1 .800" = 1800
+function parseAnafD212FlatText(text, year) {
+  const result = {
+    year,
+    dividends: { grossUSD: 0, grossRON: 0, foreignTaxUSD: 0, foreignTaxRON: 0, taxDueRON: 0 },
+    capitalGains: { saleUSD: 0, saleRON: 0, costUSD: 0, costRON: 0, salaryDeductionRON: 0, taxableRON: 0, taxDueRON: 0 },
+    totalTax: 0,
+    cassContribution: 0,
+    exchangeRate: 0,
+    anafFlatText: true
+  };
+
+  // Normalize ANAF number: "18 .424" → 18424, "346" → 346
+  const parseAnafNum = (s) => parseInt(s.replace(/\s+/g, '').replace(/\./g, ''), 10) || 0;
+
+  // Split into clean lines, keeping only number lines and country markers
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+  // Extract income year: first 4-digit number after FORMULAR VALIDAT
+  for (const line of lines) {
+    if (/^\d{4}$/.test(line) && parseInt(line) >= 2019 && parseInt(line) <= 2030) {
+      result.year = parseInt(line, 10);
+      break;
+    }
+  }
+
+  // Find country sections (XX--Country Name)
+  const countrySections = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (/^[A-Z]{2}--/.test(lines[i])) {
+      countrySections.push(i);
+    }
+  }
+
+  // Extract numbers between country markers (or until end)
+  const extractNums = (startIdx, endIdx) => {
+    const nums = [];
+    for (let i = startIdx; i < endIdx; i++) {
+      // Match ANAF numbers: "18 .424", "1 .800", "346", "0"
+      if (/^\d[\d\s]*(?:\.\d+)?$/.test(lines[i])) {
+        nums.push(parseAnafNum(lines[i]));
+      }
+    }
+    return nums;
+  };
+
+  if (countrySections.length >= 2) {
+    // Section 1 (first country): Capital gains — 4 numbers
+    // [venitNet, venitRecalculat, impRo, difImp]
+    const cgNums = extractNums(countrySections[0] + 1, countrySections[1]);
+    if (cgNums.length >= 4) {
+      result.capitalGains.taxableRON = cgNums[0];
+      result.capitalGains.taxDueRON = cgNums[2];
+    }
+
+    // Section 2 (second country): Dividends — 7 numbers
+    // [venitBrut, venitNet, venitImp, impRo, impSt, crdF, difImp]
+    const endIdx = countrySections.length > 2 ? countrySections[2] : lines.length;
+    const divNums = extractNums(countrySections[1] + 1, endIdx);
+    if (divNums.length >= 7) {
+      result.dividends.grossRON = divNums[0];
+      result.dividends.taxDueRON = divNums[3];
+      result.dividends.foreignTaxRON = divNums[4];
+    }
+
+    // Summary section: everything after the last country section's dividends data
+    // Find where dividends end (7 numbers after 2nd country marker)
+    let summaryStart = countrySections[1] + 1;
+    let numCount = 0;
+    for (let i = summaryStart; i < lines.length; i++) {
+      if (/^\d[\d\s]*(?:\.\d+)?$/.test(lines[i])) {
+        numCount++;
+        if (numCount === 7) { summaryStart = i + 1; break; }
+      }
+    }
+    const summaryNums = extractNums(summaryStart, lines.length);
+    // Summary layout (2023): [0,0,0,0, 18770, 0, 0, 18770, 18000, 1800, 1842, 1842, 0, 0, 0, 1800, 1800, 1800]
+    // Summary layout (2024): [1690, 1690, 1690, 1690]
+    // Total tax = capitalGains.taxDueRON (already extracted)
+    result.totalTax = result.capitalGains.taxDueRON;
+
+    // Find CASS: look for a value that repeats 2-3 times in the summary and != totalTax
+    const freq = {};
+    for (const n of summaryNums) {
+      if (n > 0) freq[n] = (freq[n] || 0) + 1;
+    }
+    for (const [val, count] of Object.entries(freq)) {
+      const v = parseInt(val);
+      if (count >= 2 && v !== result.totalTax && v !== result.capitalGains.taxableRON) {
+        result.cassContribution = v;
+        break;
+      }
+    }
+  } else if (countrySections.length === 1) {
+    // Single section — likely just capital gains
+    const nums = extractNums(countrySections[0] + 1, lines.length);
+    if (nums.length >= 4) {
+      result.capitalGains.taxableRON = nums[0];
+      result.capitalGains.taxDueRON = nums[2];
+      result.totalTax = nums[2];
+    }
+  }
+
+  return result;
 }
 
 function parseDeclaratie(text, year) {
@@ -1935,7 +2168,8 @@ app.post('/api/restart', (req, res) => {
     const child = spawn(process.argv[0], [path.join(__dirname, 'server.js')], {
       cwd: __dirname,
       detached: true,
-      stdio: 'ignore'
+      stdio: 'ignore',
+      windowsHide: true
     });
     child.unref();
     process.exit(0);
@@ -1976,6 +2210,7 @@ app.post('/api/ocr-upgrade', (req, res) => {
     cwd: __dirname,
     timeout: 600000,
     maxBuffer: 50 * 1024 * 1024,
+    windowsHide: true,
   }, (err, stdout, stderr) => {
     if (err) {
       log('ERROR', 'PaddleOCR upgrade failed: ' + err.message);
