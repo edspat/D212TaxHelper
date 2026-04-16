@@ -30,6 +30,7 @@ const TEMP = path.resolve(__dirname, '..', '_portable_temp');
 const APP_ITEMS = [
   'server.js',
   'ledger.js', // Persistent financial ledger module
+  'db.js',     // SQLite database layer
   'ocr_service.py', // PaddleOCR service (used if Python available)
   'setup_paddleocr.js', // Enables Lite→Full upgrade
   'package.json',
@@ -160,12 +161,9 @@ async function build() {
   // Ensure uploads folder exists
   fs.mkdirSync(path.join(appDir, 'uploads'), { recursive: true });
 
-  // Create empty data folder with skeleton files (no personal data)
+  // Create empty data folder (SQLite DB will be created on first run)
   const dataDir = path.join(appDir, 'data');
   fs.mkdirSync(dataDir, { recursive: true });
-  fs.writeFileSync(path.join(dataDir, 'parsed_data.json'), JSON.stringify({ years: {} }, null, 2), 'utf8');
-  fs.writeFileSync(path.join(dataDir, 'trades.json'), JSON.stringify({}, null, 2), 'utf8');
-  fs.writeFileSync(path.join(dataDir, 'stock_awards.json'), JSON.stringify({ 'Stock Awards': [] }, null, 2), 'utf8');
   // Copy only pdf_metadata.json (document type definitions, no personal data)
   const metaSrc = path.join(SRC, 'data', 'pdf_metadata.json');
   if (fs.existsSync(metaSrc)) {

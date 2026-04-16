@@ -79,6 +79,8 @@ You can switch between Lite and Full at any time — either from the **Import Do
 ```
 D212TaxHelper/
 ├── server.js            # Express server & API routes
+├── db.js                # SQLite database layer
+├── ledger.js            # FIFO cost basis engine
 ├── ocr_service.py       # PaddleOCR subprocess (Python)
 ├── setup_paddleocr.js   # PaddleOCR setup script
 ├── public/              # Frontend (HTML, CSS, JS)
@@ -102,7 +104,8 @@ D212TaxHelper/
 
 ## Tech Stack
 
-- **Backend:** Node.js, Express 5
+- **Backend:** Node.js, Express 5, compression
+- **Database:** SQLite (better-sqlite3)
 - **Frontend:** Vanilla JS, HTML, CSS
 - **PDF parsing:** pdf-parse-new
 - **OCR (primary):** PaddleOCR 3.x via Python subprocess (PP-StructureV3)

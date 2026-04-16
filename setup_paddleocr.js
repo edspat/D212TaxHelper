@@ -115,14 +115,19 @@ async function setup(targetDir) {
     stdio: ['pipe', process.stdout, process.stderr],
   });
 
-  // 5. Install PaddleOCR and dependencies
-  log('Installing PaddleOCR packages (this may take several minutes)...');
-  const pipCmd = `"${pythonExe}" -m pip install --no-warn-script-location ${PIP_PACKAGES.join(' ')}`;
-  execSync(pipCmd, {
-    cwd: pythonDir,
-    stdio: ['pipe', process.stdout, process.stderr],
-    timeout: 600000, // 10 min
-  });
+  // 5. Install PaddleOCR and dependencies (one by one for clear progress)
+  log(`Installing ${PIP_PACKAGES.length} packages (this may take several minutes)...`);
+  for (let i = 0; i < PIP_PACKAGES.length; i++) {
+    const pkg = PIP_PACKAGES[i];
+    log(`[${i + 1}/${PIP_PACKAGES.length}] Installing ${pkg} ...`);
+    const pipCmd = `"${pythonExe}" -m pip install --no-warn-script-location --progress-bar off ${pkg}`;
+    execSync(pipCmd, {
+      cwd: pythonDir,
+      stdio: ['pipe', process.stdout, process.stderr],
+      timeout: 900000, // 15 min per package
+    });
+    log(`[${i + 1}/${PIP_PACKAGES.length}] ${pkg} done.`);
+  }
 
   // 6. Copy ocr_service.py into the python directory
   const ocrServiceSrc = path.join(__dirname, 'ocr_service.py');

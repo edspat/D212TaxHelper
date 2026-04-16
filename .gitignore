@@ -3,6 +3,7 @@ node_modules/
 
 # Python (PaddleOCR portable environment)
 python/
+_python_temp/
 
 # Uploads (user PDFs)
 uploads/
@@ -15,6 +16,10 @@ data/*_raw.txt
 data/parsed_data.json
 data/trades.json
 data/stock_awards.json
+data/ledger.json
+data/d212tax.db
+data/d212tax.db-shm
+data/d212tax.db-wal
 
 # Keep pdf_metadata.json (document type definitions)
 !data/pdf_metadata.json

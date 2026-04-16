@@ -169,16 +169,17 @@ const App = (() => {
     // Year picker
     initYearPicker();
 
-    // Load data
-    await loadAllData();
+    // Load data + app version in parallel
+    const [, vData] = await Promise.all([
+      loadAllData(),
+      fetch('/api/version').then(r => r.json()).catch(() => null)
+    ]);
 
-    // Load app version
-    try {
-      const vResp = await fetch('/api/version');
-      const vData = await vResp.json();
+    // App version
+    if (vData) {
       const vEl = document.getElementById('app-version');
       if (vEl) vEl.textContent = vData.version || '?';
-    } catch {}
+    }
 
     // Changelog modal
     const vLink = document.getElementById('app-version-link');
@@ -455,14 +456,12 @@ const App = (() => {
   }
 
   async function render() {
-    // Fetch withholding and ledger allocations
+    // Fetch ledger allocations and raw file list (withholding already loaded by loadAllData)
     try {
-      const [whResp, ledgerResp, rawResp] = await Promise.all([
-        fetch('/api/stock-withholding'),
+      const [ledgerResp, rawResp] = await Promise.all([
         fetch('/api/ledger/allocations'),
         fetch('/api/raw')
       ]);
-      withholdingData = await whResp.json();
       ledgerAllocations = await ledgerResp.json();
       const rawData = await rawResp.json();
       rawFilesList = Array.isArray(rawData) ? rawData : [];
@@ -531,8 +530,8 @@ const App = (() => {
     // Capital gains tax rate: 16% from 2026, 10% for 2025 and earlier
     const capGainsTaxRate = year >= 2026 ? 0.16 : 0.10;
 
-    // From US broker data > declaratie > 1042-S > investment report (1042-S takes precedence over inv report)
-    let dividendsUSD = fd.dividends?.grossUSD || decl.dividends?.grossUSD || f1042sDivUSD || inv.totalDividends || 0;
+    // From US broker data > declaratie > 1042-S > fidelity statement > investment report
+    let dividendsUSD = fd.dividends?.grossUSD || decl.dividends?.grossUSD || f1042sDivUSD || yd.fidelityDividendsYTD || inv.totalDividends || 0;
     let dividendsRON = fd.dividends?.grossRON || decl.dividends?.grossRON || 0;
     let capitalGainsTaxableRON = fd.capitalGains?.taxableRON || decl.capitalGains?.taxableRON || 0;
     let capitalGainsSaleUSD = fd.capitalGains?.saleUSD || decl.capitalGains?.saleUSD || 0;
@@ -551,6 +550,7 @@ const App = (() => {
     if (Array.isArray(trades.trades)) {
       for (const t of trades.trades) {
         if (t.source === 'ms_statement') tradeSources.add('Morgan Stanley');
+        else if (t.source === 'fidelity_statement') tradeSources.add('Fidelity');
         else tradeSources.add('Fidelity');
       }
     }
@@ -578,6 +578,10 @@ const App = (() => {
     const roBrokerLabel = roSources.size > 0 ? ' (' + [...roSources].join(' & ') + ')' : '';
     // Use ledger allocations for ESPP cost basis (FIFO-computed server-side)
     const yearAlloc = ledgerAllocations[year] || {};
+    // Prefer Fidelity statement cost basis (actual FIFO from broker) over BIK/ESPP ledger
+    if (!capitalGainsCostUSD && yd.fidelitySalesCostBasisUSD > 0) {
+      capitalGainsCostUSD = yd.fidelitySalesCostBasisUSD;
+    }
     if (!capitalGainsCostUSD && yearAlloc.esppCostUSD > 0) {
       capitalGainsCostUSD = yearAlloc.esppCostUSD;
     }
@@ -600,11 +604,11 @@ const App = (() => {
     let roPortTaxWithheld = (xtbPort.totalTaxWithheldRON || 0) + (tvPort.totalTaxWithheldRON || 0);
     let withholding = hasStockAwardFile(year) ? (withholdingData.total || 0) : 0;
 
-    // Stock award BIK: sum of ALL imported stock_award_bik entries
-    // Only apply when stock award docs were uploaded for THIS year AND there are capital gains
+    // Stock award BIK: use FIFO-allocated amount from ledger (per-year, not total)
+    // Only apply when stock award docs were uploaded AND there are capital gains
     const hasUSCapGains = tradeProceedsUSD > 0 || capitalGainsSaleUSD > 0 || capitalGainsTaxableRON > 0;
     const hasStockAward = hasStockAwardFile(year);
-    let salaryTaxedRON = (hasUSCapGains && hasStockAward) ? (withholdingData.totalBik || 0) : 0;
+    let salaryTaxedRON = (hasUSCapGains && hasStockAward) ? (yearAlloc.bikAllocatedRON || 0) : 0;
 
     // Manual overrides
     if (yd.salaryTaxedIncome !== undefined && yd.salaryTaxedIncome !== '') {

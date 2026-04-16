@@ -1,5 +1,22 @@
 # D212 Asistent Fiscal - Istoric versiuni
 
+## v1.5.0 (2026-04-16)
+
+### Performanță
+- **Compresie Gzip** — toate răspunsurile HTTP sunt acum comprimate prin middleware-ul `compression`, reducând dimensiunea paginii cu ~60-70%
+- **Cache dimensiune director Python** — `/api/ocr-status` nu mai parcurge 31.000+ fișiere la fiecare apel; calculat o singură dată la pornire și stocat în cache
+- **Cache active statice** — fișierele JS, CSS și HTML servite cu `Cache-Control: max-age=1h`, eliminând descărcările redundante la reîncărcarea paginii
+- **Chart.js non-blocant** — tag-ul script CDN schimbat de la blocant la `defer`, permițând randarea mai rapidă a paginii
+- **Eliminat apel API duplicat** — `/api/stock-withholding` era apelat de două ori la încărcarea paginii (în `loadAllData` și `render`); acum apelat o singură dată
+- **Încărcare inițială paralelă** — `loadAllData()` și `/api/version` acum apelate simultan în loc de secvențial
+
+### UX Upgrade PaddleOCR
+- **Progres per pachet** — `setup_paddleocr.js` instalează acum pachetele unul câte unul cu mesaje `[1/7] Instalare paddlepaddle==3.0.0 ...` în loc de o instalare silențioasă în bloc
+- **Fără blocare la 99%** — bara de progres pip dezactivată (`--progress-bar off`) în timpul upgrade-ului pentru a preveni afișarea înghețată
+- **Timeout crescut** — 15 minute per pachet (de la 10 minute în total) pentru conexiuni mai lente
+
+---
+
 ## v1.4.6 (2026-04-16)
 
 ### Integrare ESPP & Stock Award

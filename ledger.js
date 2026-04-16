@@ -8,22 +8,18 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-
-const LEDGER_FILE = path.join(__dirname, 'data', 'ledger.json');
+const db = require('./db');
 
 function uuid() {
   return crypto.randomUUID();
 }
 
 function load() {
-  if (!fs.existsSync(LEDGER_FILE)) {
-    return { entries: [], allocations: {}, sourceFiles: {} };
-  }
-  return JSON.parse(fs.readFileSync(LEDGER_FILE, 'utf8'));
+  return db.loadLedger();
 }
 
 function save(ledger) {
-  fs.writeFileSync(LEDGER_FILE, JSON.stringify(ledger, null, 2), 'utf8');
+  db.saveLedger(ledger);
 }
 
 /**

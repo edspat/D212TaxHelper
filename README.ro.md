@@ -79,6 +79,8 @@ Poți comuta între Lite și Full oricând — fie din tab-ul **Importă Documen
 ```
 D212TaxHelper/
 ├── server.js            # Server Express și rute API
+├── db.js                # Strat bază de date SQLite
+├── ledger.js            # Motor FIFO cost de achiziție
 ├── ocr_service.py       # Subprocess PaddleOCR (Python)
 ├── setup_paddleocr.js   # Script instalare PaddleOCR
 ├── public/              # Frontend (HTML, CSS, JS)
@@ -102,7 +104,8 @@ D212TaxHelper/
 
 ## Stack tehnologic
 
-- **Backend:** Node.js, Express 5
+- **Backend:** Node.js, Express 5, compression
+- **Bază de date:** SQLite (better-sqlite3)
 - **Frontend:** Vanilla JS, HTML, CSS
 - **Parsare PDF:** pdf-parse-new
 - **OCR (primar):** PaddleOCR 3.x via subprocess Python (PP-StructureV3)

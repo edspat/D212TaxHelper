@@ -1,5 +1,22 @@
 # D212 Tax Helper - Changelog
 
+## v1.5.0 (2026-04-16)
+
+### Performance
+- **Gzip compression** — all HTTP responses now compressed via `compression` middleware, reducing page payload by ~60-70%
+- **Cached Python directory size** — `/api/ocr-status` no longer walks 31,000+ files on every call; computed once at startup and cached
+- **Static asset caching** — JS, CSS, and HTML files served with `Cache-Control: max-age=1h`, eliminating redundant downloads on page refresh
+- **Non-blocking Chart.js** — CDN script tag changed from render-blocking to `defer`, allowing the page to render faster
+- **Removed duplicate API call** — `/api/stock-withholding` was fetched twice per page load (in `loadAllData` and `render`); now fetched once
+- **Parallel init loading** — `loadAllData()` and `/api/version` now fetched concurrently instead of sequentially
+
+### PaddleOCR Upgrade UX
+- **Per-package progress** — `setup_paddleocr.js` now installs packages one by one with `[1/7] Installing paddlepaddle==3.0.0 ...` progress messages instead of a single silent bulk install
+- **No more stuck at 99%** — pip progress bar disabled (`--progress-bar off`) during upgrade to prevent misleading frozen display
+- **Increased timeout** — 15 minutes per package (up from 10 minutes total) for slower connections
+
+---
+
 ## v1.4.6 (2026-04-16)
 
 ### ESPP & Stock Award Integration
