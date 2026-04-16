@@ -671,9 +671,43 @@
   <div id="toast" class="toast hidden"></div>
   <div id="update-banner" class="update-banner hidden">
     <span id="update-banner-text"></span>
-    <a id="update-banner-link" href="#" target="_blank" rel="noopener" class="update-banner-btn" data-i18n="update.download">Download</a>
+    <button type="button" id="update-banner-btn" class="update-banner-btn" data-i18n="update.updateNow">Update</button>
     <button type="button" id="update-banner-dismiss" class="update-banner-dismiss" title="Dismiss">&times;</button>
   </div>
+
+  <!-- Update Modal -->
+  <div id="update-modal" class="modal-overlay hidden" style="z-index:1020;">
+    <div class="modal-content update-modal-content">
+      <div class="modal-header">
+        <h3 id="update-modal-title" data-i18n="update.modalTitle">App Update</h3>
+        <button type="button" id="update-modal-close" class="modal-close">&times;</button>
+      </div>
+      <div id="update-modal-body" class="update-modal-body">
+        <div id="update-step-download" class="update-step">
+          <div class="update-step-icon">&#8595;</div>
+          <p id="update-download-text"></p>
+          <div class="update-progress-bar"><div id="update-progress-fill" class="update-progress-fill"></div></div>
+        </div>
+        <div id="update-step-confirm" class="update-step hidden">
+          <div class="update-step-icon">&#9888;</div>
+          <p id="update-confirm-text" data-i18n="update.confirmInstall">Download complete. Install now? Your data and documents will be preserved.</p>
+          <div class="update-step-actions">
+            <button type="button" id="update-install-btn" class="btn btn-primary" data-i18n="update.installNow">Install Now</button>
+            <button type="button" id="update-cancel-btn" class="btn btn-secondary" data-i18n="update.cancel">Cancel</button>
+          </div>
+        </div>
+        <div id="update-step-installing" class="update-step hidden">
+          <div class="update-step-icon spinner">&#8635;</div>
+          <p id="update-installing-text" data-i18n="update.installing">Installing update... The server will restart automatically.</p>
+        </div>
+        <div id="update-step-result" class="update-step hidden">
+          <div id="update-result-icon" class="update-step-icon">&#10004;</div>
+          <p id="update-result-text"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <button id="scroll-top-btn" class="scroll-top-btn hidden"><span>&uarr;</span><small id="scroll-top-label" data-i18n="footer.backToTop">Top</small></button>
 
   <!-- Changelog Modal (z-index higher to stack over doc modal) -->

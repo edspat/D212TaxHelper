@@ -511,6 +511,15 @@
   },
   "update": {
     "available": "Actualizare disponibilă: v{current} → v{latest}",
-    "download": "Descarcă"
+    "updateNow": "Actualizează",
+    "modalTitle": "Actualizare Aplicație",
+    "downloading": "Se descarcă v{version} de pe GitHub...",
+    "confirmInstall": "Descărcare completă. Instalați acum? Datele și documentele vor fi păstrate.",
+    "installNow": "Instalează Acum",
+    "cancel": "Anulează",
+    "installing": "Se instalează actualizarea... Serverul va reporni automat.",
+    "restarting": "Actualizare instalată. Se repornește serverul...",
+    "success": "Actualizat cu succes la v{version}! Pagina se va reîncărca.",
+    "failed": "Actualizarea a eșuat: {error}"
   }
 }

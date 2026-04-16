@@ -513,6 +513,15 @@
   },
   "update": {
     "available": "Update available: v{current} → v{latest}",
-    "download": "Download"
+    "updateNow": "Update",
+    "modalTitle": "App Update",
+    "downloading": "Downloading v{version} from GitHub...",
+    "confirmInstall": "Download complete. Install now? Your data and documents will be preserved.",
+    "installNow": "Install Now",
+    "cancel": "Cancel",
+    "installing": "Installing update... The server will restart automatically.",
+    "restarting": "Update installed. Restarting server...",
+    "success": "Successfully updated to v{version}! Page will reload.",
+    "failed": "Update failed: {error}"
   }
 }

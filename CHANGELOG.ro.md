@@ -11,9 +11,10 @@
 - **Încărcare inițială paralelă** — `loadAllData()` și `/api/version` acum apelate simultan în loc de secvențial
 
 ### Verificare Automată Actualizări
-- **Notificare actualizare** — la pornire, aplicația verifică pe GitHub dacă există versiuni noi și afișează un banner care poate fi închis dacă este disponibilă o versiune mai nouă
-- **Link de descărcare** — banner-ul trimite direct la descărcarea ZIP portabilă cea mai recentă
-- **Închidere per versiune** — închiderea banner-ului reține versiunea în localStorage; nu va mai apărea până nu se publică o versiune mai nouă
+- **Auto-actualizare din aplicație** — la pornire, aplicația verifică pe GitHub dacă există versiuni noi și afișează un banner; click pe „Actualizează” descarcă ultimul ZIP, cere confirmare, apoi aplică actualizarea păstrând toate datele utilizatorului (data/, uploads/, python/)
+- **Repornire automată server** — după o actualizare reușită, serverul repornește automat și pagina se reîncarcă
+- **Banner persistent** — închiderea banner-ului de actualizare îl ascunde doar pentru sesiunea curentă; reapare la fiecare pornire până când actualizarea este instalată
+- **Gestionare erori** — dacă actualizarea eșuează, utilizatorul vede un mesaj clar de eroare și fișierele existente rămân neatinse
 
 ### UX Upgrade PaddleOCR
 - **Progres per pachet** — `setup_paddleocr.js` instalează acum pachetele unul câte unul cu mesaje `[1/7] Instalare paddlepaddle==3.0.0 ...` în loc de o instalare silențioasă în bloc

@@ -11,9 +11,10 @@
 - **Parallel init loading** — `loadAllData()` and `/api/version` now fetched concurrently instead of sequentially
 
 ### Auto-Update Checker
-- **Update notification** — on startup, the app checks GitHub for new releases and shows a dismissable banner if a newer version is available
-- **Download link** — banner links directly to the latest portable ZIP download
-- **Dismiss per version** — dismissing the banner remembers the version in localStorage; it won't reappear until a newer release is published
+- **In-app self-update** — on startup, the app checks GitHub for new releases and shows a banner; clicking “Update” downloads the latest ZIP, prompts for confirmation, then applies the update in-place while preserving all user data (data/, uploads/, python/)
+- **Automatic server restart** — after a successful update, the server restarts automatically and the page reloads
+- **Persistent banner** — dismissing the update banner only hides it for the current session; it reappears on every startup until the update is installed
+- **Error handling** — if the update fails, the user sees a clear error message and existing files remain untouched
 
 ### PaddleOCR Upgrade UX
 - **Per-package progress** — `setup_paddleocr.js` now installs packages one by one with `[1/7] Installing paddlepaddle==3.0.0 ...` progress messages instead of a single silent bulk install

@@ -5,6 +5,9 @@ node_modules/
 python/
 _python_temp/
 
+# Update staging
+_update/
+
 # Uploads (user PDFs)
 uploads/
 

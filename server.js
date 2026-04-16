@@ -1106,6 +1106,180 @@ function _isNewerVersion(current, latest) {
   return false;
 }
 
+// POST /api/update/download - Download latest release ZIP from GitHub
+app.post('/api/update/download', async (req, res) => {
+  const updateDir = path.join(__dirname, '_update');
+  const zipPath = path.join(updateDir, 'update.zip');
+  try {
+    // Get latest release info
+    const controller = new AbortController();
+    const infoTimeout = setTimeout(() => controller.abort(), 10000);
+    const ghRes = await fetch('https://api.github.com/repos/edmund-1/D212TaxHelper/releases/latest', {
+      headers: { 'Accept': 'application/vnd.github+json', 'User-Agent': 'D212TaxHelper' },
+      signal: controller.signal
+    });
+    clearTimeout(infoTimeout);
+    if (!ghRes.ok) return res.status(502).json({ success: false, error: `GitHub API returned ${ghRes.status}` });
+    const release = await ghRes.json();
+    const asset = (release.assets || []).find(a => a.name.endsWith('.zip'));
+    if (!asset) return res.status(404).json({ success: false, error: 'No ZIP asset found in latest release' });
+
+    // Create _update dir
+    if (fs.existsSync(updateDir)) fs.rmSync(updateDir, { recursive: true, force: true });
+    fs.mkdirSync(updateDir, { recursive: true });
+
+    // Download ZIP
+    log('INFO', 'Downloading update', { url: asset.browser_download_url, size: asset.size });
+    const dlController = new AbortController();
+    const dlTimeout = setTimeout(() => dlController.abort(), 300000); // 5 min
+    const dlRes = await fetch(asset.browser_download_url, {
+      headers: { 'User-Agent': 'D212TaxHelper' },
+      signal: dlController.signal
+    });
+    clearTimeout(dlTimeout);
+    if (!dlRes.ok) return res.status(502).json({ success: false, error: `Download failed: HTTP ${dlRes.status}` });
+
+    const fileStream = fs.createWriteStream(zipPath);
+    const reader = dlRes.body.getReader();
+    let downloaded = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      fileStream.write(Buffer.from(value));
+      downloaded += value.length;
+    }
+    fileStream.end();
+    await new Promise((resolve, reject) => { fileStream.on('finish', resolve); fileStream.on('error', reject); });
+
+    const latestVersion = (release.tag_name || '').replace(/^v/, '');
+    log('INFO', 'Update downloaded', { size: downloaded, version: latestVersion });
+    res.json({
+      success: true,
+      version: latestVersion,
+      size: downloaded,
+      releaseNotes: release.body || ''
+    });
+  } catch (err) {
+    log('ERROR', 'Update download failed', { error: err.message });
+    if (fs.existsSync(updateDir)) fs.rmSync(updateDir, { recursive: true, force: true });
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/update/install - Extract downloaded ZIP and apply update
+app.post('/api/update/install', async (req, res) => {
+  const updateDir = path.join(__dirname, '_update');
+  const zipPath = path.join(updateDir, 'update.zip');
+  const stagingDir = path.join(updateDir, 'staging');
+
+  if (!fs.existsSync(zipPath)) {
+    return res.status(400).json({ success: false, error: 'No update downloaded. Call /api/update/download first.' });
+  }
+
+  try {
+    // Extract ZIP using PowerShell
+    log('INFO', 'Extracting update ZIP...');
+    if (fs.existsSync(stagingDir)) fs.rmSync(stagingDir, { recursive: true, force: true });
+    fs.mkdirSync(stagingDir, { recursive: true });
+
+    await new Promise((resolve, reject) => {
+      const { execFile: ef } = require('child_process');
+      ef('powershell.exe', [
+        '-NoProfile', '-Command',
+        `Expand-Archive -Path '${zipPath}' -DestinationPath '${stagingDir}' -Force`
+      ], { timeout: 120000, windowsHide: true }, (err) => {
+        if (err) reject(new Error('Failed to extract ZIP: ' + err.message));
+        else resolve();
+      });
+    });
+
+    // Find the app folder inside staging (may be nested: staging/app/ or staging/D212TaxHelper-Portable/app/)
+    let sourceAppDir = null;
+    const findAppDir = (dir) => {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      if (entries.some(e => e.name === 'server.js' && e.isFile())) return dir;
+      for (const e of entries) {
+        if (e.isDirectory()) {
+          const found = findAppDir(path.join(dir, e.name));
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    sourceAppDir = findAppDir(stagingDir);
+    if (!sourceAppDir) {
+      throw new Error('Could not find app files (server.js) in the extracted ZIP');
+    }
+
+    // Directories to preserve (user data)
+    const PRESERVE = new Set(['data', 'uploads', 'python', 'node_modules', '_update', 'logs', '_python_temp']);
+
+    // Copy new app files over existing ones, preserving user data dirs
+    const copyRecursive = (src, dest) => {
+      const entries = fs.readdirSync(src, { withFileTypes: true });
+      for (const entry of entries) {
+        const srcPath = path.join(src, entry.name);
+        const destPath = path.join(dest, entry.name);
+        // Skip preserved directories at the app root level
+        if (src === sourceAppDir && PRESERVE.has(entry.name)) continue;
+        if (entry.isDirectory()) {
+          fs.mkdirSync(destPath, { recursive: true });
+          copyRecursive(srcPath, destPath);
+        } else {
+          fs.copyFileSync(srcPath, destPath);
+        }
+      }
+    };
+
+    log('INFO', 'Applying update files...');
+    copyRecursive(sourceAppDir, __dirname);
+
+    // Copy root-level files (Start.bat, Stop.bat, README.md, etc.) if in portable layout
+    const portableRoot = path.dirname(__dirname);
+    const rootStagingDir = path.dirname(sourceAppDir);
+    if (rootStagingDir !== stagingDir || fs.existsSync(path.join(rootStagingDir, 'Start.bat'))) {
+      for (const f of ['Start.bat', 'Stop.bat', 'README.md', 'Upgrade-to-Full.bat', 'Downgrade-to-Lite.bat']) {
+        const srcFile = path.join(rootStagingDir, f);
+        const destFile = path.join(portableRoot, f);
+        if (fs.existsSync(srcFile) && fs.existsSync(path.join(portableRoot, 'node'))) {
+          try { fs.copyFileSync(srcFile, destFile); } catch { /* skip if locked */ }
+        }
+      }
+    }
+
+    // Clean up staging and zip (keep _update dir marker to detect fresh update)
+    fs.rmSync(stagingDir, { recursive: true, force: true });
+    fs.rmSync(zipPath, { force: true });
+
+    // Read new version from the updated package.json
+    const newPkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+    const updatedMarker = path.join(updateDir, 'updated_to');
+    fs.writeFileSync(updatedMarker, newPkg.version, 'utf8');
+
+    log('INFO', 'Update applied successfully', { newVersion: newPkg.version });
+    res.json({ success: true, version: newPkg.version });
+
+    // Restart the server after response is sent
+    setTimeout(() => {
+      const { spawn } = require('child_process');
+      const child = spawn(process.argv[0], [path.join(__dirname, 'server.js')], {
+        cwd: __dirname,
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true
+      });
+      child.unref();
+      process.exit(0);
+    }, 500);
+
+  } catch (err) {
+    log('ERROR', 'Update install failed', { error: err.message });
+    // Clean up on failure
+    if (fs.existsSync(stagingDir)) fs.rmSync(stagingDir, { recursive: true, force: true });
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // GET /api/changelog/:lang - Changelog content
 app.get('/api/changelog/:lang', (req, res) => {
   const lang = req.params.lang === 'ro' ? 'ro' : 'en';

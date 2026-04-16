@@ -2795,36 +2795,152 @@ const App = (() => {
   }
 
   // ============ Update Checker ============
+  let _updateData = null; // cached update info
+
   async function checkForUpdates() {
     try {
       const res = await fetch('/api/check-update');
       if (!res.ok) return;
       const data = await res.json();
       if (!data.updateAvailable) return;
-
-      // Don't show if user dismissed this version
-      const dismissed = localStorage.getItem('update-dismissed-version');
-      if (dismissed === data.latestVersion) return;
+      _updateData = data;
 
       const banner = document.getElementById('update-banner');
       const textEl = document.getElementById('update-banner-text');
-      const linkEl = document.getElementById('update-banner-link');
+      const updateBtn = document.getElementById('update-banner-btn');
       const dismissBtn = document.getElementById('update-banner-dismiss');
 
       textEl.textContent = I18n.t('update.available', {
         current: data.currentVersion,
         latest: data.latestVersion
       });
-      linkEl.href = data.downloadUrl || data.releaseUrl;
-      linkEl.textContent = I18n.t('update.download');
-
+      updateBtn.textContent = I18n.t('update.updateNow');
       banner.classList.remove('hidden');
+
+      updateBtn.addEventListener('click', () => {
+        banner.classList.add('hidden');
+        startUpdateFlow(data);
+      }, { once: true });
 
       dismissBtn.addEventListener('click', () => {
         banner.classList.add('hidden');
-        localStorage.setItem('update-dismissed-version', data.latestVersion);
       }, { once: true });
     } catch { /* silently ignore network errors */ }
+  }
+
+  async function startUpdateFlow(data) {
+    const modal = document.getElementById('update-modal');
+    const closeBtn = document.getElementById('update-modal-close');
+    const stepDownload = document.getElementById('update-step-download');
+    const stepConfirm = document.getElementById('update-step-confirm');
+    const stepInstalling = document.getElementById('update-step-installing');
+    const stepResult = document.getElementById('update-step-result');
+    const progressFill = document.getElementById('update-progress-fill');
+    const downloadText = document.getElementById('update-download-text');
+    const resultIcon = document.getElementById('update-result-icon');
+    const resultText = document.getElementById('update-result-text');
+    const installBtn = document.getElementById('update-install-btn');
+    const cancelBtn = document.getElementById('update-cancel-btn');
+
+    // Reset all steps
+    [stepDownload, stepConfirm, stepInstalling, stepResult].forEach(s => s.classList.add('hidden'));
+    stepDownload.classList.remove('hidden');
+    progressFill.style.width = '0%';
+    closeBtn.style.display = '';
+    modal.classList.remove('hidden');
+
+    downloadText.textContent = I18n.t('update.downloading', { version: data.latestVersion });
+
+    // Animate progress bar (indeterminate-ish since we don't have streaming progress)
+    let progressInterval = setInterval(() => {
+      const cur = parseFloat(progressFill.style.width) || 0;
+      if (cur < 90) progressFill.style.width = (cur + 2) + '%';
+    }, 500);
+
+    try {
+      // Download
+      const dlRes = await fetch('/api/update/download', { method: 'POST' });
+      clearInterval(progressInterval);
+      const dlData = await dlRes.json();
+
+      if (!dlRes.ok || !dlData.success) {
+        throw new Error(dlData.error || 'Download failed');
+      }
+
+      progressFill.style.width = '100%';
+
+      // Show confirm step
+      setTimeout(() => {
+        stepDownload.classList.add('hidden');
+        stepConfirm.classList.remove('hidden');
+        document.getElementById('update-confirm-text').textContent = I18n.t('update.confirmInstall');
+      }, 500);
+
+      // Wait for user decision
+      const userChoice = await new Promise(resolve => {
+        const onInstall = () => { cancelBtn.removeEventListener('click', onCancel); resolve(true); };
+        const onCancel = () => { installBtn.removeEventListener('click', onInstall); resolve(false); };
+        installBtn.addEventListener('click', onInstall, { once: true });
+        cancelBtn.addEventListener('click', onCancel, { once: true });
+      });
+
+      if (!userChoice) {
+        modal.classList.add('hidden');
+        return;
+      }
+
+      // Install
+      stepConfirm.classList.add('hidden');
+      stepInstalling.classList.remove('hidden');
+      closeBtn.style.display = 'none'; // prevent closing during install
+
+      const instRes = await fetch('/api/update/install', { method: 'POST' });
+      const instData = await instRes.json();
+
+      if (!instRes.ok || !instData.success) {
+        throw new Error(instData.error || 'Install failed');
+      }
+
+      // Show success and poll for server restart
+      stepInstalling.classList.add('hidden');
+      stepResult.classList.remove('hidden');
+      resultIcon.textContent = '\u21BB'; // spinner
+      resultIcon.classList.add('spinner');
+      resultText.textContent = I18n.t('update.restarting');
+
+      // Poll until new server is up
+      const pollForRestart = setInterval(async () => {
+        try {
+          const r = await fetch('/api/version', { cache: 'no-store' });
+          if (r.ok) {
+            clearInterval(pollForRestart);
+            resultIcon.textContent = '\u2714';
+            resultIcon.classList.remove('spinner');
+            resultText.textContent = I18n.t('update.success', { version: instData.version });
+            closeBtn.style.display = '';
+            // Auto-reload after 3 seconds
+            setTimeout(() => location.reload(), 3000);
+          }
+        } catch { /* server still restarting */ }
+      }, 1000);
+
+    } catch (err) {
+      clearInterval(progressInterval);
+      [stepDownload, stepConfirm, stepInstalling].forEach(s => s.classList.add('hidden'));
+      stepResult.classList.remove('hidden');
+      resultIcon.textContent = '\u2718';
+      resultIcon.classList.remove('spinner');
+      resultText.textContent = I18n.t('update.failed', { error: err.message });
+      closeBtn.style.display = '';
+    }
+
+    // Close modal handler
+    closeBtn.addEventListener('click', () => {
+      modal.classList.add('hidden');
+    }, { once: true });
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.add('hidden');
+    }, { once: true });
   }
 
   // Init on DOM ready
