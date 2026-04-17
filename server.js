@@ -1241,19 +1241,25 @@ app.post('/api/update/install', async (req, res) => {
   }
 
   try {
-    // Extract ZIP using PowerShell
+    // Extract ZIP — prefer tar (handles long paths in node_modules), fall back to PowerShell
     log('INFO', 'Extracting update ZIP...');
     if (fs.existsSync(stagingDir)) fs.rmSync(stagingDir, { recursive: true, force: true });
     fs.mkdirSync(stagingDir, { recursive: true });
 
     await new Promise((resolve, reject) => {
       const { execFile: ef } = require('child_process');
-      ef('powershell.exe', [
-        '-NoProfile', '-Command',
-        `Expand-Archive -Path '${zipPath}' -DestinationPath '${stagingDir}' -Force`
-      ], { timeout: 120000, windowsHide: true }, (err) => {
-        if (err) reject(new Error('Failed to extract ZIP: ' + err.message));
-        else resolve();
+      // Try tar first (Windows 10+ built-in, handles >260 char paths)
+      ef('tar', ['-xf', zipPath, '-C', stagingDir], { timeout: 120000, windowsHide: true }, (tarErr) => {
+        if (!tarErr) return resolve();
+        log('WARN', 'tar extraction failed, trying PowerShell', { error: tarErr.message });
+        // Fallback to PowerShell Expand-Archive
+        ef('powershell.exe', [
+          '-NoProfile', '-Command',
+          `Expand-Archive -Path '${zipPath}' -DestinationPath '${stagingDir}' -Force`
+        ], { timeout: 120000, windowsHide: true }, (psErr) => {
+          if (psErr) reject(new Error('Failed to extract ZIP: ' + psErr.message));
+          else resolve();
+        });
       });
     });
 

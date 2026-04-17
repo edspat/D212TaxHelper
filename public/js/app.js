@@ -3137,6 +3137,11 @@ const App = (() => {
 
     downloadText.textContent = I18n.t('update.downloading', { version: data.latestVersion });
 
+    // Timers/intervals tracked for cleanup on error
+    let timerInterval = null;
+    let installProgressInterval = null;
+    let restartProgressInterval = null;
+
     // Animate progress bar (indeterminate-ish since we don't have streaming progress)
     let progressInterval = setInterval(() => {
       const cur = parseFloat(progressFill.style.width) || 0;
@@ -3180,19 +3185,49 @@ const App = (() => {
       stepInstalling.classList.remove('hidden');
       closeBtn.style.display = 'none'; // prevent closing during install
 
+      // Progress bar + timer for install phase
+      const installProgressFill = document.getElementById('update-install-progress-fill');
+      const installTimer = document.getElementById('update-install-timer');
+      installProgressFill.style.width = '5%'; // start visible
+      installTimer.textContent = '0:00';
+      let installSeconds = 0;
+      timerInterval = setInterval(() => {
+        installSeconds++;
+        const mins = Math.floor(installSeconds / 60);
+        const secs = installSeconds % 60;
+        installTimer.textContent = mins + ':' + String(secs).padStart(2, '0');
+      }, 1000);
+      // Smooth progress: 0→60% over ~30s during install, then 60→95% during restart polling
+      let installProgress = 0;
+      installProgressInterval = setInterval(() => {
+        if (installProgress < 60) {
+          installProgress += 1.5;
+          installProgressFill.style.width = Math.min(installProgress, 60) + '%';
+        }
+      }, 500);
+
       const instRes = await fetch('/api/update/install', { method: 'POST' });
       const instData = await instRes.json();
 
       if (!instRes.ok || !instData.success) {
+        clearInterval(timerInterval);
+        clearInterval(installProgressInterval);
         throw new Error(instData.error || 'Install failed');
       }
 
-      // Show success and poll for server restart
-      stepInstalling.classList.add('hidden');
-      stepResult.classList.remove('hidden');
-      resultIcon.textContent = '\u21BB'; // spinner
-      resultIcon.classList.add('spinner');
-      resultText.textContent = I18n.t('update.restarting');
+      // Install API returned — switch to restart polling phase (60→95%)
+      clearInterval(installProgressInterval);
+      installProgress = 60;
+      installProgressFill.style.width = '60%';
+      restartProgressInterval = setInterval(() => {
+        if (installProgress < 95) {
+          installProgress += 0.5;
+          installProgressFill.style.width = installProgress + '%';
+        }
+      }, 300);
+
+      // Update installing text to show restarting phase (keep progress bar + timer visible)
+      document.getElementById('update-installing-text').textContent = I18n.t('update.restarting');
 
       // Poll until new server is up
       const pollForRestart = setInterval(async () => {
@@ -3200,6 +3235,12 @@ const App = (() => {
           const r = await fetch('/api/version', { cache: 'no-store' });
           if (r.ok) {
             clearInterval(pollForRestart);
+            clearInterval(timerInterval);
+            clearInterval(restartProgressInterval);
+            installProgressFill.style.width = '100%';
+            // Switch to result step
+            stepInstalling.classList.add('hidden');
+            stepResult.classList.remove('hidden');
             resultIcon.textContent = '\u2714';
             resultIcon.classList.remove('spinner');
             resultText.textContent = I18n.t('update.success', { version: instData.version });
@@ -3212,6 +3253,9 @@ const App = (() => {
 
     } catch (err) {
       clearInterval(progressInterval);
+      if (timerInterval) clearInterval(timerInterval);
+      if (installProgressInterval) clearInterval(installProgressInterval);
+      if (restartProgressInterval) clearInterval(restartProgressInterval);
       [stepDownload, stepConfirm, stepInstalling].forEach(s => s.classList.add('hidden'));
       stepResult.classList.remove('hidden');
       resultIcon.textContent = '\u2718';

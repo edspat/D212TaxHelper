@@ -17,6 +17,10 @@
 ### Build
 - Suppressed prebuild-install deprecation warning during portable build
 
+### Self-Update Fixes
+- **ZIP extraction fix** — self-update now uses `tar` (handles long paths in node_modules) with PowerShell `Expand-Archive` as fallback, fixing "Failed to extract ZIP" errors on paths exceeding 260 characters
+- **Update progress bar & timer** — the installing step now shows a visible progress bar and elapsed time counter (M:SS) throughout the install and server restart phases
+
 ---
 
 ## v1.5.0 (2026-04-16)
