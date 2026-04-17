@@ -1225,7 +1225,7 @@ app.post('/api/update/download', async (req, res) => {
     });
   } catch (err) {
     log('ERROR', 'Update download failed', { error: err.message });
-    if (fs.existsSync(updateDir)) fs.rmSync(updateDir, { recursive: true, force: true });
+    try { if (fs.existsSync(updateDir)) fs.rmSync(updateDir, { recursive: true, force: true }); } catch { /* EBUSY — ignore */ }
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -1243,7 +1243,7 @@ app.post('/api/update/install', async (req, res) => {
   try {
     // Extract ZIP — prefer tar (handles long paths in node_modules), fall back to PowerShell
     log('INFO', 'Extracting update ZIP...');
-    if (fs.existsSync(stagingDir)) fs.rmSync(stagingDir, { recursive: true, force: true });
+    try { if (fs.existsSync(stagingDir)) fs.rmSync(stagingDir, { recursive: true, force: true }); } catch { /* EBUSY — ignore */ }
     fs.mkdirSync(stagingDir, { recursive: true });
 
     await new Promise((resolve, reject) => {
@@ -1318,8 +1318,8 @@ app.post('/api/update/install', async (req, res) => {
     }
 
     // Clean up staging and zip (keep _update dir marker to detect fresh update)
-    fs.rmSync(stagingDir, { recursive: true, force: true });
-    fs.rmSync(zipPath, { force: true });
+    try { fs.rmSync(stagingDir, { recursive: true, force: true }); } catch { /* EBUSY on Windows — ignore, cleaned next run */ }
+    try { fs.rmSync(zipPath, { force: true }); } catch { /* ignore */ }
 
     // Read new version from the updated package.json
     const newPkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
@@ -1345,7 +1345,7 @@ app.post('/api/update/install', async (req, res) => {
   } catch (err) {
     log('ERROR', 'Update install failed', { error: err.message });
     // Clean up on failure
-    if (fs.existsSync(stagingDir)) fs.rmSync(stagingDir, { recursive: true, force: true });
+    try { if (fs.existsSync(stagingDir)) fs.rmSync(stagingDir, { recursive: true, force: true }); } catch { /* EBUSY — ignore */ }
     res.status(500).json({ success: false, error: err.message });
   }
 });
