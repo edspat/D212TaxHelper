@@ -533,7 +533,7 @@ The **Full** build includes Python Embeddable 3.12 and PaddleOCR for superior OC
 | `Stop.bat` | Stop the server |
 | `Upgrade-to-Full.bat` | *(Lite build only)* Downloads Python + PaddleOCR to upgrade OCR engine |
 | `Downgrade-to-Lite.bat` | Removes Python/PaddleOCR folder to free disk space |
-| `README.md` | Quick start instructions |
+| `README.md` | Quick start instructions (Romanian) |
 
 ### Upgrading Lite to Full
 

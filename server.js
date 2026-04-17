@@ -715,11 +715,9 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     // Trade confirmations get appended (multiple files per year)
     if (type === 'trade_confirmation') {
       const trade = parseTradeConfirmation(text, parsedYear);
-      // Avoid duplicates by checking ref number
-      const isDuplicate = trade.refNumber ? !db.addTrade(trade) : false;
-      if (!isDuplicate && !trade.refNumber) {
-        db.addTrade(trade);
-      }
+      trade.source = 'trade_confirmation';
+      // Avoid duplicates by checking ref number or cross-source dedup
+      const isDuplicate = !db.addTradeIfNotDuplicate(trade);
       // Aggregate trades for this year (separate sales from purchases)
       const yearTrades = db.getTradesByYear(parsedYear);
       const yearSales = yearTrades.filter(t => t.transactionType !== 'purchase');
@@ -1367,9 +1365,9 @@ app.get('/api/doc/:name/:lang', (req, res) => {
   const allowed = { readme: 'README', guide: 'GUIDE' };
   const base = allowed[req.params.name];
   if (!base) return res.status(400).json({ error: 'Unknown document' });
-  // README has no lang suffix for EN, GUIDE always has suffix
+  // README has no lang suffix for RO (default), EN uses README.en.md
   const file = base === 'README'
-    ? path.join(__dirname, lang === 'ro' ? 'README.ro.md' : 'README.md')
+    ? path.join(__dirname, lang === 'en' ? 'README.en.md' : 'README.md')
     : path.join(__dirname, `${base}.${lang}.md`);
   if (fs.existsSync(file)) {
     res.type('text/plain').send(fs.readFileSync(file, 'utf8'));

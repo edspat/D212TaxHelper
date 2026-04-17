@@ -1,5 +1,29 @@
 # D212 Asistent Fiscal - Istoric versiuni
 
+## v1.5.2 (2026-04-17)
+
+### Corecturi Calcul Impozite
+- **Rotunjire credit fiscal dividende** — când rata de reținere SUA corespunde ratei din România (ex: ambele 10%), creditul fiscal acoperă acum integral impozitul românesc. Anterior, rotunjirea conversiei USD→RON genera o diferență fantomă de 1 RON.
+- **Rotunjire impozit SUA reținut RON** — sumele de impozit în USD sunt acum rotunjite în sus (ceiling) la conversia în RON, asigurând că valoarea RON afișată nu este niciodată mai mică decât impozitul efectiv plătit.
+- **Consistență sumar impozite** — impozitul pe câștiguri de capital SUA în tabelul „Sumar Calcul Impozite" aplică acum corect ambele deduceri (ESPP și BIK) înainte de calculul ratei de impozitare.
+- **Afișare tabel venituri** — rândul deducere ESPP afișează acum doar USD (fără coloanele curs/RON), iar rândul câștiguri SUA afișează RON net impozabil după toate deducerile cu tooltip arătând formula de calcul.
+- **Acuratețe Total RON** — rândurile de deduceri (ESPP, BIK) sunt excluse din suma Total RON deoarece efectul lor este deja reflectat în rândul câștigurilor SUA.
+- **Secțiunea dividende D212** — creditul fiscal și diferența de plată folosesc acum aceeași toleranță de rotunjire în toate cele trei secțiuni D212.
+
+### Deduplicare Tranzacții
+- **Fix deduplicare cross-sursă** — confirmările de tranzacție folosesc acum `addTradeIfNotDuplicate` (anterior `addTrade` fără deduplicare), prevenind duplicatele când sunt importate atât extrase Fidelity cât și confirmări de tranzacție.
+- **Urmărire sursă tranzacții** — parserul de confirmare tranzacție setează acum `source: 'trade_confirmation'` pe tranzacțiile parsate.
+
+### Îmbunătățiri Interfață
+- **Mesaje import consistente** — statusul per fișier afișează acum mesajul specific (ex: „fără activitate MSFT") în loc de genericul „Calitate OCR prea scăzută".
+- **Afișare timp scurs** — „Document procesat cu succes!" nu mai afișează „(0:00)" când procesarea durează sub 1 secundă.
+
+### Documentație
+- **Documentație în română ca implicit** — `README.md` este acum în română, versiunea engleză mutată în `README.en.md`.
+- **Instrucțiuni instalare manuală** — adăugată opțiunea de instalare prin descărcare și extragere (fără Git) în README și GUIDE.
+
+---
+
 ## v1.5.1 (2026-04-17)
 
 ### Corecturi Conformitate ANAF D212 (audit complet conform [Instrucțiuni D212 2736/2025](https://static.anaf.ro/static/10/Anaf/formulare/Instructiuni_D212_2736_2025.pdf))

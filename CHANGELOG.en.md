@@ -1,5 +1,29 @@
 # D212 Tax Helper - Changelog
 
+## v1.5.2 (2026-04-17)
+
+### Tax Calculation Fixes
+- **Dividend credit fiscal rounding** — when US withholding rate matches the Romanian rate (e.g., both 10%), the credit fiscal now fully covers the Romanian tax. Previously, USD→RON conversion rounding caused a phantom 1 RON liability.
+- **US tax withheld RON rounding** — USD tax amounts are now rounded up (ceiling) when converted to RON, ensuring the displayed RON value is never less than the actual tax paid.
+- **Tax summary consistency** — US capital gains tax in the "Sumar Calcul Impozite" table now correctly applies both ESPP and BIK deductions before computing the tax rate.
+- **Income table display** — ESPP deduction row now shows only USD (no rate/RON columns), and the US gains row shows net taxable RON after all deductions with a tooltip showing the breakdown formula.
+- **Total RON accuracy** — deduction rows (ESPP, BIK) are excluded from the Total RON sum since their effect is already reflected in the US gains row.
+- **D212 helper dividend section** — credit fiscal and difference to pay now use the same rounding tolerance across all three D212 sections.
+
+### Trade Deduplication
+- **Cross-source dedup fix** — trade confirmations now use `addTradeIfNotDuplicate` (was `addTrade` with no dedup), preventing duplicates when both Fidelity statements and trade confirmations are imported.
+- **Trade source tracking** — trade confirmation parser now sets `source: 'trade_confirmation'` on parsed trades.
+
+### UI Improvements
+- **Consistent import messages** — per-file status row now shows the specific message instead of the generic "OCR quality too low" when a messageKey is provided.
+- **Elapsed time display** — "Document procesat cu succes!" no longer shows "(0:00)" when processing completes in under 1 second.
+
+### Documentation
+- **Romanian-first documentation** — `README.md` is now in Romanian (default), English version moved to `README.en.md`.
+- **Manual install instructions** — added download-and-extract installation option (no Git required) to README and GUIDE.
+
+---
+
 ## v1.5.1 (2026-04-17)
 
 ### ANAF D212 Compliance Fixes (deep audit against [Instrucțiuni D212 2736/2025](https://static.anaf.ro/static/10/Anaf/formulare/Instructiuni_D212_2736_2025.pdf))

@@ -527,7 +527,7 @@ Varianta **Full** include Python Embeddable 3.12 și PaddleOCR pentru OCR superi
 | `Stop.bat` | Oprește serverul |
 | `Upgrade-to-Full.bat` | *(doar Lite build)* Descarcă Python + PaddleOCR pentru upgrade motor OCR |
 | `Downgrade-to-Lite.bat` | Șterge folderul Python/PaddleOCR pentru a elibera spațiu pe disc |
-| `README.md` | Instrucțiuni de pornire rapidă |
+| `README.md` | Instrucțiuni de pornire rapidă (Română) |
 
 ### Upgrade de la Lite la Full
 
