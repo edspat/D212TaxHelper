@@ -26,7 +26,7 @@
 
 ## 1. Introducere
 
-**D212 Asistent Fiscal** este o aplicație web locală destinată rezidenților fiscali din România care primesc venituri din investiții atât de la **brokeri din SUA** (Fidelity, Morgan Stanley) cât și de la **brokeri din România** (XTB) pentru a:
+**D212 Asistent Fiscal** este o aplicație web locală destinată rezidenților fiscali din România care primesc venituri din investiții atât de la **brokeri din SUA** (Fidelity, Morgan Stanley) cât și de la **brokeri din România** (XTB, Tradeville) pentru a:
 
 - Importa și parsa documente financiare (PDF-uri și imagini)
 - Calcula impozitul pe venit, impozitul pe câștiguri de capital, impozitul pe dividende și CASS (contribuția de asigurări sociale de sănătate)
@@ -36,7 +36,7 @@
 ### Pentru cine este această aplicație?
 
 Aplicația este concepută special pentru:
-- Angajații Microsoft (sau similari) din România care primesc acțiuni (RSU), acțiuni ESPP și dividende prin Fidelity / Morgan Stanley
+- Angajații companiilor din USA cu puncte de lucru în România care primesc acțiuni (RSU), acțiuni ESPP și dividende prin Fidelity / Morgan Stanley
 - Investitori care și-au transferat acțiunile la un broker din România (ex: XTB)
 - Oricine depune D212 pentru venituri din investiții în România
 
@@ -527,7 +527,7 @@ Varianta **Full** include Python Embeddable 3.12 și PaddleOCR pentru OCR superi
 | `Stop.bat` | Oprește serverul |
 | `Upgrade-to-Full.bat` | *(doar Lite build)* Descarcă Python + PaddleOCR pentru upgrade motor OCR |
 | `Downgrade-to-Lite.bat` | Șterge folderul Python/PaddleOCR pentru a elibera spațiu pe disc |
-| `README.md` | Instrucțiuni de pornire rapidă |
+| `README.md` | Instrucțiuni de pornire rapidă (Română) |
 
 ### Upgrade de la Lite la Full
 

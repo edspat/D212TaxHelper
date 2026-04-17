@@ -26,7 +26,7 @@
 
 ## 1. Introduction
 
-**D212 Tax Helper** is a local web application designed to help Romanian tax residents who receive investment income from both **US brokers** (Fidelity, Morgan Stanley) and **Romanian brokers** (XTB) to:
+**D212 Tax Helper** is a local web application designed to help Romanian tax residents who receive investment income from both **US brokers** (Fidelity, Morgan Stanley) and **Romanian brokers** (XTB, Tradeville) to:
 
 - Import and parse financial documents (PDFs and images)
 - Calculate income tax, capital gains tax, dividend tax, and CASS (health insurance contribution)
@@ -36,7 +36,7 @@
 ### Who is this for?
 
 This application is specifically designed for:
-- Microsoft employees (or similar) in Romania who receive stock awards (RSUs), ESPP shares, and dividends via Fidelity / Morgan Stanley
+- Employees of US companies with offices in Romania who receive stock awards (RSUs), ESPP shares, and dividends via Fidelity / Morgan Stanley
 - Investors who have transferred stocks to a Romanian broker (e.g., XTB)
 - Anyone filing a D212 for investment income in Romania
 
@@ -533,7 +533,7 @@ The **Full** build includes Python Embeddable 3.12 and PaddleOCR for superior OC
 | `Stop.bat` | Stop the server |
 | `Upgrade-to-Full.bat` | *(Lite build only)* Downloads Python + PaddleOCR to upgrade OCR engine |
 | `Downgrade-to-Lite.bat` | Removes Python/PaddleOCR folder to free disk space |
-| `README.md` | Quick start instructions |
+| `README.md` | Quick start instructions (Romanian) |
 
 ### Upgrading Lite to Full
 

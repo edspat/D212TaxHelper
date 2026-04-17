@@ -39,7 +39,7 @@ const APP_ITEMS = [
   'scripts',
   'LICENSE',
   'README.md',
-  'README.ro.md',
+  'README.en.md',
   'CHANGELOG.en.md',
   'CHANGELOG.ro.md',
   'GUIDE.en.md',
