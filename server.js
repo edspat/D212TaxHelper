@@ -1130,7 +1130,7 @@ app.get('/api/check-update', async (req, res) => {
     const currentVersion = pkg.version;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
-    const ghRes = await fetch('https://api.github.com/repos/edmund-1/D212TaxHelper/releases/latest', {
+    const ghRes = await fetch('https://api.github.com/repos/edspat/D212TaxHelper/releases/latest', {
       headers: { 'Accept': 'application/vnd.github+json', 'User-Agent': 'D212TaxHelper' },
       signal: controller.signal
     });
@@ -1178,7 +1178,7 @@ app.post('/api/update/download', async (req, res) => {
     // Get latest release info
     const controller = new AbortController();
     const infoTimeout = setTimeout(() => controller.abort(), 10000);
-    const ghRes = await fetch('https://api.github.com/repos/edmund-1/D212TaxHelper/releases/latest', {
+    const ghRes = await fetch('https://api.github.com/repos/edspat/D212TaxHelper/releases/latest', {
       headers: { 'Accept': 'application/vnd.github+json', 'User-Agent': 'D212TaxHelper' },
       signal: controller.signal
     });

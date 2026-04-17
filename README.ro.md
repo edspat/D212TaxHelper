@@ -5,7 +5,7 @@ O aplicație web locală care ajută rezidenții fiscali din România să calcul
 ## Pentru cine este?
 
 - Angajații Microsoft (sau similari) din România care primesc acțiuni (RSU), acțiuni ESPP și dividende prin **Fidelity / Morgan Stanley**
-- Investitorii care tranzacționează sau dețin acțiuni prin **XTB** (singurul broker din România suportat deocamdată — pentru Tradeville sau alți brokeri, [contactează-mă](https://github.com/edmund-1))
+- Investitorii care tranzacționează sau dețin acțiuni prin **XTB** (singurul broker din România suportat deocamdată — pentru Tradeville sau alți brokeri, [contactează-mă](https://github.com/edspat))
 - Oricine depune D212 pentru venituri din investiții în România
 
 ## Funcționalități
@@ -31,7 +31,7 @@ O aplicație web locală care ajută rezidenții fiscali din România să calcul
 ### Instalare și rulare
 
 ```bash
-git clone https://github.com/edmund-1/D212TaxHelper.git
+git clone https://github.com/edspat/D212TaxHelper.git
 cd D212TaxHelper
 npm install
 npm start
