@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="auto">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,11 +8,12 @@
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
-  <header>
+  <a href="#app-content" class="skip-link">Skip to main content</a>
+  <header role="banner">
     <div class="header-content">
       <button id="nav-toggle" class="nav-toggle" type="button" aria-label="Toggle navigation menu">&#9776;</button>
       <h1 id="app-title" data-i18n="dashboard.appTitle">D212 Tax Helper</h1>
-      <nav id="main-nav">
+      <nav id="main-nav" aria-label="Main navigation">
         <button class="nav-btn active" data-tab="dashboard" data-i18n="nav.dashboard">Dashboard</button>
         <button class="nav-btn" data-tab="income" data-i18n="nav.income">Income Details</button>
         <button class="nav-btn" data-tab="taxes" data-i18n="nav.taxes">Tax Calculation</button>
@@ -21,6 +22,7 @@
         <button class="nav-btn" data-tab="raw" data-i18n="nav.raw">Raw Data</button>
       </nav>
       <div class="header-controls">
+        <button id="theme-toggle" class="theme-toggle" type="button" title="Toggle theme">🌙</button>
         <label for="lang-select" class="sr-only">Language</label>
         <select id="lang-select" title="Language">
           <option value="ro">RO</option>
@@ -39,6 +41,11 @@
         <div class="card summary-card" id="card-total-income">
           <h3 data-i18n="dashboard.totalIncome">Total Income</h3>
           <p class="card-value" id="total-income-value">-</p>
+          <span class="card-currency">RON</span>
+        </div>
+        <div class="card summary-card" id="card-losses" style="display:none;">
+          <h3 data-i18n="dashboard.lossOffset">Loss Offset</h3>
+          <p class="card-value" id="loss-offset-value">-</p>
           <span class="card-currency">RON</span>
         </div>
         <div class="card summary-card" id="card-already-paid">
@@ -410,7 +417,7 @@
             </div>
           </fieldset>
 
-          <fieldset class="form-grid-3">
+          <fieldset class="form-grid-2">
             <legend data-i18n="input.capitalGains">Capital Gains (Stock Sales)</legend>
             <div class="form-row">
               <label data-i18n="input.usGains">US Stock Sales (USD)</label>
@@ -425,6 +432,11 @@
               <label data-i18n="input.salaryTaxedIncome">Income Already Taxed as Salary (RON)</label>
               <input type="number" step="1" id="input-salary-taxed" name="salaryTaxed">
               <small data-i18n="input.salaryTaxedHint">Stock award BIK taxed through Romanian payroll. Auto-calculated from imported Stock Award documents; override here if needed.</small>
+            </div>
+            <div class="form-row">
+              <label data-i18n="input.priorLosses">Prior Year Losses (RON)</label>
+              <input type="number" step="1" id="input-prior-losses" name="priorLosses">
+              <small data-i18n="input.priorLossesHint">Capital losses from previous years (max 7yr carryforward, up to 70% of current gains per D212 Rd.5-6).</small>
             </div>
           </fieldset>
 
@@ -532,7 +544,7 @@
             </div>
             <div class="form-row">
               <label data-i18n="input.d212Deadline">D212 Filing & Payment Deadline</label>
-              <input type="date" id="input-d212-deadline" name="d212Deadline" onclick="this.showPicker?.()" style="color-scheme:dark;">
+              <input type="date" id="input-d212-deadline" name="d212Deadline" onclick="this.showPicker?.()">
               <small data-i18n="input.d212DeadlineHint">Deadline for filing D212 and paying income tax + CASS</small>
             </div>
           </fieldset>
@@ -599,7 +611,7 @@
             <span class="ocr-badge-icon">⚙</span>
             <span id="ocr-engine-label"></span>
           </div>
-          <button type="button" id="ocr-action-btn" class="btn-primary ocr-action-btn hidden"></button>
+          <button type="button" id="ocr-action-btn" class="btn-primary ocr-action-btn hidden" aria-label="OCR engine action"></button>
           <div id="ocr-hint" class="ocr-hint hidden">
             <span class="ocr-hint-icon">ℹ</span>
             <span id="ocr-hint-text"></span>
@@ -641,7 +653,7 @@
             </div>
           </div>
           <div id="image-preview" class="hidden">
-            <img id="preview-img" style="max-width:100%;max-height:300px;border-radius:var(--radius);margin-bottom:0.75rem;" />
+            <img id="preview-img" alt="Document preview" style="max-width:100%;max-height:300px;border-radius:var(--radius);margin-bottom:0.75rem;" />
           </div>
           <button type="submit" id="upload-submit-btn" class="btn-primary" data-i18n="import.upload">Upload & Process</button>
         </form>

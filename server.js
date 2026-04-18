@@ -309,7 +309,7 @@ app.put('/api/data/:year', (req, res) => {
       'interestIncome', 'rentalIncome', 'rentalTaxPaid', 'royaltyIncome',
       'royaltyTaxPaid', 'gamblingIncome', 'gamblingTaxPaid', 'otherIncome',
       'otherTaxPaid', 'stockWithholdingPaid', 'exchangeRate', 'minSalary',
-      'd212Deadline', 'roGainsCountries'
+      'd212Deadline', 'roGainsCountries', 'priorLosses'
     ];
     const hasManualData = manualFields.some(f => {
       const v = req.body[f];
@@ -387,7 +387,7 @@ app.delete('/api/raw/:filename', (req, res) => {
             'interestIncome', 'interestTaxPaid', 'rentalIncome', 'rentalTaxPaid', 'royaltyIncome',
             'royaltyTaxPaid', 'gamblingIncome', 'gamblingTaxPaid', 'otherIncome',
             'otherTaxPaid', 'stockWithholdingPaid', 'salaryTaxedIncome', 'exchangeRate', 'minSalary',
-            'd212Deadline', 'roGainsCountries', 'taxRates'
+            'd212Deadline', 'roGainsCountries', 'taxRates', 'priorLosses'
           ];
           for (const k of manualKeys) {
             delete yearData[k];

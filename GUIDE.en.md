@@ -1,6 +1,6 @@
 # D212 Tax Helper - User Guide
 
-**Guide version:** 2.8 | **App version:** 1.5.1 | **Last updated:** 2026-04-17
+**Guide version:** 2.9 | **App version:** 1.5.3 | **Last updated:** 2026-04-19
 
 ---
 
@@ -92,6 +92,7 @@ The application runs at **http://localhost:3000**.
 | **☰ (Hamburger)** | Toggles the navigation menu on narrow screens |
 | **Tab buttons** | 6 tabs: Dashboard, Income Details, Tax Calculation, Add Data, Import Document, Raw Data |
 | **Language selector** | Switch between **RO** (Romanian) and **EN** (English). All labels, hints, and translations update instantly. |
+| **🌙/☀️ Theme toggle** | Cycle between **Dark**, **Light**, and **Auto** (follows system preference). Choice is saved in your browser. Charts automatically re-render with the new theme colors. |
 | **Year selector** | Choose the fiscal year you're viewing/editing. The dropdown shows all years with BNR exchange rates (2019-2025) plus any year with imported data. All tabs update when you change the year. |
 
 ### Footer bar
@@ -249,6 +250,8 @@ Use this tab to manually enter or override financial data for the selected year.
 | **Romania Dividends (RON)** | Total dividends received from Romanian broker |
 | **US Stock Sales (USD)** | Total gross proceeds from US stock sales |
 | **ESPP Purchase Cost (USD)** | The cost you paid for ESPP shares. For free stock awards, enter 0. This is deducted from sale proceeds to calculate taxable capital gains. |
+| **Income Already Taxed as Salary (RON)** | Stock award BIK taxed through Romanian payroll. Auto-calculated from imported Stock Award documents; override here if needed. |
+| **Prior Year Capital Losses (RON)** | Capital losses from previous years (max 7-year carryforward). Per D212 Rd.5-6, up to 70% of current year net gains can be offset by prior losses. Enter the total losses still available for carryforward. |
 | **Romania Stock Sales (RON)** | Total proceeds from Romanian broker stock sales |
 | **Interest Income (RON)** | Total interest received from bank deposits |
 | **Stock Withholding Already Paid (RON)** | Total stock award withholdings already deducted from your salary (from payslip). This amount is subtracted from your final tax due. |

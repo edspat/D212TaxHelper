@@ -604,12 +604,20 @@ const Charts = (() => {
     setupChartNav('d212-pay', allYears, ws, buildUpdateFn());
   }
 
+  // Destroy all charts so they get re-rendered with new theme colors
+  function refreshAll() {
+    for (const id of Object.keys(chartInstances)) {
+      destroy(id);
+    }
+  }
+
   return {
     createIncomeBreakdown,
     createTaxBreakdown,
     createYearComparison,
     createExchangeRates,
     createMinSalaryChart,
-    createD212PaymentChart
+    createD212PaymentChart,
+    refreshAll
   };
 })();

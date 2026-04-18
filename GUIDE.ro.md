@@ -1,6 +1,6 @@
 # D212 Asistent Fiscal - Ghid de Utilizare
 
-**Versiune ghid:** 2.8 | **Versiune aplicație:** 1.5.1 | **Ultima actualizare:** 17.04.2026
+**Versiune ghid:** 2.9 | **Versiune aplicație:** 1.5.3 | **Ultima actualizare:** 19.04.2026
 
 ---
 
@@ -92,6 +92,7 @@ Aplicația rulează la **http://localhost:3000**.
 | **☰ (Hamburger)** | Afișează/ascunde meniul de navigare pe ecrane mici |
 | **Butoane tab-uri** | 6 tab-uri: Panou Principal, Detalii Venituri, Calcul Impozite, Adaugă Date, Importă Document, Date Brute |
 | **Selector limbă** | Comută între **RO** (Română) și **EN** (Engleză). Toate etichetele și indicațiile se actualizează instant. |
+| **🌙/☀️ Comutare temă** | Ciclează între **Întunecată**, **Luminoasă** și **Auto** (urmează preferința sistemului). Alegerea se salvează în browser. Graficele se re-desenează automat cu culorile noii teme. |
 | **Selector an** | Alege anul fiscal vizualizat/editat. Lista afișează anii care au date, plus anul fiscal implicit (anul precedent). Toate tab-urile se actualizează la schimbarea anului. |
 
 ### Bara de jos (Footer)
@@ -245,6 +246,8 @@ Folosește acest tab pentru a introduce sau suprascrie manual datele financiare 
 | **Dividende România (RON)** | Total dividende primite de la brokerul din România |
 | **Vânzări Acțiuni SUA (USD)** | Total încasări brute din vânzarea de acțiuni SUA |
 | **Cost achiziție ESPP (USD)** | Costul plătit pentru acțiunile ESPP. Pentru acțiuni gratuite (stock awards), introdu 0. Se deduce din încasări pentru calculul câștigurilor impozabile. |
+| **Venit impozitat deja ca salariu (RON)** | Beneficiul în natură (BIK) din stock awards impozitat prin salariul din România. Auto-calculat din documentele Stock Award importate; suprascrie aici dacă e nevoie. |
+| **Pierderi fiscale din anii precedenți (RON)** | Pierderi din transferul titlurilor de valoare din anii precedenți (max 7 ani reportare). Conform D212 Rd.5-6, pot fi compensate max 70% din câștigul net al anului curent. Introduceți totalul pierderilor disponibile pentru reportare. |
 | **Vânzări Acțiuni România (RON)** | Total încasări din vânzări prin brokerul românesc |
 | **Venituri din Dobânzi (RON)** | Total dobânzi primite de la depozite bancare |
 | **Reținere Acțiuni Deja Plătită (RON)** | Total rețineri din stock awards deja deduse din salariu (din fluturaș). Această sumă se scade din impozitul final datorat. |

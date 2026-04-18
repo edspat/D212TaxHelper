@@ -1,6 +1,6 @@
 {
   "name": "d212-tax-helper",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "D212 Tax Helper - Investment tax calculator for Romanian tax declarations",
   "main": "server.js",
   "scripts": {

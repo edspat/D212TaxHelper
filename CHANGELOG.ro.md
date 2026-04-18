@@ -1,5 +1,37 @@
 # D212 Asistent Fiscal - Istoric versiuni
 
+## v1.5.3 (2026-04-19)
+
+### Suport Temă Luminoasă/Întunecată/Auto
+- **Trei moduri de temă** — Întunecată, Luminoasă și Auto (urmează preferința sistemului/browserului `prefers-color-scheme`). Comutare prin butonul 🌙/☀️ din antet.
+- **Audit accesibilitate WCAG 2.1 AA** — toate perechile de culori verificate pentru conformitate contrast:
+  - Dark `--text-muted` actualizat de la `#6e7681` la `#848d97` (4.52–5.62:1 pe toate fundalurile)
+  - Light `--text-muted` actualizat de la `#8b949e` la `#636c76` (5.01–5.33:1 pe toate fundalurile)
+  - Dark `--btn-text` schimbat de la `#fff` la `#0d1117` (7.49:1 pe accent)
+- **Contur global `:focus-visible`** — inel de 2px accent pe toate elementele interactive pentru navigare cu tastatura
+- **Link „Sari la conținut"** — ascuns până la focalizare cu tastatura, pentru accesibilitate cititor de ecran
+- **`prefers-reduced-motion`** — toate animațiile și tranzițiile dezactivate când utilizatorul preferă mișcare redusă
+- **Proprietatea CSS `color-scheme`** — controalele native ale browserului (selectoare dată, bare de scroll) se potrivesc automat cu tema
+- **Repere ARIA** — `role="banner"` pe antet, `aria-label` pe navigare, `alt` pe imagini
+- Alegerea temei persistată în localStorage între sesiuni
+
+### Pierderi Fiscale din Anii Precedenți (D212 Rd.5-6)
+- **Câmp nou: „Pierderi fiscale din anii precedenți (RON)"** în Adaugă Date → Câștiguri din Capital
+- Implementează D212 Rd.5 (pierderi reportate din anii precedenți) și Rd.6 (pierdere compensată — max 70% din câștigul net al anului curent, reportare pe 7 ani)
+- **Compensarea pierderilor aplicată în toate secțiunile:**
+  - Panou Principal: card nou „Pierderi Compensate" (verde, vizibil doar când e activ) între Venit Total și Deja Plătit
+  - Detalii Venituri: rând deducere nou „↳ Pierderi fiscale reportate compensate (D212 Rd.5-6)" cu tooltip
+  - Calcul Impozite: câștiguri brute → detaliu deduceri → câștiguri nete → subtotal
+  - Asistent D212: rânduri Rd.5 și Rd.6 în secțiunea câștiguri de capital
+
+### Îmbunătățiri Afișare Calcul Impozite
+- **Claritate Subtotal SUA** — când există deduceri ESPP/BIK/pierderi, secțiunea Calcul Impozite arată acum: câștiguri brute de capital → detaliu deduceri → câștiguri nete (verde) → dividende → subtotal. Anterior, deducerile apăreau ca linie informativă după cifra deja netă.
+
+### Documentație
+- Actualizate CHANGELOG, README și GUIDE pentru toate cele trei funcționalități
+
+---
+
 ## v1.5.2 (2026-04-17)
 
 ### Corecturi Calcul Impozite

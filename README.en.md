@@ -19,7 +19,8 @@ A local web application that helps Romanian tax residents calculate and prepare 
 - **Multi-year comparison** — compare financial data across fiscal years
 - **Bilingual** — full Romanian and English interface
 - **Offline & private** — runs entirely on your computer, no data is sent anywhere
-- **Dark theme** — responsive design
+- **Light/Dark/Auto theme** — follows system preference or manual toggle; WCAG 2.1 AA accessibility verified
+- **Prior year loss carryforward** — offset capital losses from previous years per D212 Rd.5-6 (max 70%, 7-year carryforward)
 - **Auto-update checker** — checks GitHub for new releases on startup; download, install, and restart directly from within the app while preserving all your data
 - **Portable version** — self-contained folder with embedded Node.js (no installation needed)
 

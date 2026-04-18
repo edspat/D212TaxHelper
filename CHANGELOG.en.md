@@ -1,5 +1,37 @@
 # D212 Tax Helper - Changelog
 
+## v1.5.3 (2026-04-19)
+
+### Light/Dark/Auto Theme Support
+- **Three theme modes** — Dark, Light, and Auto (follows system/browser `prefers-color-scheme`). Toggle via the 🌙/☀️ button in the header.
+- **WCAG 2.1 AA accessibility audit** — all color pairs verified for contrast compliance:
+  - Dark `--text-muted` upgraded from `#6e7681` to `#848d97` (4.52–5.62:1 on all backgrounds)
+  - Light `--text-muted` upgraded from `#8b949e` to `#636c76` (5.01–5.33:1 on all backgrounds)
+  - Dark `--btn-text` changed from `#fff` to `#0d1117` (7.49:1 on accent)
+- **Global `:focus-visible` outline** — 2px accent ring on all interactive elements for keyboard navigation
+- **Skip-to-content link** — hidden until focused via keyboard, for screen reader accessibility
+- **`prefers-reduced-motion`** — all animations and transitions disabled when the user prefers reduced motion
+- **`color-scheme` CSS property** — native browser controls (date pickers, scrollbars) automatically match the theme
+- **ARIA landmarks** — `role="banner"` on header, `aria-label` on navigation, `alt` text on images
+- Theme choice persisted in localStorage across sessions
+
+### Prior Year Capital Losses (D212 Rd.5-6)
+- **New field: "Prior Year Capital Losses (RON)"** in the Add Data → Capital Gains section
+- Implements D212 Rd.5 (pierderi reportate din anii precedenți) and Rd.6 (pierdere compensată — max 70% of current year net gain, 7-year carryforward)
+- **Loss offset applied across all views:**
+  - Dashboard: new "Loss Offset" summary card (green, shown only when active) between Total Income and Already Paid
+  - Income Details: new deduction row "↳ Prior year losses offset (D212 Rd.5-6)" with tooltip
+  - Tax Calculation: gross gains → deductions breakdown → net gains → subtotal flow
+  - D212 Form Helper: Rd.5 and Rd.6 rows in the capital gains section
+
+### Tax Calculation Display Improvements
+- **Subtotal US clarity** — when ESPP/BIK/loss deductions exist, the Tax Calculation section now shows: gross capital gains → deductions detail → net capital gains (green) → dividends → subtotal. Previously the deductions appeared as an info line after the already-net figure.
+
+### Documentation
+- Updated CHANGELOG, README, and GUIDE for all three features
+
+---
+
 ## v1.5.2 (2026-04-17)
 
 ### Tax Calculation Fixes

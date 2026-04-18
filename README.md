@@ -19,7 +19,8 @@ O aplicație web locală care ajută rezidenții fiscali din România să calcul
 - **Comparație multi-an** — compară datele financiare pe mai mulți ani fiscali
 - **Bilingv** — interfață completă în Română și Engleză
 - **Offline și privat** — rulează în totalitate pe calculatorul tău, nicio dată nu este trimisă nicăieri
-- **Temă întunecată** — design responsiv
+- **Temă luminoasă/întunecată/auto** — urmează preferința sistemului sau comutare manuală; accesibilitate WCAG 2.1 AA verificată
+- **Pierderi fiscale reportate** — compensare pierderi din anii precedenți conform D212 Rd.5-6 (max 70%, reportare 7 ani)
 - **Verificare automată actualizări** — verifică pe GitHub la pornire dacă există versiuni noi; descarcă, instalează și repornește direct din aplicație, păstrând toate datele
 - **Versiune portabilă** — folder independent cu Node.js inclus (fără instalare)
 

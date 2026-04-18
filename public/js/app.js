@@ -90,7 +90,55 @@ const App = (() => {
     } catch { return isoDate; }
   }
 
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    const btn = document.getElementById('theme-toggle');
+    if (!btn) return;
+    if (theme === 'auto') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      btn.textContent = prefersDark ? '🌙' : '☀️';
+      btn.title = 'Theme: System';
+    } else if (theme === 'dark') {
+      btn.textContent = '🌙';
+      btn.title = 'Theme: Dark';
+    } else {
+      btn.textContent = '☀️';
+      btn.title = 'Theme: Light';
+    }
+    // Update charts if they exist (theme colors change)
+    if (typeof Charts !== 'undefined' && Charts.refreshAll) Charts.refreshAll();
+  }
+
   async function init() {
+    // ---- Theme ----
+    const themeToggle = document.getElementById('theme-toggle');
+    const savedTheme = localStorage.getItem('theme') || 'auto';
+    applyTheme(savedTheme);
+
+    themeToggle.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      let next;
+      if (current === 'auto') {
+        // Auto → opposite of system preference
+        next = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'light' : 'dark';
+      } else if (current === 'dark') {
+        next = 'light';
+      } else {
+        next = 'dark';
+      }
+      applyTheme(next);
+      localStorage.setItem('theme', next);
+      render(); // re-draw charts with new theme colors
+    });
+
+    // Re-detect when system preference changes (only matters in auto mode)
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if ((localStorage.getItem('theme') || 'auto') === 'auto') {
+        applyTheme('auto');
+        render();
+      }
+    });
+
     // Load language
     const langSelect = document.getElementById('lang-select');
     const savedLang = localStorage.getItem('lang') || 'ro';
@@ -732,7 +780,12 @@ const App = (() => {
     // US income: deduct salary-taxed BIK from US capital gains as cost basis
     // BIK (stock_award_bik) = income already taxed as salary in Romania, deducted from capital gains
     // Stock withholding = tax/CASS paid on the BIK through payroll (shown as "already paid", not deducted from base)
-    const usNetGainsRON = Math.max(0, capitalGainsTaxableRON - salaryTaxedRON);
+    const usNetGainsBeforeLosses = Math.max(0, capitalGainsTaxableRON - salaryTaxedRON);
+
+    // Prior year losses (D212 Rd.5-6): carryforward up to 7 years, offset max 70% of current year gains
+    const priorLosses = parseFloat(yd.priorLosses) || 0;
+    const lossOffset = usNetGainsBeforeLosses > 0 ? Math.min(priorLosses, Math.floor(usNetGainsBeforeLosses * 0.7)) : 0;
+    const usNetGainsRON = Math.max(0, usNetGainsBeforeLosses - lossOffset);
     const usGrossIncomeRON = capitalGainsTaxableRON + dividendsRON;
     const usNetIncomeRON = usNetGainsRON + dividendsRON;
 
@@ -901,6 +954,9 @@ const App = (() => {
       usGrossIncomeRON,
       usNetIncomeRON,
       usNetGainsRON,
+      // Prior year losses (D212 Rd.5-6)
+      priorLosses,
+      lossOffset,
       incomeTaxGross,
       totalAlreadyPaid
     };
@@ -914,6 +970,17 @@ const App = (() => {
     document.getElementById('already-paid-value').textContent = fmt(data.totalAlreadyPaid);
     document.getElementById('cass-value').textContent = fmt(data.cassTax);
     document.getElementById('total-tax-value').textContent = fmt(data.incomeTaxOnly);
+
+    // Show losses tile only when prior losses exist
+    const lossCard = document.getElementById('card-losses');
+    if (lossCard) {
+      if (data.lossOffset > 0) {
+        lossCard.style.display = '';
+        document.getElementById('loss-offset-value').textContent = '-' + fmt(data.lossOffset);
+      } else {
+        lossCard.style.display = 'none';
+      }
+    }
 
     // Charts - only show if there's actual financial data
     const allYears = Object.keys(appData.years || {}).map(Number).sort((a, b) => a - b);
@@ -1047,20 +1114,22 @@ const App = (() => {
         cat: I18n.t('income.usGains') + data.usBrokerLabel + (data.tradeCount ? ` (${data.tradeCount} ${I18n.t('misc.sales') || 'sales'})` : ''),
         usd: data.capitalGainsSaleUSD || data.tradeProceedsUSD || 0,
         rate: data.exchangeRate,
-        ron: Math.round(Math.max(0, (data.capitalGainsTaxableRON || ((data.capitalGainsSaleUSD || data.tradeProceedsUSD || 0) - (data.capitalGainsCostUSD || 0)) * data.exchangeRate) - (data.salaryTaxedRON || 0))),
+        ron: Math.round(data.usNetGainsRON),
         usTaxRate: '-',
         usTaxPaid: 0,
         taxRate: (data.capGainsTaxRate * 100) + '%',
         paid: 0,
-        tax: Math.round(Math.max(0, (data.capitalGainsTaxableRON || 0) - (data.salaryTaxedRON || 0)) * data.capGainsTaxRate),
-        tooltip: (data.capitalGainsCostUSD > 0 || data.salaryTaxedRON > 0) ? (() => {
+        tax: Math.round(data.usNetGainsRON * data.capGainsTaxRate),
+        tooltip: (data.capitalGainsCostUSD > 0 || data.salaryTaxedRON > 0 || data.lossOffset > 0) ? (() => {
           const saleUSD = data.capitalGainsSaleUSD || data.tradeProceedsUSD || 0;
           const costUSD = data.capitalGainsCostUSD || 0;
           const fmtN = (v) => v.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
           const fmtR = (v) => Math.round(v).toLocaleString('ro-RO');
           let tip = '';
           if (costUSD > 0) tip += '(' + fmtN(saleUSD) + ' - ' + fmtN(costUSD) + ') × ' + data.exchangeRate.toFixed(4) + ' = ' + fmtR((saleUSD - costUSD) * data.exchangeRate) + ' RON';
-          if (data.salaryTaxedRON > 0) tip += (tip ? ' → ' : '') + '- BIK ' + fmtR(data.salaryTaxedRON) + ' = ' + fmtR(Math.max(0, (data.capitalGainsTaxableRON || 0) - data.salaryTaxedRON)) + ' RON';
+          if (data.salaryTaxedRON > 0) tip += (tip ? ' → ' : '') + '- BIK ' + fmtR(data.salaryTaxedRON);
+          if (data.lossOffset > 0) tip += (tip ? ' → ' : '') + '- ' + (I18n.t('taxes.earnPriorLossOffset') || 'Prior losses') + ' ' + fmtR(data.lossOffset);
+          tip += (tip ? ' = ' : '') + fmtR(data.usNetGainsRON) + ' RON';
           return tip;
         })() : undefined
       },
@@ -1088,6 +1157,19 @@ const App = (() => {
         tax: 0,
         isDeduction: true,
         tooltip: (I18n.t('misc.bikBreakdownTooltip') || 'Stock award BIK from imported documents, allocated via FIFO to sales in this year') + '. ' + (I18n.t('misc.taxableAfterBik') || 'Taxable after BIK') + ': ' + Math.round(Math.max(0, (data.capitalGainsTaxableRON || 0) - data.salaryTaxedRON)).toLocaleString('ro-RO') + ' RON'
+      }] : []),
+      ...(data.lossOffset > 0 ? [{
+        cat: '↳ ' + (I18n.t('income.priorLossDeduction') || 'Prior year losses offset (D212 Rd.5-6)'),
+        usd: '-',
+        rate: '-',
+        ron: -data.lossOffset,
+        usTaxRate: '-',
+        usTaxPaid: 0,
+        taxRate: '-',
+        paid: 0,
+        tax: 0,
+        isDeduction: true,
+        tooltip: (I18n.t('misc.priorLossTooltip') || 'Capital losses from previous years') + ': ' + Math.round(data.priorLosses).toLocaleString('ro-RO') + ' RON. ' + (I18n.t('misc.lossOffsetApplied') || 'Offset applied (max 70%)') + ': ' + Math.round(data.lossOffset).toLocaleString('ro-RO') + ' RON'
       }] : []),
       ...(data.esppPurchaseCount > 0 ? [{
         cat: (I18n.t('income.esppPurchases') || 'US ESPP Stock Purchases') + data.usBrokerLabel + ` (${data.esppPurchaseCount} ${I18n.t('misc.purchases') || 'purchases'})`,
@@ -1655,8 +1737,8 @@ const App = (() => {
     const stockWithholding = data.stockWithholding || 0;
 
     // Tax computations
-    // US capital gains: taxable = gains after ESPP cost and BIK deduction
-    const usNetGainsAfterBIK = Math.max(0, usGainsRON - (data.salaryTaxedRON || 0));
+    // US capital gains: taxable = gains after ESPP cost, BIK deduction, and prior loss offset
+    const usNetGainsAfterBIK = Math.max(0, usGainsRON - (data.salaryTaxedRON || 0) - (data.lossOffset || 0));
     const usGainsTax = usNetGainsAfterBIK * (data.capGainsTaxRate || 0.10);
     const usDivTax = data.usDivTax || 0;
     const roLongTax = roLong * (data.roLongRate || 0.01);
@@ -1688,14 +1770,21 @@ const App = (() => {
 
     // -- US income --
     html += dataRow('<strong>' + I18n.t('taxes.subsectionUS') + '</strong>', '', { indent: false });
-    html += dataRow(I18n.t('taxes.earnUsGains') + data.usBrokerLabel, fmtR(usNetGainsAfterBIK) + ' RON', { indent: true });
-    html += dataRow(I18n.t('taxes.earnUsDiv') + data.usDivBrokerLabel, fmtR(usDivRON) + ' RON', { indent: true });
-    if (data.salaryTaxedRON > 0 || data.capitalGainsCostUSD > 0) {
+    const usGainsGross = data.capitalGainsTaxableRON || (data.tradeProceedsUSD || 0) * data.exchangeRate;
+    const hasUsDeductions = (data.salaryTaxedRON > 0 || data.capitalGainsCostUSD > 0 || data.lossOffset > 0);
+    if (hasUsDeductions) {
+      // Show gross first, then deductions, then net
+      html += dataRow(I18n.t('taxes.earnUsGains') + data.usBrokerLabel, fmtR(usGainsGross) + ' RON', { indent: true });
       const deductions = [];
       if (data.capitalGainsCostUSD > 0) deductions.push('ESPP: -' + fmtR(data.capitalGainsCostUSD * data.exchangeRate) + ' RON');
       if (data.salaryTaxedRON > 0) deductions.push('BIK: -' + fmtR(data.salaryTaxedRON) + ' RON');
+      if (data.lossOffset > 0) deductions.push((I18n.t('taxes.earnPriorLossOffset') || 'Prior losses') + ': -' + fmtR(data.lossOffset) + ' RON');
       html += dataRow((I18n.t('taxes.earnDeductionsApplied') || 'Deductions applied'), deductions.join(', '), { indent: true, muted: true });
+      html += dataRow((I18n.t('taxes.earnUsNet') || 'Net US capital gains'), fmtR(usNetGainsAfterBIK) + ' RON', { indent: true, green: true });
+    } else {
+      html += dataRow(I18n.t('taxes.earnUsGains') + data.usBrokerLabel, fmtR(usNetGainsAfterBIK) + ' RON', { indent: true });
     }
+    html += dataRow(I18n.t('taxes.earnUsDiv') + data.usDivBrokerLabel, fmtR(usDivRON) + ' RON', { indent: true });
     const usSubtotalIncome = usNetGainsAfterBIK + usDivRON;
     html += dataRow(I18n.t('taxes.subtotalUS'), fmtR(usSubtotalIncome) + ' RON', { indent: true, bold: true, topBorder: true });
 
@@ -1909,8 +1998,11 @@ const App = (() => {
       const usGainsGrossRON = usGainsGrossUSD * data.exchangeRate;
       const esppCostRON = esppCost * data.exchangeRate;
       const salaryTaxed = data.salaryTaxedRON || 0;
-      // ANAF formula: Taxable = Sale_RON - Cost_RON - BIK_RON
-      const usNetGainsRON = Math.max(0, usGainsGrossRON - esppCostRON - salaryTaxed);
+      // ANAF formula: Taxable = Sale_RON - Cost_RON - BIK_RON - LossOffset
+      const usNetBeforeLosses = Math.max(0, usGainsGrossRON - esppCostRON - salaryTaxed);
+      const priorLossesVal = data.priorLosses || 0;
+      const lossOffsetVal = usNetBeforeLosses > 0 ? Math.min(priorLossesVal, Math.floor(usNetBeforeLosses * 0.7)) : 0;
+      const usNetGainsRON = Math.max(0, usNetBeforeLosses - lossOffsetVal);
       const usCapGainsTax = usNetGainsRON * (data.capGainsTaxRate || 0.10);
       const usDivTaxDue = usDivRON * data.divTaxRate;
       const usTaxPaidRON = data.usDivForeignTaxRON || 0;
@@ -1929,6 +2021,10 @@ const App = (() => {
         [I18n.t('dcl.esppCostUSD'), fmtD(esppCost) + ' USD' + (data.esppSharesConsumed > 0 ? ' <small>(' + data.esppSharesConsumed + ' ' + (I18n.t('income.shares') || 'shares') + ' ESPP FIFO)</small>' : '')],
         [I18n.t('dcl.esppCostRON'), fmtR(esppCostRON) + ' RON'],
         [I18n.t('dcl.alreadyTaxedSalary'), fmtR(salaryTaxed) + ' RON'],
+        ...(priorLossesVal > 0 ? [
+          ['Rd.5 ' + (I18n.t('dcl.priorLosses') || 'Pierderi reportate din anii precedenți'), fmtR(priorLossesVal) + ' RON'],
+          ['Rd.6 ' + (I18n.t('dcl.lossOffset') || 'Pierdere compensată (max 70% × câștig net)'), fmtR(lossOffsetVal) + ' RON'],
+        ] : []),
         [I18n.t('dcl.taxableCapitalGains'), '<strong>' + fmtR(usNetGainsRON) + ' RON</strong>'],
         [I18n.t('dcl.incomeTaxDue10').replace('10%', (data.capGainsTaxRate * 100) + '%'), '<strong>' + fmtR(usCapGainsTax) + ' RON</strong>'],
         ['--- ' + I18n.t('dcl.sepDividends') + ' ---', ''],
@@ -2203,6 +2299,7 @@ const App = (() => {
     document.getElementById('input-d212-deadline').value = yd.d212Deadline || d212DefaultDeadline(selectedYear);
     document.getElementById('input-stock-withholding').value = yd.stockWithholdingPaid || '';
     document.getElementById('input-salary-taxed').value = yd.salaryTaxedIncome || '';
+    document.getElementById('input-prior-losses').value = yd.priorLosses || '';
 
     // Populate RO gains country rows
     renderRoGainsRows(yd.roGainsCountries || []);
@@ -2325,7 +2422,8 @@ const App = (() => {
       otherIncome: document.getElementById('input-other-income').value,
       otherTaxPaid: document.getElementById('input-other-tax-paid').value,
       stockWithholdingPaid: document.getElementById('input-stock-withholding').value,
-      salaryTaxedIncome: document.getElementById('input-salary-taxed').value
+      salaryTaxedIncome: document.getElementById('input-salary-taxed').value,
+      priorLosses: document.getElementById('input-prior-losses').value
     };
 
     try {
