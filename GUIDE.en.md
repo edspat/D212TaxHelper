@@ -648,4 +648,4 @@ See the full changelog by clicking the version number in the app footer, or view
 
 ---
 
-*D212 Tax Helper © 2026 | Contact: edmund.spatariu@microsoft.com*
+*D212 Tax Helper © 2026 | Contact: spatariu74@gmail.com*

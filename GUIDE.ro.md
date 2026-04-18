@@ -642,4 +642,4 @@ Vezi istoricul complet făcând click pe numărul versiunii din footer-ul aplica
 
 ---
 
-*D212 Asistent Fiscal © 2026 | Contact: edmund.spatariu@microsoft.com*
+*D212 Asistent Fiscal © 2026 | Contact: spatariu74@gmail.com*
