@@ -90,7 +90,47 @@ const App = (() => {
     } catch { return isoDate; }
   }
 
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    const btn = document.getElementById('theme-toggle');
+    if (!btn) return;
+    if (theme === 'auto') {
+      btn.textContent = '🖥️';
+      btn.title = 'Theme: Auto (System)';
+    } else if (theme === 'dark') {
+      btn.textContent = '🌙';
+      btn.title = 'Theme: Dark';
+    } else {
+      btn.textContent = '☀️';
+      btn.title = 'Theme: Light';
+    }
+    // Update charts if they exist (theme colors change)
+    if (typeof Charts !== 'undefined' && Charts.refreshAll) Charts.refreshAll();
+  }
+
   async function init() {
+    // ---- Theme ----
+    const themeToggle = document.getElementById('theme-toggle');
+    const savedTheme = localStorage.getItem('theme') || 'auto';
+    applyTheme(savedTheme);
+
+    themeToggle.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      // Cycle: auto → dark → light → auto
+      const next = current === 'auto' ? 'dark' : current === 'dark' ? 'light' : 'auto';
+      applyTheme(next);
+      localStorage.setItem('theme', next);
+      render(); // re-draw charts with new theme colors
+    });
+
+    // Re-detect when system preference changes (only matters in auto mode)
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if ((localStorage.getItem('theme') || 'auto') === 'auto') {
+        applyTheme('auto');
+        render();
+      }
+    });
+
     // Load language
     const langSelect = document.getElementById('lang-select');
     const savedLang = localStorage.getItem('lang') || 'ro';
