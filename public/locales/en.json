@@ -532,6 +532,7 @@
     "updateNow": "Update",
     "modalTitle": "App Update",
     "downloading": "Downloading v{version} from GitHub...",
+    "complete": "complete",
     "confirmInstall": "Download complete. Install now? Your data and documents will be preserved.",
     "installNow": "Install Now",
     "cancel": "Cancel",

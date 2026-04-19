@@ -532,6 +532,7 @@
     "updateNow": "Actualizează",
     "modalTitle": "Actualizare Aplicație",
     "downloading": "Se descarcă v{version} de pe GitHub...",
+    "complete": "complet",
     "confirmInstall": "Descărcare completă. Instalați acum? Datele și documentele vor fi păstrate.",
     "installNow": "Instalează Acum",
     "cancel": "Anulează",

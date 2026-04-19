@@ -3135,12 +3135,18 @@ const App = (() => {
     closeBtn.style.display = '';
     modal.classList.remove('hidden');
 
-    downloadText.textContent = I18n.t('update.downloading', { version: data.latestVersion });
+    const dlLabel = I18n.t('update.downloading', { version: data.latestVersion });
+    const dlCompleteLabel = I18n.t('update.complete') || 'complete';
+    downloadText.textContent = dlLabel;
 
     // Animate progress bar (indeterminate-ish since we don't have streaming progress)
+    let dlPercent = 0;
     let progressInterval = setInterval(() => {
-      const cur = parseFloat(progressFill.style.width) || 0;
-      if (cur < 90) progressFill.style.width = (cur + 2) + '%';
+      if (dlPercent < 90) {
+        dlPercent += 2;
+        progressFill.style.width = dlPercent + '%';
+        downloadText.textContent = dlLabel + ' ' + dlPercent + '% ' + dlCompleteLabel;
+      }
     }, 500);
 
     try {
@@ -3154,6 +3160,7 @@ const App = (() => {
       }
 
       progressFill.style.width = '100%';
+      downloadText.textContent = dlLabel + ' 100% ' + dlCompleteLabel;
 
       // Show confirm step
       setTimeout(() => {
