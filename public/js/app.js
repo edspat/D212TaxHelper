@@ -3190,7 +3190,7 @@ const App = (() => {
       // Show success and poll for server restart
       stepInstalling.classList.add('hidden');
       stepResult.classList.remove('hidden');
-      resultIcon.textContent = ''; // CSS pseudo-elements handle the mouse animation
+      resultIcon.textContent = ''; // cleared for CSS circle spinner
       resultIcon.classList.add('spinner');
       resultText.textContent = I18n.t('update.restarting');
 

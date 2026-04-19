@@ -597,40 +597,13 @@ textarea.raw-text-box {
 .update-step.hidden { display: none; }
 .update-step-icon { font-size: 2.5rem; line-height: 1; }
 .update-step-icon.spinner {
-  animation: none;
-  position: relative;
-  width: 120px;
-  height: 3rem;
-  overflow: hidden;
-  font-size: 2rem;
-}
-.update-step-icon.spinner::before {
-  content: '🐭';
-  position: absolute;
-  animation: mouseRun 1.2s ease-in-out infinite;
-}
-.update-step-icon.spinner::after {
-  content: '💨';
-  position: absolute;
-  font-size: 1rem;
-  opacity: 0.5;
-  animation: mouseDust 1.2s ease-in-out infinite;
-}
-@keyframes mouseRun {
-  0%   { left: -10px; top: 8px; transform: scaleX(1); }
-  25%  { top: 2px; }
-  50%  { left: 100px; top: 8px; transform: scaleX(1); }
-  51%  { transform: scaleX(-1); }
-  75%  { top: 2px; }
-  100% { left: -10px; top: 8px; transform: scaleX(-1); }
-}
-@keyframes mouseDust {
-  0%   { left: -24px; top: 14px; opacity: 0; }
-  10%  { opacity: 0.5; }
-  50%  { left: 86px; top: 14px; opacity: 0; }
-  51%  { left: 114px; opacity: 0; }
-  60%  { opacity: 0.5; }
-  100% { left: 4px; top: 14px; opacity: 0; }
+  font-size: 0;
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .update-progress-bar {
