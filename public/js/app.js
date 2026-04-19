@@ -288,7 +288,7 @@ const App = (() => {
         // Code block toggle
         if (trimmed.startsWith('```')) {
           if (inCode) {
-            html += '<pre style="background:var(--bg-secondary);padding:0.75rem;border-radius:var(--radius);overflow-x:auto;font-size:0.85rem;line-height:1.6;white-space:pre;"><code>' + codeLines.join('\n') + '</code></pre>';
+            html += '<pre style="background:var(--bg-secondary);padding:0.75rem;border-radius:var(--radius);overflow-x:auto;font-size:0.85rem;line-height:1.6;white-space:pre;"><code style="padding:0;background:none;">' + codeLines.join('\n') + '</code></pre>';
             codeLines = []; inCode = false;
           } else {
             if (inTable) { html += flushTable(); inTable = false; }
@@ -333,7 +333,7 @@ const App = (() => {
       }
 
       // Flush remaining
-      if (inCode) html += '<pre style="background:var(--bg-secondary);padding:0.75rem;border-radius:var(--radius);overflow-x:auto;font-size:0.85rem;line-height:1.6;white-space:pre;"><code>' + codeLines.join('\n') + '</code></pre>';
+      if (inCode) html += '<pre style="background:var(--bg-secondary);padding:0.75rem;border-radius:var(--radius);overflow-x:auto;font-size:0.85rem;line-height:1.6;white-space:pre;"><code style="padding:0;background:none;">' + codeLines.join('\n') + '</code></pre>';
       if (inTable) html += flushTable();
 
       // Wrap consecutive <li> in <ul>

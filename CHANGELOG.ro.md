@@ -75,7 +75,8 @@
 
 ### Corecturi Auto-Actualizare
 - **Fix extragere ZIP** — auto-actualizarea folosește acum `tar` (gestionează căi lungi din node_modules) cu PowerShell `Expand-Archive` ca alternativă, reparând erorile „Failed to extract ZIP" pe căi mai lungi de 260 caractere
-- **Bară de progres & cronometru actualizare** — pasul de instalare afișează acum o bară de progres vizibilă și un contor de timp (M:SS) pe parcursul instalării și repornirii serverului- **Fix crash EBUSY** — auto-actualizarea nu mai crapă cu o pagină de eroare HTML când Windows blochează fișierele din staging în timpul curățării; toate apelurile `fs.rmSync` din handler-ele de actualizare sunt acum înfășurate în try/catch (fișierele rămase sunt curățate la următoarea rulare)
+- **Bară de progres & cronometru actualizare** — pasul de instalare afișează acum o bară de progres vizibilă și un contor de timp (M:SS) pe parcursul instalării și repornirii serverului
+- **Fix crash EBUSY** — auto-actualizarea nu mai crapă cu o pagină de eroare HTML când Windows blochează fișierele din staging în timpul curățării; toate apelurile `fs.rmSync` din handler-ele de actualizare sunt acum înfășurate în try/catch (fișierele rămase sunt curățate la următoarea rulare)
 
 ### Altele
 - Repository GitHub mutat de la `edmund-1` la `edspat`
