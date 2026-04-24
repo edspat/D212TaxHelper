@@ -30,6 +30,7 @@ O aplicație web locală care ajută rezidenții fiscali din România să calcul
 
 - [Node.js](https://nodejs.org/) 18+ (recomandat: v22 LTS)
 - Un browser modern (Chrome, Edge, Firefox)
+- Windows
 
 ### Opțiunea A — Git Clone
 
