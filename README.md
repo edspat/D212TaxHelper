@@ -75,7 +75,7 @@ Două variante complet independente (includ Node.js) care nu necesită instalare
 | Variantă | Comandă | Dimensiune | Motor OCR |
 |----------|---------|------------|-----------|
 | **Lite** | `npm run build` | ~174 MB | Doar Tesseract.js |
-| **Full** | `npm run build:full` | ~1,9 GB | PaddleOCR + Tesseract.js |
+| **Full** | `npm run build:full` | ~1,0 GB | PaddleOCR + Tesseract.js |
 
 Rezultatul este creat lângă folderul sursă. Dublu-click pe `Start.bat` pentru a rula.
 
