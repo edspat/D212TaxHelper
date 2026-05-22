@@ -11,6 +11,7 @@ let Tesseract = null; // lazy-loaded on first OCR use
 const { BNR_EXCHANGE_RATES, parseNumber } = require('./lib/rates');
 const { parseXtbDividends, parseXtbPortfolio } = require('./lib/parsers/xtb');
 const { parseBtDividends, parseBtPortfolio } = require('./lib/parsers/bt');
+const { parseRevolutStatement } = require('./lib/parsers/revolut');
 const { buildD212Xml } = require('./lib/d212-xml-builder');
 const { parseD212Xml } = require('./lib/d212-xml-parser');
 
@@ -564,6 +565,7 @@ app.delete('/api/raw/:filename', (req, res) => {
         if (type === 'xtb_portfolio') delete yearData.xtbPortfolio;
         if (type === 'bt_dividends') delete yearData.btDividendsReport;
         if (type === 'bt_portfolio') delete yearData.btPortfolio;
+        if (type === 'revolut_statement') delete yearData.revolutStatement;
         if (type === 'tradeville_portfolio') delete yearData.tradevillePortfolio;
         if (type === 'ms_statement') {
           delete yearData.msStatement;
@@ -702,7 +704,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: 'Invalid year' });
     }
-    const validTypes = ['declaratie', 'investment', 'adeverinta', 'stock_award', 'trade_confirmation', 'xtb_dividends', 'xtb_portfolio', 'bt_dividends', 'bt_portfolio', 'form_1042s', 'ms_statement', 'tradeville_portfolio', 'fidelity_statement'];
+    const validTypes = ['declaratie', 'investment', 'adeverinta', 'stock_award', 'trade_confirmation', 'xtb_dividends', 'xtb_portfolio', 'bt_dividends', 'bt_portfolio', 'revolut_statement', 'form_1042s', 'ms_statement', 'tradeville_portfolio', 'fidelity_statement'];
     if (!validTypes.includes(type)) {
       fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: 'Invalid type. Must be: ' + validTypes.join(', ') });
@@ -827,7 +829,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
     // If OCR fallback was used, check quality for generic document types
     // Types with their own quality checks (tradeville, trade_confirmation, fidelity, etc.) are handled downstream
-    const SELF_VALIDATED_TYPES = ['tradeville_portfolio', 'trade_confirmation', 'form_1042s', 'ms_statement', 'xtb_dividends', 'xtb_portfolio', 'bt_dividends', 'bt_portfolio', 'stock_award', 'fidelity_statement'];
+    const SELF_VALIDATED_TYPES = ['tradeville_portfolio', 'trade_confirmation', 'form_1042s', 'ms_statement', 'xtb_dividends', 'xtb_portfolio', 'bt_dividends', 'bt_portfolio', 'revolut_statement', 'stock_award', 'fidelity_statement'];
     if (usedOcrFallback && !SELF_VALIDATED_TYPES.includes(type)) {
       const realizatMatches = text.match(/Realizat\s+\d+/gi) || [];
       if (realizatMatches.length === 0) {
@@ -952,6 +954,16 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     if (type === 'bt_portfolio') {
       const parsed = parseBtPortfolio(text, parsedYear);
       if (!dryRun) db.mergeYearData(parsedYear, { btPortfolio: parsed });
+      return res.json({ success: true, dryRun, year: parsedYear, type, parsed });
+    }
+
+    // Revolut Securities Europe UAB — consolidated annual statement. Treated
+    // as foreign-source income (D212 cap14, str_categ_venit=2012) because
+    // Revolut UAB is a Lithuanian non-resident broker. Revolut does NOT
+    // withhold tax at source on capital gains → str_credit_fiscal = 0.
+    if (type === 'revolut_statement') {
+      const parsed = parseRevolutStatement(text, parsedYear);
+      if (!dryRun) db.mergeYearData(parsedYear, { revolutStatement: parsed });
       return res.json({ success: true, dryRun, year: parsedYear, type, parsed });
     }
 

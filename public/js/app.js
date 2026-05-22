@@ -1748,6 +1748,11 @@ const App = (() => {
     if (yd.xtbDividendsReport || yd.xtbPortfolio) roSources.add('XTB');
     if (yd.tradevillePortfolio) roSources.add('Tradeville');
     if (yd.btDividendsReport || yd.btPortfolio) roSources.add('BT Capital Partners');
+    // Note: Revolut is intentionally NOT added to roSources because it is a
+    // non-resident foreign broker (Revolut Securities Europe UAB, Lithuania)
+    // whose gains belong on D212 cap14 (foreign-source), not cap11 (RO source).
+    // The Revolut totals are surfaced separately via revolutNetGainsRON and
+    // are emitted as their own cap14 rows per country code in the block above.
     if (yd.roBroker) roSources.add(yd.roBroker);
     const roBrokerLabel = roSources.size > 0 ? ' (' + [...roSources].join(' & ') + ')' : '';
 
@@ -1824,6 +1829,22 @@ const App = (() => {
     const usNetIncomeRON = usNetGainsRON + dividendsRON;
 
     let capitalGainsTaxRON;
+    // Revolut foreign-broker capital gains (per-country aggregates from the
+    // parsed statement). Per net bucket, then summed across countries.
+    // Revolut never withholds tax at source → no credit fiscal offsets.
+    let revolutNetGainsRON = 0;
+    {
+      const revolut = yd.revolutStatement || {};
+      if (Array.isArray(revolut.countries)) {
+        for (const c of revolut.countries) {
+          const longNet = (c.longGainRON || 0) - (c.longLossRON || 0);
+          const shortNet = (c.shortGainRON || 0) - (c.shortLossRON || 0);
+          revolutNetGainsRON += Math.max(0, longNet) + Math.max(0, shortNet);
+        }
+      }
+    }
+    const revolutGainsTaxRON = revolutNetGainsRON * capGainsTaxRate;
+
     if (fd.capitalGains?.taxPaidRON) {
       capitalGainsTaxRON = fd.capitalGains.taxPaidRON;
     } else if (hasAnafDecl && decl.capitalGains?.difImpozitRON != null) {
@@ -1831,7 +1852,7 @@ const App = (() => {
     } else if (decl.capitalGains?.taxDueRON) {
       capitalGainsTaxRON = decl.capitalGains.taxDueRON;
     } else {
-      capitalGainsTaxRON = usNetGainsRON * capGainsTaxRate + roGainsTaxNet;
+      capitalGainsTaxRON = usNetGainsRON * capGainsTaxRate + roGainsTaxNet + revolutGainsTaxRON;
     }
     const interestTaxRate = (tr.roInterestRate != null ? tr.roInterestRate / 100 : (year >= 2026 ? 0.16 : 0.10));
     const interestTaxGross = interestIncomeRON * interestTaxRate;
@@ -1888,12 +1909,16 @@ const App = (() => {
     const roDivNetRON = dividendsRON_ro - (roDivTaxWithheld || 0);
     const totalDividendsRON_cass = Math.max(0, usDivNetRON) + Math.max(0, roDivNetRON);
     const totalDividendsRON = dividendsRON + dividendsRON_ro;
-    const totalCapitalGainsRON = capitalGainsTaxableRON + capitalGainsRON_ro;
+    const totalCapitalGainsRON = capitalGainsTaxableRON + capitalGainsRON_ro + revolutNetGainsRON;
     const interestNetRON = Math.max(0, interestIncomeRON - interestTaxPaid);
     const totalAlreadyPaid = usForeignTaxRON + withholding + (roPortTaxWithheld || 0) + (roDivTaxWithheld || 0) + interestTaxPaid + rentalTaxPaid + royaltyTaxPaid + gamblingTaxTotal + otherTaxPaid;
     // Capital gains for CASS: use net gain (gross - cost basis), do NOT subtract broker tax withheld
     const usNetCapGainsRON_cass = Math.max(0, capitalGainsTaxableRON - salaryTaxedRON);
     const roNetCapGainsRON_cass = Math.max(0, capitalGainsRON_ro);
+    // Revolut net capital gains contribute to CASS base on the same footing
+    // as US net gains (no salary-tax deduction applies since Revolut sales
+    // are not BIK-related vest income).
+    const revolutNetCapGainsRON_cass = Math.max(0, revolutNetGainsRON);
     // Include income types for CASS per D212 pct. 50.1 and pct. 51:
     // - investiții: dividends (net of tax), capital gains (net gain), interest (net of tax) ✓
     // - cedarea folosinței bunurilor (rental): net income (after 40% deduction) ✓
@@ -1902,7 +1927,7 @@ const App = (() => {
     // NOT included: gambling (Art. 110 - impozit final reținut la sursă)
     const rentalNetCass = rentalNet;
     const royaltyNetCass = royaltyNet;
-    const totalInvestmentIncome_cass = Math.max(0, totalDividendsRON_cass + usNetCapGainsRON_cass + roNetCapGainsRON_cass + interestNetRON + rentalNetCass + royaltyNetCass + otherGross);
+    const totalInvestmentIncome_cass = Math.max(0, totalDividendsRON_cass + usNetCapGainsRON_cass + roNetCapGainsRON_cass + revolutNetCapGainsRON_cass + interestNetRON + rentalNetCass + royaltyNetCass + otherGross);
     const totalInvestmentIncome = totalDividendsRON + totalCapitalGainsRON + interestIncomeRON + gamblingIncomeTotal + rentalGross + royaltyGross + otherGross;
     const savedMinSalary = (yd.minSalary !== undefined && yd.minSalary !== '') ? parseFloat(yd.minSalary) : null;
     const cassResult = calculateCASS(totalInvestmentIncome_cass, year, savedMinSalary, 'investment');
@@ -1966,6 +1991,27 @@ const App = (() => {
     // bundle cannot require() lib/ modules; the lib version is canonical and
     // covered by test/d212-cap14.test.js. Keep both sides aligned.
     const cap14Rows = [];
+    // Country-code → Romanian denumire mapping used to populate `den_stat`
+    // for the Schematron-validated cap14 rows. Extended as new foreign
+    // brokers add countries (Revolut currently emits IE, DE, FR, US, GB,
+    // NL most often).
+    const COUNTRY_NAME_RO = {
+      US: 'Statele Unite ale Americii',
+      DE: 'Germania',
+      FR: 'Franța',
+      IE: 'Irlanda',
+      NL: 'Olanda',
+      GB: 'Marea Britanie',
+      LU: 'Luxemburg',
+      CH: 'Elveția',
+      AT: 'Austria',
+      BE: 'Belgia',
+      IT: 'Italia',
+      ES: 'Spania',
+      PT: 'Portugalia',
+      LT: 'Lituania',
+      CA: 'Canada',
+    };
     {
       const capGainsSaleRON = (capitalGainsSaleUSD || 0) * rate;
       const capGainsCostRON = (capitalGainsCostUSD || 0) * rate;
@@ -2024,6 +2070,51 @@ const App = (() => {
           str_dif_impozit_datorat: Math.round(Rd11),
         });
       }
+
+      // Revolut foreign-broker capital gains. One cap14 row per country
+      // (str_categ_venit=2012, dubla_impunere=1, str_impozit_platit=0).
+      // Net per bucket within a country is gain − loss; we sum the long
+      // and short buckets for a single str_venit_brut. ANAF accepts gross
+      // gain here; the per-bucket distinction lives in cap11 for RO source
+      // gains, not cap14.
+      const revolut = yd.revolutStatement || {};
+      if (Array.isArray(revolut.countries) && revolut.countries.length > 0) {
+        for (const c of revolut.countries) {
+          const longNet = (c.longGainRON || 0) - (c.longLossRON || 0);
+          const shortNet = (c.shortGainRON || 0) - (c.shortLossRON || 0);
+          const totalNet = Math.max(0, longNet) + Math.max(0, shortNet);
+          const totalLoss = Math.max(0, -longNet) + Math.max(0, -shortNet);
+          if (totalNet === 0 && totalLoss === 0) continue;
+          const Rd1 = totalNet;
+          const Rd3 = Rd1;
+          const Rd7 = Rd3;
+          const Rd8 = Rd7 * capGainsTaxRate;
+          // Revolut never withholds at source on capital gains.
+          const Rd9 = 0;
+          const Rd10 = 0;
+          const Rd11 = Math.max(0, Rd8 - Rd10);
+          cap14Rows.push({
+            str_stat_realiz_v: c.country || 'XX',
+            den_stat: COUNTRY_NAME_RO[c.country] || c.country || 'Necunoscut',
+            str_categ_venit: '2012',
+            den_categ_venit: 'Câștiguri din transferul titlurilor de valoare',
+            dubla_impunere: '1',
+            str_venit_brut: Math.round(Rd1),
+            str_chelt_deduc: 0,
+            str_venit_net_anual: Math.round(Rd3),
+            str_pierdere_anuala: Math.round(totalLoss),
+            str_pierdere_precedenta: 0,
+            str_pierdere_compensata: 0,
+            str_venit_recalculat: Math.round(Rd7),
+            str_impozit_datorat_Ro: Math.round(Rd8),
+            str_impozit_platit: Math.round(Rd9),
+            str_credit_fiscal: Math.round(Rd10),
+            str_dif_impozit_datorat: Math.round(Rd11),
+            // Internal hint for the UI — not in the official XML schema.
+            _source: 'Revolut',
+          });
+        }
+      }
     }
 
     // D212 <oblig_realizat> (etapa 2 of the DUF integration plan).
@@ -2078,6 +2169,12 @@ const App = (() => {
       capitalGainsCostUSD,
       capitalGainsTaxableRON,
       capitalGainsRON_ro,
+      // Revolut foreign-broker capital gains (per-country net) — surfaced
+      // separately so the Income Details renderer can show them as their
+      // own row(s) with the right country flag instead of folding into the
+      // RO bucket. Empty when no Revolut statement is uploaded.
+      revolutNetGainsRON,
+      revolutGainsTaxRON,
       roLongTermGainRON,
       roShortTermGainRON,
       currentYearLossRON,
@@ -3170,7 +3267,21 @@ const App = (() => {
     const roSubtotalIncome = roLong + roShort + roDivGross + data.interestIncomeRON + gamblingIncome + data.rentalGross + data.royaltyGross + data.otherGross;
     html += dataRow(I18n.t('taxes.subtotalRO'), fmtR(roSubtotalIncome) + ' RON', { indent: true, bold: true, topBorder: true });
 
-    html += dataRow(I18n.t('taxes.earnTotal'), fmtR(usSubtotalIncome + roSubtotalIncome) + ' RON', { bold: true, topBorder: true });
+    // -- Foreign-broker income (Revolut) --
+    // Revolut Securities Europe UAB is a non-resident broker (Lithuania).
+    // Per Cod fiscal, its capital gains belong on D212 cap14 (str_categ_venit
+    // = 2012) as foreign-source income, NOT on cap11 alongside XTB / BT.
+    // Surfaced separately so the user doesn't confuse it with RO-broker
+    // amounts.
+    let foreignSubtotalIncome = 0;
+    if ((data.revolutNetGainsRON || 0) > 0) {
+      html += dataRow('<strong>' + (I18n.t('taxes.subsectionForeign') || 'Broker extern (UE/Internațional)') + '</strong>', '', { indent: false });
+      html += dataRow((I18n.t('taxes.earnRevolutGains') || 'Câștiguri capital prin Revolut (broker extern)'), fmtR(data.revolutNetGainsRON) + ' RON', { indent: true });
+      foreignSubtotalIncome = data.revolutNetGainsRON;
+      html += dataRow((I18n.t('taxes.subtotalForeign') || 'Subtotal broker extern'), fmtR(foreignSubtotalIncome) + ' RON', { indent: true, bold: true, topBorder: true });
+    }
+
+    html += dataRow(I18n.t('taxes.earnTotal'), fmtR(usSubtotalIncome + roSubtotalIncome + foreignSubtotalIncome) + ' RON', { bold: true, topBorder: true });
 
     html += emptyRow();
 
@@ -3235,6 +3346,12 @@ const App = (() => {
     } else {
       html += dataRow(I18n.t('taxes.oweRoCapGains'), I18n.t('taxes.finalTaxDone'), { indent: true, muted: true });
     }
+    // Foreign-broker capital gains (Revolut): no source withholding → full
+    // RO rate applies (10% in 2025, 16% from 2026).
+    const revolutTaxOwed = (data.revolutGainsTaxRON || 0);
+    if (revolutTaxOwed > 0) {
+      html += dataRow((I18n.t('taxes.oweRevolutGains') || 'Impozit câștiguri capital broker extern (Revolut)'), fmtR(revolutTaxOwed) + ' RON', { indent: true });
+    }
     // Romania dividends: check if broker withheld enough
     const roDivNetOwed = Math.max(0, roDivGross * data.divTaxRate - roDivTaxWithheld);
     if (roDivNetOwed > 0) {
@@ -3262,7 +3379,7 @@ const App = (() => {
       html += dataRow(I18n.t('taxes.oweOther'), fmtR(data.otherTaxToPay) + ' RON', { indent: true });
     }
     // Subtotal income tax
-    const incomeTaxToPay = Math.max(0, usGainsTax) + usDivTax + roCapGainsNetOwed + roDivNetOwed + interestTaxRemaining + (data.rentalTaxToPay || 0) + (data.royaltyTaxToPay || 0) + (data.otherTaxToPay || 0);
+    const incomeTaxToPay = Math.max(0, usGainsTax) + usDivTax + roCapGainsNetOwed + revolutTaxOwed + roDivNetOwed + interestTaxRemaining + (data.rentalTaxToPay || 0) + (data.royaltyTaxToPay || 0) + (data.otherTaxToPay || 0);
     html += dataRow(I18n.t('taxes.oweIncomeTaxSubtotal'), '<strong>' + fmtR(incomeTaxToPay) + ' RON</strong>', { topBorder: true });
     // Refund: when Romanian broker withheld more than the actual tax due (after losses)
     if ((data.refundOwedRON || 0) > 0) {
@@ -3751,6 +3868,25 @@ const App = (() => {
       relatedFieldsetIds: ['fieldset-ro-gains'],
       perCountry: true,
       countriesSource: (yd) => yd.btPortfolio?.countries || [],
+    },
+    {
+      id: 'revolut_statement',
+      title: 'Revolut · Consolidated Statement',
+      icon: '📄',
+      isActive: (yd) => !!yd.revolutStatement && (yd.revolutStatement.sales?.length > 0 || yd.revolutStatement.summary?.grossProceedsEUR > 0),
+      rawFilePattern: 'revolut_statement_{year}_raw.txt',
+      relatedFieldsetIds: ['fieldset-ro-gains'],
+      perCountry: true,
+      countriesSource: (yd) => yd.revolutStatement?.countries || [],
+      rows: (yd) => {
+        const s = (yd.revolutStatement && yd.revolutStatement.summary) || {};
+        const rows = [];
+        if (s.grossProceedsEUR) rows.push({ label: 'Vânzări brute (EUR)', parsedValue: s.grossProceedsEUR, manualKey: null, currency: 'EUR' });
+        if (s.costBasisEUR) rows.push({ label: 'Cost achiziție (EUR)', parsedValue: s.costBasisEUR, manualKey: null, currency: 'EUR' });
+        if (s.realisedPnLEUR != null) rows.push({ label: 'Câștig/pierdere brut (EUR)', parsedValue: s.realisedPnLEUR, manualKey: null, currency: 'EUR' });
+        if (s.dividendsEUR) rows.push({ label: 'Dividende (EUR)', parsedValue: s.dividendsEUR, manualKey: null, currency: 'EUR' });
+        return rows;
+      },
     },
     {
       id: 'fidelity_statement',
