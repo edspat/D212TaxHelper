@@ -3873,18 +3873,27 @@ const App = (() => {
       id: 'revolut_statement',
       title: 'Revolut · Consolidated Statement',
       icon: '📄',
-      isActive: (yd) => !!yd.revolutStatement && (yd.revolutStatement.sales?.length > 0 || yd.revolutStatement.summary?.grossProceedsEUR > 0),
+      isActive: (yd) => !!yd.revolutStatement && (yd.revolutStatement.sales?.length > 0 || (yd.revolutStatement.summary?.grossProceeds || yd.revolutStatement.summary?.grossProceedsEUR) > 0),
       rawFilePattern: 'revolut_statement_{year}_raw.txt',
       relatedFieldsetIds: ['fieldset-ro-gains'],
       perCountry: true,
       countriesSource: (yd) => yd.revolutStatement?.countries || [],
       rows: (yd) => {
-        const s = (yd.revolutStatement && yd.revolutStatement.summary) || {};
+        const stmt = yd.revolutStatement || {};
+        const s = stmt.summary || {};
+        const ccy = stmt.currency || s.currency || 'EUR';
         const rows = [];
-        if (s.grossProceedsEUR) rows.push({ label: 'Vânzări brute (EUR)', parsedValue: s.grossProceedsEUR, manualKey: null, currency: 'EUR' });
-        if (s.costBasisEUR) rows.push({ label: 'Cost achiziție (EUR)', parsedValue: s.costBasisEUR, manualKey: null, currency: 'EUR' });
-        if (s.realisedPnLEUR != null) rows.push({ label: 'Câștig/pierdere brut (EUR)', parsedValue: s.realisedPnLEUR, manualKey: null, currency: 'EUR' });
-        if (s.dividendsEUR) rows.push({ label: 'Dividende (EUR)', parsedValue: s.dividendsEUR, manualKey: null, currency: 'EUR' });
+        // Prefer the new currency-neutral field names; fall back to the
+        // legacy *EUR aliases for statements parsed before the multi-
+        // currency refactor.
+        const gross = s.grossProceeds != null ? s.grossProceeds : s.grossProceedsEUR;
+        const cost = s.costBasis != null ? s.costBasis : s.costBasisEUR;
+        const pnl = s.realisedPnL != null ? s.realisedPnL : s.realisedPnLEUR;
+        const divs = s.dividends != null ? s.dividends : s.dividendsEUR;
+        if (gross) rows.push({ label: `Vânzări brute (${ccy})`, parsedValue: gross, manualKey: null, currency: ccy });
+        if (cost) rows.push({ label: `Cost achiziție (${ccy})`, parsedValue: cost, manualKey: null, currency: ccy });
+        if (pnl != null) rows.push({ label: `Câștig/pierdere brut (${ccy})`, parsedValue: pnl, manualKey: null, currency: ccy });
+        if (divs) rows.push({ label: `Dividende (${ccy})`, parsedValue: divs, manualKey: null, currency: ccy });
         return rows;
       },
     },

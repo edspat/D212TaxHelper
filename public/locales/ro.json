@@ -487,7 +487,7 @@
     "typeTradevillePortfolio": "România (Tradeville) - Fișă de Portofoliu (Câștiguri Capital)",
     "typeBtDividends": "România (BT Capital Partners) - Fișă Dividende (piețe externe)",
     "typeBtPortfolio": "România (BT Capital Partners) - Fișă de Portofoliu (Câștiguri Capital)",
-    "typeRevolut": "Revolut - Consolidated Statement (Broker extern, EUR)",
+    "typeRevolut": "Revolut - Consolidated Statement (broker extern, monedă detectată automat)",
     "typeFidelityStatement": "SUA (Fidelity) - Extras Plan Acțiuni (Periodic)",
     "typeMSStatement": "SUA (Morgan Stanley) - Extras Plan Acțiuni (Anual)",
     "file": "Fișier PDF sau Imagine",

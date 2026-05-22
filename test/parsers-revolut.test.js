@@ -60,6 +60,39 @@ Information about Brokerage Account statement
 This statement is provided by Revolut Securities Europe UAB...
 `;
 
+// USD-account fixture: identical structure but every foreign-currency amount
+// is prefixed with $ (Revolut prints "$" + value for USD brokerage accounts)
+// and the header reads "Sells - USD".
+const SINGLE_USD_FIXTURE = `
+Consolidated statement
+Summary for Brokerage Account - USD
+Sells summary Amount
+Gross proceeds $2,400
+Cost basis $2,000
+Realised gross PnL $400
+Other Income and Fees summary Amount
+Dividends $0
+Withholding tax $0
+Amount $0
+
+Transactions for Brokerage Account — Sells - USD
+Apr 01, 2025
+Apr 15, 2025
+Other Synthetic Co OSC
+US0000000002
+US 5.00000000$2,000
+9,200 RON
+Rate: 4.600
+$2,400
+11,088 RON
+Rate: 4.620
+$400
+1,888 RON
+$0
+0 RON
+Information about Brokerage Account statement
+`;
+
 const TWO_TRANSACTIONS_FIXTURE = `
 Summary for Brokerage Account - EUR
 Sells summary Amount
@@ -218,6 +251,66 @@ test('parseRevolutStatement: Revolut never withholds tax at source → totalTaxW
     assert.equal(c.longTaxRON, 0);
     assert.equal(c.shortTaxRON, 0);
   }
+});
+
+// ---- Multi-currency support (added 2026-05-22) ----
+// Revolut issues separate statements per brokerage-account currency (EUR,
+// USD, GBP, etc.). The parser must detect the currency from the heading
+// + currency symbol and populate the canonical `currency` + `symbol`
+// fields. Legacy *EUR aliases stay populated for backward compatibility.
+
+test('parseRevolutStatement: detects EUR brokerage account from header', () => {
+  const r = parseRevolutStatement(SINGLE_SHORT_FIXTURE, 2025);
+  assert.equal(r.currency, 'EUR');
+  assert.equal(r.symbol, '€');
+  assert.equal(r.summary.currency, 'EUR');
+});
+
+test('parseRevolutStatement: detects USD brokerage account from header + $ symbol', () => {
+  const r = parseRevolutStatement(SINGLE_USD_FIXTURE, 2025);
+  assert.equal(r.currency, 'USD');
+  assert.equal(r.symbol, '$');
+  assert.equal(r.summary.currency, 'USD');
+  // Summary numbers should be the USD-side amounts.
+  assert.equal(r.summary.grossProceeds, 2400);
+  assert.equal(r.summary.costBasis, 2000);
+  assert.equal(r.summary.realisedPnL, 400);
+});
+
+test('parseRevolutStatement: USD per-sale row parses cost/proceeds/pnl/fees', () => {
+  const r = parseRevolutStatement(SINGLE_USD_FIXTURE, 2025);
+  assert.equal(r.sales.length, 1);
+  const s = r.sales[0];
+  assert.equal(s.currency, 'USD');
+  assert.equal(s.costBasis, 2000);
+  assert.equal(s.costBasisRON, 9200);
+  assert.equal(s.proceeds, 2400);
+  assert.equal(s.proceedsRON, 11088);
+  assert.equal(s.pnl, 400);
+  assert.equal(s.pnlRON, 1888);
+  assert.equal(s.symbol, 'OSC');
+  assert.equal(s.country, 'US');
+});
+
+test('parseRevolutStatement: legacy *EUR aliases populated regardless of actual currency', () => {
+  // The UI / stored-data fields named *EUR predate the multi-currency
+  // refactor. Keep them populated with the same value so existing readers
+  // (e.g. IMPORT_DESCRIPTORS rows() fallback) keep working seamlessly.
+  const r = parseRevolutStatement(SINGLE_USD_FIXTURE, 2025);
+  assert.equal(r.summary.grossProceedsEUR, r.summary.grossProceeds);
+  assert.equal(r.summary.costBasisEUR, r.summary.costBasis);
+  assert.equal(r.summary.realisedPnLEUR, r.summary.realisedPnL);
+  const s = r.sales[0];
+  assert.equal(s.costBasisEUR, s.costBasis);
+  assert.equal(s.proceedsEUR, s.proceeds);
+  assert.equal(s.pnlEUR, s.pnl);
+});
+
+test('parseRevolutStatement: empty input → currency defaults to EUR', () => {
+  // Safe default for users on the Romanian Revolut Securities Europe UAB
+  // brokerage which is EUR-denominated for most accounts.
+  const r = parseRevolutStatement('not a statement', 2025);
+  assert.equal(r.currency, 'EUR');
 });
 
 // ---- CASS base: legal-reference test (D212 Instrucțiuni OMF 2736/2025 pct. 51) ----
