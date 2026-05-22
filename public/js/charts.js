@@ -601,7 +601,7 @@ const Charts = (() => {
       }
     });
 
-    setupChartNav('d212-pay', allYears, ws, buildUpdateFn());
+    setupChartNav('d212-pay', allYears, ws, updateFn);
   }
 
   // Destroy all charts so they get re-rendered with new theme colors
