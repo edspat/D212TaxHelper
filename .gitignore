@@ -42,3 +42,7 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Temporary commit message scratch file
+_commit_msg.txt
+
