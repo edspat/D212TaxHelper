@@ -2422,6 +2422,7 @@ const App = (() => {
   // ============ INCOME TABLE ============
   function renderIncomeTable() {
     const data = computeYearData(selectedYear);
+    const yd = appData.years?.[selectedYear] || {};
     const tbody = document.getElementById('income-tbody');
     const tfoot = document.getElementById('income-tfoot');
 
@@ -2566,6 +2567,53 @@ const App = (() => {
         tax: 0,
         tooltip: I18n.t('misc.roWithheldTooltip')
       },
+      // Revolut (foreign broker) per-country rows: one entry per country
+      // code in the parsed statement, split into long/short bucket when
+      // both exist for the same country. No withholding at source (Revolut
+      // never withholds on cap gains), so `paid` is always 0. Labelled
+      // "Vânzări Acțiuni International" to keep consistency with the
+      // existing "Vânzări Acțiuni România" / "Vânzări Acțiuni SUA" rows.
+      ...((yd.revolutStatement && Array.isArray(yd.revolutStatement.countries))
+        ? yd.revolutStatement.countries.flatMap((c) => {
+            const rows = [];
+            const country = c.country || 'XX';
+            const longNet = (c.longGainRON || 0) - (c.longLossRON || 0);
+            const shortNet = (c.shortGainRON || 0) - (c.shortLossRON || 0);
+            const baseLabel = I18n.t('income.intlGains') || 'Vânzări Acțiuni International';
+            const longSuffix = I18n.t('income.gainsLongSuffix') || '≥1an';
+            const shortSuffix = I18n.t('income.gainsShortSuffix') || '<1an';
+            const tooltip = I18n.t('misc.revolutForeignBrokerTooltip') || 'Broker extern (Revolut UAB) — nu reține impozit la sursă; datorezi integral în RO';
+            if (longNet !== 0) {
+              rows.push({
+                cat: `${baseLabel} ${longSuffix} (Revolut — ${country})`,
+                usd: '-',
+                rate: '-',
+                ron: longNet,
+                usTaxRate: '-',
+                usTaxPaid: 0,
+                taxRate: (data.capGainsTaxRate * 100) + '%',
+                paid: 0,
+                tax: Math.max(0, longNet) * data.capGainsTaxRate,
+                tooltip,
+              });
+            }
+            if (shortNet !== 0) {
+              rows.push({
+                cat: `${baseLabel} ${shortSuffix} (Revolut — ${country})`,
+                usd: '-',
+                rate: '-',
+                ron: shortNet,
+                usTaxRate: '-',
+                usTaxPaid: 0,
+                taxRate: (data.capGainsTaxRate * 100) + '%',
+                paid: 0,
+                tax: Math.max(0, shortNet) * data.capGainsTaxRate,
+                tooltip,
+              });
+            }
+            return rows;
+          })
+        : []),
       {
         cat: I18n.t('income.interestIncome') + (data.interestTax === 0 && (data.interestTaxPaid || 0) > 0 ? ' ' + I18n.t('misc.roWithheld') : ''),
         usd: '-',
