@@ -220,6 +220,38 @@ test('parseRevolutStatement: Revolut never withholds tax at source → totalTaxW
   }
 });
 
+// ---- CASS base: legal-reference test (D212 Instrucțiuni OMF 2736/2025 pct. 51) ----
+//
+// Per pct. 51 from the official ANAF instructions, the CASS threshold base
+// uses the NET capital gain (gain - loss), NOT the gross proceeds from sale.
+// This is the same rule for Revolut (foreign broker) as for any RO broker
+// — the legal basis is art. 95 Cod Fiscal which defines "câștigul net din
+// transferul titlurilor de valoare".
+//
+// This test pins the rule against accidental refactors that might confuse
+// gross proceeds (~33,255 RON for the real RHM sample) with the gain
+// (~2,913 RON, the actual CASS-base contribution).
+test('parseRevolutStatement: CASS-base value is NET gain, NOT gross proceeds (pct.51 D212 instr.)', () => {
+  // Synthetic fixture: sale of €1,200 proceeds with €1,000 cost basis,
+  // so gross proceeds = 6,012 RON, gain = 1,012 RON. CASS base must use
+  // 1,012 RON (the net gain), not 6,012 RON (the gross proceeds).
+  const r = parseRevolutStatement(SINGLE_SHORT_FIXTURE, 2025);
+  const sale = r.sales[0];
+
+  // Sanity: gross proceeds and gain are different values in the fixture
+  // so a confused implementation would visibly fail this assert.
+  assert.notEqual(sale.proceedsRON, sale.pnlRON);
+
+  // The per-country aggregate uses the gain, not the proceeds.
+  const ie = r.countries.find(c => c.country === 'IE');
+  assert.equal(ie.shortGainRON, sale.pnlRON);  // 1,012 RON
+  assert.notEqual(ie.shortGainRON, sale.proceedsRON);  // ≠ 6,012 RON
+
+  // totalGainRON aggregates net gains, not proceeds.
+  assert.equal(r.totalGainRON, sale.pnlRON);
+  assert.notEqual(r.totalGainRON, sale.proceedsRON);
+});
+
 // ---- Edge cases ----
 
 test('parseRevolutStatement: empty input → no sales, zero totals', () => {
