@@ -24,13 +24,10 @@
       <h1 id="app-title" data-i18n="dashboard.appTitle">D212 Tax Helper</h1>
       <nav id="main-nav" aria-label="Main navigation">
         <button class="nav-btn active" data-tab="dashboard" data-i18n="nav.dashboard">Dashboard</button>
-        <button class="nav-btn" data-tab="income" data-i18n="nav.income">Income Details</button>
-        <button class="nav-btn" data-tab="taxes" data-i18n="nav.taxes">Tax Calculation</button>
-        <button class="nav-btn" data-tab="validate" data-i18n="nav.validate">Validate &amp; Prepare D212</button>
-        <button class="nav-btn" data-tab="submit" data-i18n="nav.submit">D212 Submission Guide</button>
-        <button class="nav-btn" data-tab="input" data-i18n="nav.input">Add Data</button>
-        <button class="nav-btn" data-tab="import" data-i18n="nav.import">Import Document</button>
-        <button class="nav-btn" data-tab="raw" data-i18n="nav.raw">Raw Data</button>
+        <button class="nav-btn" data-tab="data" data-i18n="nav.data">📥 Date</button>
+        <button class="nav-btn" data-tab="calc" data-i18n="nav.calc">📊 Calcul</button>
+        <button class="nav-btn" data-tab="depunere" data-i18n="nav.depunere">🧾 Depunere</button>
+        <button class="nav-btn" data-tab="advanced" data-i18n="nav.advanced">⚙ Avansat</button>
       </nav>
       <div class="header-controls">
         <button id="theme-toggle" class="theme-toggle" type="button" title="Toggle theme">🌙</button>
@@ -46,6 +43,14 @@
   </header>
 
   <main id="app-content">
+    <!--
+      Sub-tab bar: rendered dynamically by switchTab(). Shown only when the
+      active top-level tab is a multi-subtab group (Date / Calcul / Depunere /
+      Avansat). Hidden when on Dashboard (single-tab) or when the group has
+      only one item.
+    -->
+    <div id="subtab-bar" class="subtab-bar" style="display:none;" role="tablist" aria-label="Sub-section navigation"></div>
+
     <!-- Dashboard Tab -->
     <section id="tab-dashboard" class="tab-content active">
       <div class="dashboard-grid">

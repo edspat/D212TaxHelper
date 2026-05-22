@@ -505,19 +505,125 @@ const App = (() => {
     yearSelect.value = selectedYear;
   }
 
+  // ============ Tab navigation (Phase: consolidated 5-tab layout) ============
+  //
+  // The top-level nav was reduced from 8 to 5 buttons (Dashboard / Date /
+  // Calcul / Depunere / Avansat). The 7 functional sections still exist in
+  // the DOM under their original IDs (`tab-input`, `tab-import`, `tab-income`,
+  // `tab-taxes`, `tab-validate`, `tab-submit`, `tab-raw`); they are now grouped
+  // under the 4 multi-subtab groups below. A second-row "sub-tab bar" appears
+  // between the header and the active section whenever the active group has
+  // more than one subtab.
+  //
+  // Legacy callers that pass a subtab name (e.g. `switchTab('validate')`) and
+  // anchor links like `#tab-income` continue to work: the resolver below
+  // detects whether `tabName` is a group key or a subtab key and activates
+  // BOTH the parent group AND the right subtab.
+  const TAB_GROUPS = {
+    data: [
+      { id: 'input',  i18n: 'nav.subInput',  fallback: '✏️ Adaugă/editează date' },
+      { id: 'import', i18n: 'nav.subImport', fallback: '📁 Importă document' },
+    ],
+    calc: [
+      { id: 'income', i18n: 'nav.subIncome', fallback: '📊 Detalii venituri' },
+      { id: 'taxes',  i18n: 'nav.subTaxes',  fallback: '💰 Impozit & CASS' },
+    ],
+    depunere: [
+      { id: 'validate', i18n: 'nav.subValidate', fallback: '🔬 Validează & pregătește' },
+      { id: 'submit',   i18n: 'nav.subSubmit',   fallback: '🧭 Ghid depunere ANAF' },
+    ],
+    advanced: [
+      { id: 'raw', i18n: 'nav.subRaw', fallback: '📜 Raw Data' },
+    ],
+  };
+  // Reverse map for routing legacy subtab names through their parent group.
+  const SUBTAB_PARENT = {};
+  for (const [g, subs] of Object.entries(TAB_GROUPS)) {
+    for (const s of subs) SUBTAB_PARENT[s.id] = g;
+  }
+  // Per-group memory so users land on the last-visited subtab when they
+  // re-enter a group during the same session. Persisted across reloads via
+  // localStorage so the experience survives a refresh.
+  const _LAST_SUBTAB_KEY = 'd212.lastSubtab';
+  function _loadLastSubtabs() {
+    try { return JSON.parse(localStorage.getItem(_LAST_SUBTAB_KEY) || '{}') || {}; } catch { return {}; }
+  }
+  function _saveLastSubtab(group, sub) {
+    try {
+      const m = _loadLastSubtabs();
+      m[group] = sub;
+      localStorage.setItem(_LAST_SUBTAB_KEY, JSON.stringify(m));
+    } catch { /* localStorage disabled — ignore */ }
+  }
+
+  /** Render the second-row sub-tab bar for a given group + active subtab. */
+  function _renderSubtabBar(group, activeSub) {
+    const bar = document.getElementById('subtab-bar');
+    if (!bar) return;
+    const subs = TAB_GROUPS[group] || [];
+    if (subs.length <= 1) {
+      bar.style.display = 'none';
+      bar.innerHTML = '';
+      return;
+    }
+    bar.style.display = '';
+    bar.innerHTML = subs.map(s => {
+      const label = (I18n && I18n.t && I18n.t(s.i18n)) || s.fallback;
+      const isActive = s.id === activeSub ? ' active' : '';
+      const ariaSel = s.id === activeSub ? 'true' : 'false';
+      return `<button type="button" role="tab" aria-selected="${ariaSel}" class="subtab-btn${isActive}" data-subtab="${s.id}">${label}</button>`;
+    }).join('');
+    bar.querySelectorAll('.subtab-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.subtab));
+    });
+  }
+
   function switchTab(tabName) {
-    // Only clear .active on real top-level tabs (those with a data-tab attribute).
-    // Sub-tab buttons (e.g. Add Data mode switcher) share the .nav-btn class for
-    // styling and manage their own .active state via applyAddDataMode().
+    // Resolve the target group + subtab. `tabName` may be either:
+    //   - a top-level group key (e.g. "data", "calc") — pick the remembered
+    //     or first subtab; OR
+    //   - a subtab key (e.g. "income", "validate") — activate its parent
+    //     group automatically. Standalone tabs (dashboard) have no group.
+    let group, subtab;
+    if (TAB_GROUPS[tabName]) {
+      group = tabName;
+      const remembered = _loadLastSubtabs()[group];
+      const subs = TAB_GROUPS[group];
+      subtab = (remembered && subs.some(s => s.id === remembered)) ? remembered : subs[0].id;
+    } else if (SUBTAB_PARENT[tabName]) {
+      group = SUBTAB_PARENT[tabName];
+      subtab = tabName;
+    } else {
+      // Standalone tab (Dashboard). Hide the subtab bar.
+      group = null;
+      subtab = tabName;
+    }
+
+    // Clear active state on real top-level tabs (those with a data-tab attr).
+    // Sub-tab buttons (e.g. Add Data mode switcher) share the .nav-btn class
+    // for styling and manage their own .active state via applyAddDataMode().
     document.querySelectorAll('.nav-btn[data-tab]').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.querySelector(`.nav-btn[data-tab="${tabName}"]`)?.classList.add('active');
-    document.getElementById(`tab-${tabName}`)?.classList.add('active');
 
-    if (tabName === 'raw') loadRawFiles();
-    if (tabName === 'input') populateForm();
-    if (tabName === 'submit') wireSubmitTabLinks();
-    if (tabName === 'validate') renderSubmissionGuide();
+    // Activate the top-level group button (or the standalone Dashboard).
+    const topName = group || subtab;
+    document.querySelector(`.nav-btn[data-tab="${topName}"]`)?.classList.add('active');
+    document.getElementById(`tab-${subtab}`)?.classList.add('active');
+
+    if (group) {
+      _saveLastSubtab(group, subtab);
+      _renderSubtabBar(group, subtab);
+    } else {
+      // Hide subtab bar for standalone tabs (Dashboard).
+      const bar = document.getElementById('subtab-bar');
+      if (bar) { bar.style.display = 'none'; bar.innerHTML = ''; }
+    }
+
+    // Section-specific render hooks — keep behavior parity with the old flow.
+    if (subtab === 'raw') loadRawFiles();
+    if (subtab === 'input') populateForm();
+    if (subtab === 'submit') wireSubmitTabLinks();
+    if (subtab === 'validate') renderSubmissionGuide();
   }
 
   /** Wire the "Go to Validate & Prepare" link inside Submission Guide. */
@@ -3945,16 +4051,16 @@ const App = (() => {
     panel.querySelectorAll('.import-action-raw').forEach(btn => {
       btn.onclick = () => {
         const file = btn.dataset.file;
-        // Switch to Raw Data tab and select the file
-        const rawNav = document.querySelector('[data-tab="raw"]');
-        if (rawNav) rawNav.click();
+        // Switch to Raw Data subtab (now nested under the "Avansat" group).
+        // switchTab() resolves the parent group automatically.
+        switchTab('raw');
         window._rawSelectFile?.(file);
       };
     });
     panel.querySelectorAll('.import-action-reimport').forEach(btn => {
       btn.onclick = () => {
-        const importNav = document.querySelector('[data-tab="import"]');
-        if (importNav) importNav.click();
+        // Switch to the Import subtab (now nested under the "Date" group).
+        switchTab('import');
         // Pre-select the type
         const typeSel = document.getElementById('upload-type');
         if (typeSel) typeSel.value = btn.dataset.type;
