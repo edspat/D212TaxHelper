@@ -706,6 +706,14 @@
       <div class="card">
         <h2 data-i18n="import.title">Import Document</h2>
         <p class="subtitle" data-i18n="import.subtitle">Upload a PDF or image (screenshot) of your declarations, investment reports, or income certificates. Images will be processed with OCR.</p>
+
+        <!--
+          Existing-imports panel: shows the document types already uploaded for
+          the selected year so the user knows what was already imported (and
+          doesn't have to re-upload). Hidden when there's nothing yet.
+        -->
+        <div id="import-existing-panel" style="display:none;margin-bottom:1rem;"></div>
+
         <div class="ocr-status-row">
           <div id="ocr-engine-badge" class="ocr-badge" style="display:none;">
             <span class="ocr-badge-icon">⚙</span>

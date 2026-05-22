@@ -622,6 +622,7 @@ const App = (() => {
     // Section-specific render hooks — keep behavior parity with the old flow.
     if (subtab === 'raw') loadRawFiles();
     if (subtab === 'input') populateForm();
+    if (subtab === 'import') renderImportExistingPanel();
     if (subtab === 'submit') wireSubmitTabLinks();
     if (subtab === 'validate') renderSubmissionGuide();
   }
@@ -1554,6 +1555,10 @@ const App = (() => {
     sortDocTypeDropdown();
     // Update Add Data form (always, so save buttons show year)
     populateForm();
+    // Refresh the "already imported" panel on the Import subtab. Cheap when
+    // no imports exist (panel just hides) so we run it unconditionally
+    // rather than gating on the current subtab.
+    try { renderImportExistingPanel(); } catch (e) { console.error('renderImportExistingPanel error:', e); }
     // Sync Import Document year picker with global year
     if (window._syncYearPicker) {
       window._syncYearPicker(selectedYear);
@@ -3807,6 +3812,122 @@ const App = (() => {
   function detectActiveImports(year) {
     const yd = appData.years?.[year] || {};
     return IMPORT_DESCRIPTORS.filter(d => d.isActive(yd));
+  }
+
+  /**
+   * Render the "already imported documents" summary card on the Import
+   * subtab. The user asked for this so they don't accidentally re-upload
+   * the same document — though uploads do dedupe / overwrite as expected.
+   *
+   * Pulls active descriptors from `detectActiveImports(year)` and enriches
+   * them with the raw-file mtime from `rawFilesList` (cached at app load
+   * and refreshed after each successful upload). Each row offers two quick
+   * actions: "📃 View raw" (jumps to Avansat → Raw Data with the file
+   * pre-selected) and "🗑 Delete" (same endpoint the Add Data delete
+   * button uses, so behavior stays consistent).
+   *
+   * Re-rendered on subtab switch + after each upload.
+   */
+  function renderImportExistingPanel() {
+    const panel = document.getElementById('import-existing-panel');
+    if (!panel) return;
+    const yd = appData.years?.[selectedYear] || {};
+    const active = (IMPORT_DESCRIPTORS || []).filter(d => d.isActive(yd));
+    if (active.length === 0) {
+      panel.style.display = 'none';
+      panel.innerHTML = '';
+      return;
+    }
+    // Helper: find the raw file metadata for a descriptor + year.
+    const fileMetaFor = (imp) => {
+      if (!imp.rawFilePattern) return null;
+      const name = imp.rawFilePattern.replace('{year}', selectedYear);
+      return rawFilesList.find(f => f.name === name) || null;
+    };
+    const fmtDate = (iso) => {
+      if (!iso) return '';
+      try {
+        const d = new Date(iso);
+        return d.toLocaleDateString('ro-RO') + ' ' + d.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' });
+      } catch { return ''; }
+    };
+    const fmtSize = (b) => {
+      if (b == null) return '';
+      if (b < 1024) return `${b} B`;
+      if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+      return `${(b / (1024 * 1024)).toFixed(1)} MB`;
+    };
+    const title = (I18n.t('import.existingTitle') || 'Documente deja importate pentru {year}').replace('{year}', selectedYear);
+    const hint = I18n.t('import.existingHint') || 'Un upload nou pentru același tip suprascrie datele existente. Datele duplicate sunt deduplicate automat la importurile multi-formă (ex. 1042-S).';
+
+    const rows = active.map(imp => {
+      const meta = fileMetaFor(imp);
+      const fileName = imp.rawFilePattern ? imp.rawFilePattern.replace('{year}', selectedYear) : null;
+      const dateStr = meta ? fmtDate(meta.date) : '';
+      const sizeStr = meta ? fmtSize(meta.size) : '';
+      const metaLine = (dateStr || sizeStr) ? `<span style="color:var(--text-muted);font-size:0.75rem;">${esc(dateStr)} · ${esc(sizeStr)}</span>` : '';
+      const rawBtn = fileName ? `<button type="button" class="btn-primary import-action-raw" data-file="${esc(fileName)}" style="font-size:0.75rem;padding:0.25rem 0.6rem;">📃 ${esc(I18n.t('input.viewRaw') || 'Raw')}</button>` : '';
+      const delBtn = fileName ? `<button type="button" class="btn-primary import-action-delete" data-file="${esc(fileName)}" style="font-size:0.75rem;padding:0.25rem 0.6rem;background:var(--danger);">🗑</button>` : '';
+      const reBtn = `<button type="button" class="btn-primary import-action-reimport" data-type="${esc(imp.id)}" style="font-size:0.75rem;padding:0.25rem 0.6rem;background:var(--bg-secondary);color:var(--text-primary);" title="${esc(I18n.t('import.reimportTooltip') || 'Re-importă același tip')}">↻ ${esc(I18n.t('import.reimport') || 'Re-import')}</button>`;
+      return `<tr>
+        <td style="padding:0.4rem 0.5rem;border-bottom:1px solid var(--border);">
+          <strong>${esc(imp.icon || '📄')} ${esc(imp.title || imp.id)}</strong>
+          ${metaLine ? '<br>' + metaLine : ''}
+        </td>
+        <td style="padding:0.4rem 0.5rem;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;">
+          ${reBtn} ${rawBtn} ${delBtn}
+        </td>
+      </tr>`;
+    }).join('');
+
+    panel.style.display = '';
+    panel.innerHTML = `
+      <div class="card" style="background:var(--bg-secondary);">
+        <h3 style="margin:0 0 0.4rem;font-size:0.95rem;">📋 ${esc(title)}</h3>
+        <p style="margin:0 0 0.6rem;font-size:0.8rem;color:var(--text-muted);">${esc(hint)}</p>
+        <table style="width:100%;border-collapse:collapse;">${rows}</table>
+      </div>
+    `;
+
+    // Wire actions — same handlers as the Add Data imports panel uses.
+    panel.querySelectorAll('.import-action-raw').forEach(btn => {
+      btn.onclick = () => {
+        const file = btn.dataset.file;
+        switchTab('raw');
+        window._rawSelectFile?.(file);
+      };
+    });
+    panel.querySelectorAll('.import-action-reimport').forEach(btn => {
+      btn.onclick = () => {
+        // Already on the import subtab — just preselect the type and focus
+        // the file input so the user can pick a new PDF immediately.
+        const typeSel = document.getElementById('upload-type');
+        if (typeSel) typeSel.value = btn.dataset.type;
+        const fileInput = document.getElementById('upload-file');
+        if (fileInput) fileInput.click();
+      };
+    });
+    panel.querySelectorAll('.import-action-delete').forEach(btn => {
+      btn.onclick = async () => {
+        const file = btn.dataset.file;
+        if (!confirm((I18n.t('input.confirmDeleteImport') || 'Confirmi ștergerea importului "{file}"?').replace('{file}', file))) return;
+        try {
+          const resp = await fetch('/api/raw/' + encodeURIComponent(file), { method: 'DELETE' });
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          // Refresh app data + re-render the panel.
+          const dataResp = await fetch('/api/data');
+          if (dataResp.ok) appData = await dataResp.json();
+          const rawResp = await fetch('/api/raw');
+          if (rawResp.ok) rawFilesList = await rawResp.json();
+          invalidateComputeCache();
+          renderImportExistingPanel();
+          try { render(); } catch (_) { /* re-render the whole UI */ }
+          showToast?.((I18n.t('input.deletedImport') || 'Import șters: {file}').replace('{file}', file), 'success');
+        } catch (err) {
+          alert((I18n.t('input.deleteImportError') || 'Eroare la ștergere:') + ' ' + err.message);
+        }
+      };
+    });
   }
 
   /** Persisted preference for the Add Data mode + advanced toggle. */
