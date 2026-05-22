@@ -1,0 +1,50 @@
+Group document-type dropdown into 6 optgroups (was: flat list of 14)
+
+User feedback: "the document-type dropdown is very long. Can we
+reorganize it?". A flat list of 14 options had become hard to scan,
+especially since several broker types share similar prefixes (Romania
+XTB / BT / Tradeville; US Fidelity / Morgan Stanley).
+
+Restructured into 6 <optgroup> categories chosen to match how a
+Romanian fiscal-resident user typically thinks about their documents:
+
+  ANAF / Oficial Romania            - 2 items (D-212, Adeverinta venit)
+  Broker Romania                    - 5 items (XTB x2, BT x2, Tradeville)
+  Broker SUA                        - 4 items (Fidelity x3, MS)
+  Broker extern (UE/International)  - 1 item  (Revolut)
+  Formulare fiscale internationale  - 1 item  (1042-S)
+  Angajator (RSU / ESPP)            - 1 item  (MSFT Stock Award)
+
+Each group title carries a leading flag emoji or icon in the UI
+(translated via i18n) so groups are scannable even when collapsed in
+the native picker on Windows / macOS.
+
+Implementation:
+
+  1. public/index.html - rewrapped the <select> with <optgroup> tags.
+     Each optgroup has data-i18n-label="import.groupXxx" for localization.
+
+  2. public/js/i18n.js applyTranslations() - new branch that translates
+     elements with data-i18n-label by setting .label (optgroup's
+     translatable property; textContent doesn't apply).
+
+  3. public/js/app.js sortDocTypeDropdown() - now sorts options inside
+     each optgroup rather than flattening + sorting globally. Preserves
+     the user-chosen grouping order while keeping alphabetical order
+     within each group.
+
+  4. public/locales/{ro,en}.json - 6 new keys: import.groupAnaf,
+     import.groupBrokerRo, import.groupBrokerUs, import.groupBrokerForeign,
+     import.groupTaxForms, import.groupEmployer.
+
+  5. TEXT_PDF_TYPES (OCR hint heuristic) extended to include bt_dividends,
+     bt_portfolio, revolut_statement - they all produce text-extractable
+     PDFs, not scans.
+
+Smoke-tested via Edge CDP: 6 optgroups render with the expected counts
+(2 + 5 + 4 + 1 + 1 + 1 = 14 total options); each group's items appear
+in alphabetical order.
+
+215/216 tests pass (1 pre-existing skipped). check-i18n clean.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>

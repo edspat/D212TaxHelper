@@ -1569,19 +1569,20 @@ const App = (() => {
   function sortDocTypeDropdown() {
     const sel = document.getElementById('upload-type');
     if (!sel) return;
-    const opts = Array.from(sel.options);
-    const placeholder = opts.find(o => o.value === '');
-    const sortable = opts.filter(o => o.value !== '');
-    sortable.sort((a, b) => a.textContent.localeCompare(b.textContent));
-    sel.innerHTML = '';
-    if (placeholder) sel.appendChild(placeholder);
-    sortable.forEach(o => sel.appendChild(o));
+    // Sort each <optgroup>'s options alphabetically while preserving the
+    // grouping. The placeholder <option value=""> stays at the top.
+    sel.querySelectorAll('optgroup').forEach(group => {
+      const opts = Array.from(group.querySelectorAll('option'));
+      opts.sort((a, b) => a.textContent.localeCompare(b.textContent));
+      group.innerHTML = '';
+      opts.forEach(o => group.appendChild(o));
+    });
 
     // Show OCR hint when a type that typically needs OCR is selected (bind only once)
     if (_docTypeHintBound) return;
     _docTypeHintBound = true;
     const OCR_TYPES = new Set(['declaratie', 'tradeville_portfolio', 'fidelity_statement', 'ms_statement']);
-    const TEXT_PDF_TYPES = new Set(['investment', 'trade_confirmation', 'form_1042s', 'adeverinta', 'stock_award', 'xtb_dividends', 'xtb_portfolio']);
+    const TEXT_PDF_TYPES = new Set(['investment', 'trade_confirmation', 'form_1042s', 'adeverinta', 'stock_award', 'xtb_dividends', 'xtb_portfolio', 'bt_dividends', 'bt_portfolio', 'revolut_statement']);
     const hintEl = document.getElementById('ocr-type-hint');
     if (hintEl) {
       const updateHint = () => {

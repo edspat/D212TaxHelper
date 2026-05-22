@@ -737,20 +737,32 @@
               <label data-i18n="import.type">Document Type</label>
               <select id="upload-type" name="type" required>
                 <option value="" disabled selected data-i18n="import.selectType">-- Select Document Type --</option>
-                <option value="adeverinta" data-i18n="import.typeAdeverinta">ANAF - Income Certificate (Adeverinta Venit)</option>
-                <option value="declaratie" data-i18n="import.typeDeclaratie">ANAF - Tax Declaration D-212 (Declaratie Unica)</option>
-                <option value="stock_award" data-i18n="import.typeStockAward">MSFT - Stock Award Document</option>
-                <option value="tradeville_portfolio" data-i18n="import.typeTradevillePortfolio">Romania (Tradeville) - Portfolio Statement (Capital Gains)</option>
-                <option value="xtb_portfolio" data-i18n="import.typeXtbPortfolio">Romania (XTB) - Portfolio Statement (Capital Gains)</option>
-                <option value="xtb_dividends" data-i18n="import.typeXtbDividends">Romania (XTB) - Dividends & Interest Report</option>
-                <option value="bt_portfolio" data-i18n="import.typeBtPortfolio">Romania (BT Capital Partners) - Portfolio Sheet (Capital Gains)</option>
-                <option value="bt_dividends" data-i18n="import.typeBtDividends">Romania (BT Capital Partners) - Fișă Dividende (Foreign Markets)</option>
-                <option value="revolut_statement" data-i18n="import.typeRevolut">Revolut - Consolidated Statement (Foreign Broker)</option>
-                <option value="trade_confirmation" data-i18n="import.typeTradeConfirmation">US (Fidelity) - Trade Confirmation (Sale / Purchase)</option>
-                <option value="fidelity_statement" data-i18n="import.typeFidelityStatement">US (Fidelity) - Stock Plan Statement (Monthly)</option>
-                <option value="investment" data-i18n="import.typeInvestment">US (Fidelity) - Investment Report (Yearly)</option>
-                <option value="ms_statement" data-i18n="import.typeMSStatement">US (Morgan Stanley) - Stock Plan Statement (Yearly)</option>
-                <option value="form_1042s" data-i18n="import.typeForm1042S">Tax Form - 1042-S (US Withholding)</option>
+                <optgroup label="ANAF / Oficial România" data-i18n-label="import.groupAnaf">
+                  <option value="declaratie" data-i18n="import.typeDeclaratie">ANAF - Tax Declaration D-212 (Declaratie Unica)</option>
+                  <option value="adeverinta" data-i18n="import.typeAdeverinta">ANAF - Income Certificate (Adeverinta Venit)</option>
+                </optgroup>
+                <optgroup label="Broker România" data-i18n-label="import.groupBrokerRo">
+                  <option value="xtb_portfolio" data-i18n="import.typeXtbPortfolio">Romania (XTB) - Portfolio Statement (Capital Gains)</option>
+                  <option value="xtb_dividends" data-i18n="import.typeXtbDividends">Romania (XTB) - Dividends & Interest Report</option>
+                  <option value="bt_portfolio" data-i18n="import.typeBtPortfolio">Romania (BT Capital Partners) - Portfolio Sheet (Capital Gains)</option>
+                  <option value="bt_dividends" data-i18n="import.typeBtDividends">Romania (BT Capital Partners) - Fișă Dividende (Foreign Markets)</option>
+                  <option value="tradeville_portfolio" data-i18n="import.typeTradevillePortfolio">Romania (Tradeville) - Portfolio Statement (Capital Gains)</option>
+                </optgroup>
+                <optgroup label="Broker SUA" data-i18n-label="import.groupBrokerUs">
+                  <option value="fidelity_statement" data-i18n="import.typeFidelityStatement">US (Fidelity) - Stock Plan Statement (Monthly)</option>
+                  <option value="trade_confirmation" data-i18n="import.typeTradeConfirmation">US (Fidelity) - Trade Confirmation (Sale / Purchase)</option>
+                  <option value="investment" data-i18n="import.typeInvestment">US (Fidelity) - Investment Report (Yearly)</option>
+                  <option value="ms_statement" data-i18n="import.typeMSStatement">US (Morgan Stanley) - Stock Plan Statement (Yearly)</option>
+                </optgroup>
+                <optgroup label="Broker extern (UE / Internațional)" data-i18n-label="import.groupBrokerForeign">
+                  <option value="revolut_statement" data-i18n="import.typeRevolut">Revolut - Consolidated Statement (Foreign Broker)</option>
+                </optgroup>
+                <optgroup label="Formulare fiscale internaționale" data-i18n-label="import.groupTaxForms">
+                  <option value="form_1042s" data-i18n="import.typeForm1042S">Tax Form - 1042-S (US Withholding)</option>
+                </optgroup>
+                <optgroup label="Angajator (RSU / ESPP)" data-i18n-label="import.groupEmployer">
+                  <option value="stock_award" data-i18n="import.typeStockAward">MSFT - Stock Award Document</option>
+                </optgroup>
               </select>
               <div id="ocr-type-hint" class="ocr-type-hint hidden"></div>
             </div>
