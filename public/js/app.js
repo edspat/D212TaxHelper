@@ -868,16 +868,23 @@ const App = (() => {
     const list = _getD205EntriesForYear(year);
     let added = 0;
     // Detect a header row by looking for known keywords.
-    const headerRe = /\b(cod fiscal|cif|categori|venit brut|brut|impozit|platit)/i;
+    const headerRe = /\b(cod fiscal|cif|categori|venit brut|brut|impozit|platit|baza)/i;
     let hasHeader = headerRe.test(lines[0]);
     let cols = null;
     if (hasHeader) {
       const header = lines[0].split(/\t|\s{2,}|;|,/).map((c) => c.trim().toLowerCase());
+      // ANAF's D205 export prints BOTH "Venit brut" and "Baza" columns
+      // because different income categories use different ones:
+      //   - 07 Dividends → value in "Venit brut" (and base equals it)
+      //   - 09 Interest, 26/27 Capital gains → value in "Baza", Venit brut is "-"
+      // Detect both columns separately so the parser can fall back from
+      // one to the other on a row-by-row basis.
       cols = {
         cif: header.findIndex((h) => /cod fiscal|^cif$/.test(h)),
         name: header.findIndex((h) => /nume firm|nume|denumire|payer/.test(h)),
         cat: header.findIndex((h) => /categori|^cat$/.test(h)),
-        gross: header.findIndex((h) => /venit brut|brut|baza|suma/.test(h)),
+        gross: header.findIndex((h) => /venit brut|^brut$|^suma$/.test(h)),
+        base: header.findIndex((h) => /^baza$|baza\s*impozit/.test(h)),
         tax: header.findIndex((h) => /impozit/.test(h)),
         reg: header.findIndex((h) => /num.?r ?inreg|registratur|^nr$/.test(h)),
       };
@@ -890,7 +897,11 @@ const App = (() => {
         payerCif = cols.cif >= 0 ? (parts[cols.cif] || '') : '';
         payerName = cols.name >= 0 ? (parts[cols.name] || '') : '';
         category = cols.cat >= 0 ? (parts[cols.cat] || '').replace(/[^\d]/g, '') : '';
-        grossRON = cols.gross >= 0 ? _parsePasteNumber(parts[cols.gross]) : 0;
+        // Prefer "Venit brut" when it carries a value; fall back to "Baza"
+        // for the categories where ANAF leaves Venit brut as a dash.
+        const grossFromVB = cols.gross >= 0 ? _parsePasteNumber(parts[cols.gross]) : 0;
+        const grossFromBaza = cols.base >= 0 ? _parsePasteNumber(parts[cols.base]) : 0;
+        grossRON = grossFromVB > 0 ? grossFromVB : grossFromBaza;
         taxRON = cols.tax >= 0 ? _parsePasteNumber(parts[cols.tax]) : 0;
         regNumber = cols.reg >= 0 ? (parts[cols.reg] || '') : '';
       } else {
