@@ -481,6 +481,8 @@
     "typeXtbDividends": "România (XTB) - Raport Dividende și Dobânzi",
     "typeXtbPortfolio": "România (XTB) - Fișă de Portofoliu (Câștiguri Capital)",
     "typeTradevillePortfolio": "România (Tradeville) - Fișă de Portofoliu (Câștiguri Capital)",
+    "typeBtDividends": "România (BT Capital Partners) - Fișă Dividende (piețe externe)",
+    "typeBtPortfolio": "România (BT Capital Partners) - Fișă de Portofoliu (Câștiguri Capital)",
     "typeFidelityStatement": "SUA (Fidelity) - Extras Plan Acțiuni (Periodic)",
     "typeMSStatement": "SUA (Morgan Stanley) - Extras Plan Acțiuni (Anual)",
     "file": "Fișier PDF sau Imagine",

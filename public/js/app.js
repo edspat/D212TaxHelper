@@ -1747,6 +1747,7 @@ const App = (() => {
     const roSources = new Set();
     if (yd.xtbDividendsReport || yd.xtbPortfolio) roSources.add('XTB');
     if (yd.tradevillePortfolio) roSources.add('Tradeville');
+    if (yd.btDividendsReport || yd.btPortfolio) roSources.add('BT Capital Partners');
     if (yd.roBroker) roSources.add(yd.roBroker);
     const roBrokerLabel = roSources.size > 0 ? ' (' + [...roSources].join(' & ') + ')' : '';
 
@@ -3716,6 +3717,40 @@ const App = (() => {
       relatedFieldsetIds: ['fieldset-ro-gains'],
       perCountry: true,
       countriesSource: (yd) => yd.tradevillePortfolio?.countries || [],
+    },
+    {
+      id: 'bt_dividends',
+      title: 'BT Capital Partners · Fișă Dividende (piețe externe)',
+      icon: '📄',
+      isActive: (yd) => !!yd.btDividendsReport,
+      rawFilePattern: 'bt_dividends_{year}_raw.txt',
+      relatedFieldsetIds: ['fieldset-ro-dividends'],
+      rows: (yd) => {
+        const d = yd.btDividendsReport || {};
+        const rows = [];
+        if (d.dividends?.grossRON != null) {
+          rows.push({ label: 'Dividende brute (RON)', parsedValue: d.dividends.grossRON, manualKey: 'xtbDividends', currency: 'RON' });
+        }
+        if (d.dividends?.taxWithheldRON != null) {
+          rows.push({ label: 'Impozit dividende reținut (RON)', parsedValue: d.dividends.taxWithheldRON, manualKey: 'roDivTaxPaid', currency: 'RON' });
+        }
+        // Display per-row symbol/ISIN breakdown count so the user can spot
+        // missing payments at a glance.
+        if (Array.isArray(d.dividendRows) && d.dividendRows.length > 0) {
+          rows.push({ label: `Număr plăți individuale`, parsedValue: d.dividendRows.length, manualKey: null, currency: '' });
+        }
+        return rows;
+      }
+    },
+    {
+      id: 'bt_portfolio',
+      title: 'BT Capital Partners · Fișă de Portofoliu',
+      icon: '📄',
+      isActive: (yd) => !!yd.btPortfolio,
+      rawFilePattern: 'bt_portfolio_{year}_raw.txt',
+      relatedFieldsetIds: ['fieldset-ro-gains'],
+      perCountry: true,
+      countriesSource: (yd) => yd.btPortfolio?.countries || [],
     },
     {
       id: 'fidelity_statement',

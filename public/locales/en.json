@@ -483,6 +483,8 @@
     "typeXtbDividends": "Romania (XTB) - Dividends & Interest Report",
     "typeXtbPortfolio": "Romania (XTB) - Portfolio Statement (Capital Gains)",
     "typeTradevillePortfolio": "Romania (Tradeville) - Portfolio Statement (Capital Gains)",
+    "typeBtDividends": "Romania (BT Capital Partners) - Fișă Dividende (Foreign Markets)",
+    "typeBtPortfolio": "Romania (BT Capital Partners) - Portfolio Sheet (Capital Gains)",
     "typeFidelityStatement": "US (Fidelity) - Stock Plan Statement (Periodic)",
     "typeMSStatement": "US (Morgan Stanley) - Stock Plan Statement (Yearly)",
     "file": "PDF or Image File",

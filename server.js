@@ -10,6 +10,7 @@ const db = require('./db');
 let Tesseract = null; // lazy-loaded on first OCR use
 const { BNR_EXCHANGE_RATES, parseNumber } = require('./lib/rates');
 const { parseXtbDividends, parseXtbPortfolio } = require('./lib/parsers/xtb');
+const { parseBtDividends, parseBtPortfolio } = require('./lib/parsers/bt');
 const { buildD212Xml } = require('./lib/d212-xml-builder');
 const { parseD212Xml } = require('./lib/d212-xml-parser');
 
@@ -561,6 +562,8 @@ app.delete('/api/raw/:filename', (req, res) => {
         }
         if (type === 'xtb_dividends') delete yearData.xtbDividendsReport;
         if (type === 'xtb_portfolio') delete yearData.xtbPortfolio;
+        if (type === 'bt_dividends') delete yearData.btDividendsReport;
+        if (type === 'bt_portfolio') delete yearData.btPortfolio;
         if (type === 'tradeville_portfolio') delete yearData.tradevillePortfolio;
         if (type === 'ms_statement') {
           delete yearData.msStatement;
@@ -699,7 +702,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: 'Invalid year' });
     }
-    const validTypes = ['declaratie', 'investment', 'adeverinta', 'stock_award', 'trade_confirmation', 'xtb_dividends', 'xtb_portfolio', 'form_1042s', 'ms_statement', 'tradeville_portfolio', 'fidelity_statement'];
+    const validTypes = ['declaratie', 'investment', 'adeverinta', 'stock_award', 'trade_confirmation', 'xtb_dividends', 'xtb_portfolio', 'bt_dividends', 'bt_portfolio', 'form_1042s', 'ms_statement', 'tradeville_portfolio', 'fidelity_statement'];
     if (!validTypes.includes(type)) {
       fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: 'Invalid type. Must be: ' + validTypes.join(', ') });
@@ -824,7 +827,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
     // If OCR fallback was used, check quality for generic document types
     // Types with their own quality checks (tradeville, trade_confirmation, fidelity, etc.) are handled downstream
-    const SELF_VALIDATED_TYPES = ['tradeville_portfolio', 'trade_confirmation', 'form_1042s', 'ms_statement', 'xtb_dividends', 'xtb_portfolio', 'stock_award', 'fidelity_statement'];
+    const SELF_VALIDATED_TYPES = ['tradeville_portfolio', 'trade_confirmation', 'form_1042s', 'ms_statement', 'xtb_dividends', 'xtb_portfolio', 'bt_dividends', 'bt_portfolio', 'stock_award', 'fidelity_statement'];
     if (usedOcrFallback && !SELF_VALIDATED_TYPES.includes(type)) {
       const realizatMatches = text.match(/Realizat\s+\d+/gi) || [];
       if (realizatMatches.length === 0) {
@@ -933,6 +936,22 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     if (type === 'xtb_portfolio') {
       const parsed = parseXtbPortfolio(text, parsedYear);
       if (!dryRun) db.mergeYearData(parsedYear, { xtbPortfolio: parsed });
+      return res.json({ success: true, dryRun, year: parsedYear, type, parsed });
+    }
+
+    // BT Capital Partners — Fisa Dividende (DIVIDENDE/DOBANZI INCASATE PE
+    // PIETE EXTERNE). Stored under btDividendsReport to keep BT and XTB
+    // visible side-by-side in the resolver and Add Data UI.
+    if (type === 'bt_dividends') {
+      const parsed = parseBtDividends(text, parsedYear);
+      if (!dryRun) db.mergeYearData(parsedYear, { btDividendsReport: parsed });
+      return res.json({ success: true, dryRun, year: parsedYear, type, parsed });
+    }
+
+    // BT Capital Partners — Fisa de Portofoliu (capital gains per country).
+    if (type === 'bt_portfolio') {
+      const parsed = parseBtPortfolio(text, parsedYear);
+      if (!dryRun) db.mergeYearData(parsedYear, { btPortfolio: parsed });
       return res.json({ success: true, dryRun, year: parsedYear, type, parsed });
     }
 

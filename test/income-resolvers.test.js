@@ -223,7 +223,42 @@ test('resolveUsCapitalGains: override beats parsed', () => {
   assert.equal(r.taxableRON, 1500 * 4.9);
 });
 
-// ---------- resolveRoBrokerGains ----------
+test('resolveRoBrokerGains: XTB + Tradeville + BT all contribute to bucket nets', () => {
+  const yd = {
+    xtbPortfolio: {
+      longTerm: { gainRON: 500, lossRON: 100 },
+      shortTerm: { gainRON: 300, lossRON: 50 },
+      totalTaxWithheldRON: 10,
+    },
+    tradevillePortfolio: {
+      longTerm: { gainRON: 200, lossRON: 0 },
+      shortTerm: { gainRON: 0, lossRON: 80 },
+      totalTaxWithheldRON: 5,
+    },
+    btPortfolio: {
+      longTerm: { gainRON: 100, lossRON: 0 },
+      shortTerm: { gainRON: 50, lossRON: 20 },
+      totalTaxWithheldRON: 3,
+    },
+  };
+  const r = R.resolveRoBrokerGains(yd, {});
+  // Long net: (500-100) + (200-0) + (100-0) = 700
+  // Short net: (300-50) + (0-80) + (50-20) = 200
+  assert.equal(r.longGainRON, 700);
+  assert.equal(r.shortGainRON, 200);
+  // Total tax 10+5+3 = 18
+  assert.equal(r.taxWithheldRON, 18);
+});
+
+test('resolveRoBrokerDividends: XTB + BT both contribute to gross and tax', () => {
+  const yd = {
+    xtbDividendsReport: { dividends: { grossRON: 500, taxWithheldRON: 50 } },
+    btDividendsReport: { dividends: { grossRON: 200, taxWithheldRON: 30 } },
+  };
+  const r = R.resolveRoBrokerDividends(yd, {});
+  assert.equal(r.grossRON, 700);
+  assert.equal(r.taxWithheldRON, 80);
+});
 
 test('resolveRoBrokerGains: XTB + Tradeville net per bucket', () => {
   const yd = {
