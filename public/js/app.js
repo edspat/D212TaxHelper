@@ -1091,18 +1091,40 @@ const App = (() => {
       return null;
     };
     const local = [];
+    // D-9: split dividends by source country. RO ISIN buckets expect D205
+    // cat 20; non-RO buckets are expected-not-in-d205 (foreign issuer).
+    const splitDiv = (broker, src, byCountry, totalGross, totalTax) => {
+      if (!byCountry || byCountry.length === 0) {
+        if (totalGross > 0 || totalTax > 0) {
+          local.push({ broker, category: '20', label: 'Dividende', grossRON: totalGross, taxRON: totalTax || 0, source: src, foreignSource: true });
+        }
+        return;
+      }
+      let localGross = 0, localTax = 0, foreignGross = 0, foreignTax = 0;
+      for (const c of byCountry) {
+        if (c.country === 'RO' || c.isRomanian) {
+          localGross += c.grossRON || 0;
+          localTax += c.taxRON || 0;
+        } else {
+          foreignGross += c.grossRON || 0;
+          foreignTax += c.taxRON || 0;
+        }
+      }
+      if (localGross > 0 || localTax > 0) {
+        local.push({ broker, category: '20', label: 'Dividende RO', grossRON: localGross, taxRON: localTax, source: `${src} (RO)`, foreignSource: false });
+      }
+      if (foreignGross > 0 || foreignTax > 0) {
+        local.push({ broker, category: '20', label: 'Dividende externe', grossRON: foreignGross, taxRON: foreignTax, source: `${src} (foreign)`, foreignSource: true });
+      }
+    };
     if (yd && yd.xtbDividendsReport) {
       const d = yd.xtbDividendsReport;
-      // Foreign-source dividends via a Romanian broker DO NOT appear on
-      // D205 (payer is the foreign issuer, not the intermediary). Flag
-      // them with foreignSource so the matcher emits 'expected-not-in-d205'
-      // instead of an alarming 'unmatched-local'.
-      if (d.dividends && d.dividends.grossRON > 0) local.push({ broker: 'XTB', category: '20', label: 'Dividende', grossRON: d.dividends.grossRON, taxRON: d.dividends.taxWithheldRON || 0, source: 'xtbDividendsReport.dividends', foreignSource: true });
+      if (d.dividends && d.dividends.grossRON > 0) splitDiv('XTB', 'xtbDividendsReport.dividends', d.dividendsByCountry, d.dividends.grossRON, d.dividends.taxWithheldRON || 0);
       if (d.interest && d.interest.grossRON > 0) local.push({ broker: 'XTB', category: '09', label: 'Dobânzi', grossRON: d.interest.grossRON, taxRON: d.interest.taxWithheldRON || 0, source: 'xtbDividendsReport.interest' });
     }
     if (yd && yd.btDividendsReport) {
       const d = yd.btDividendsReport;
-      if (d.dividends && d.dividends.grossRON > 0) local.push({ broker: 'BT Capital Partners', category: '20', label: 'Dividende', grossRON: d.dividends.grossRON, taxRON: d.dividends.taxWithheldRON || 0, source: 'btDividendsReport.dividends', foreignSource: true });
+      if (d.dividends && d.dividends.grossRON > 0) splitDiv('BT Capital Partners', 'btDividendsReport.dividends', d.dividendsByCountry, d.dividends.grossRON, d.dividends.taxWithheldRON || 0);
     }
     // Portfolio capital gains: D205 reports GROSS gain (gains only, no
     // loss offset). Sum across countries but DO NOT subtract losses — the
@@ -3462,6 +3484,29 @@ const App = (() => {
 
     let html = '';
 
+    // D-9 warning banner: explain the foreign-tax assumption + cap14 emission.
+    // Shown only when there's actually foreign dividend data (XTB/BT) so the
+    // legend doesn't pollute the screen for users with only RO income.
+    const hasForeignDiv = Array.isArray(data.roDivForeignByCountry) && data.roDivForeignByCountry.length > 0;
+    const hasCap14Warnings = Array.isArray(data.cap14Warnings) && data.cap14Warnings.length > 0;
+    if (hasForeignDiv || hasCap14Warnings) {
+      const totalForeignRon = (data.roDivForeignByCountry || []).reduce((s, c) => s + (c.grossRON || 0), 0);
+      const countries = (data.roDivForeignByCountry || []).map(c => c.country || '?').join(', ');
+      html += '<tr><td colspan="2" style="background:rgba(255,193,7,0.10);border-left:3px solid var(--warning);padding:0.75rem 1rem;font-size:0.9rem;line-height:1.4;">';
+      html += '<strong>⚠ Dividende externe via broker român — emit în cap14</strong><br/>';
+      if (hasForeignDiv) {
+        html += `• <strong>${fmtR(totalForeignRon)} RON</strong> de dividende externe (țări: ${countries}) sunt acum declarate în <em>D212 cap14, cod 2018</em>, per țară, cu credit fiscal pentru impozitul reținut la sursă în străinătate.<br/>`;
+      }
+      html += '• <strong>Ipoteză:</strong> coloana „Impozit reținut" din FișaDividende/raport XTB e tratată drept <em>foreign tax</em> (reținere de către emitentul străin, ex: US 15%), nu impozit RO 8% reținut de broker.<br/>';
+      html += '• Dacă broker-ul a reținut și 8% RO la sursă <em>și</em> a emis D205, verifică cu contabila — momentan această variantă necesită o ajustare manuală.<br/>';
+      if (hasCap14Warnings) {
+        for (const w of data.cap14Warnings) {
+          html += `<span style="color:var(--danger)">⚠ ${w.message}</span><br/>`;
+        }
+      }
+      html += '</td></tr>';
+    }
+
     // === SECTION A: CE AM CÂȘTIGAT ===
     html += sectionRow('\ud83d\udcb0 ' + I18n.t('taxes.sectionEarned'));
 
@@ -3480,6 +3525,27 @@ const App = (() => {
     html += dataRow(I18n.t('taxes.earnRoGainsLong') + data.roBrokerLabel, fmtR(roLong) + ' RON', { indent: true });
     html += dataRow(I18n.t('taxes.earnRoGainsShort') + data.roBrokerLabel, fmtR(roShort) + ' RON', { indent: true });
     html += dataRow(I18n.t('taxes.earnRoDiv') + data.roBrokerLabel, fmtR(roDivGross) + ' RON', { indent: true });
+    // D-9: Foreign-source dividends via Romanian broker — show per-country
+    // breakdown beneath the legacy aggregate so the user can verify the
+    // cap14 emission. The legacy aggregate already includes these amounts.
+    if (Array.isArray(data.roDivForeignByCountry) && data.roDivForeignByCountry.length > 0) {
+      for (const c of data.roDivForeignByCountry) {
+        const flag = c.country ? `🌍 ${c.country}` : '⚠ Necunoscut';
+        const brokers = (c.sources || []).map(s => s.broker).join(', ');
+        html += dataRow(
+          `&nbsp;&nbsp;${flag} — Dividende externe${brokers ? ' · ' + brokers : ''}`,
+          fmtR(c.grossRON || 0) + ' RON',
+          { indent: true, muted: true }
+        );
+      }
+    }
+    if ((data.roDivUnknownCountryRON || 0) > 0) {
+      html += dataRow(
+        '&nbsp;&nbsp;⚠ Dividende fără țară identificată (manuale / XTB fără "din X")',
+        fmtR(data.roDivUnknownCountryRON) + ' RON',
+        { indent: true, muted: true }
+      );
+    }
     html += dataRow(I18n.t('taxes.earnInterest'), fmtR(data.interestIncomeRON) + ' RON', { indent: true });
     if (gamblingIncome > 0) {
       html += dataRow(I18n.t('taxes.earnGambling'), fmtR(gamblingIncome) + ' RON', { indent: true });

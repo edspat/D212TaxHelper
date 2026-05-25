@@ -126,6 +126,34 @@ test('matchD205: foreign-source dividends via RO broker → expected-not-in-d205
   assert.equal(r.totals.expectedNotInD205Count, 1);
 });
 
+test('matchD205: RO-ISIN dividends DO expect a D205 match (foreignSource=false)', () => {
+  // When a dividend bucket has country='RO' (RO-issuer like TLV via XTB/BT),
+  // the RO broker is expected to have withheld 8% RO and issued D205 cat 20.
+  // The matcher must NOT classify these as expected-not-in-d205.
+  const yd = {
+    btDividendsReport: {
+      dividends: { grossRON: 1500, taxWithheldRON: 120 },
+      dividendsByCountry: [
+        { country: 'RO', isRomanian: true, grossRON: 800, taxRON: 64 },
+        { country: 'US', isRomanian: false, grossRON: 700, taxRON: 56 },
+      ],
+    },
+  };
+  // ANAF received D205 cat 20 from BT for the RO-source bucket (800 RON).
+  const d205 = [
+    { payerName: 'BT Capital Partners', category: '20', grossRON: 800, taxRON: 64 },
+  ];
+  const r = matchD205(d205, yd);
+  // Expectations:
+  //   - RO bucket (800) matches D205 exact.
+  //   - Foreign bucket (700) is expected-not-in-d205 (foreignSource=true).
+  const matchExact = r.matches.find(m => m.status === 'matched-exact' && m.local && /Dividende RO/.test(m.local.label));
+  assert.ok(matchExact, 'RO bucket should match D205 exact');
+  const expectedNotIn = r.unmatchedLocal.find(u => u.status === 'expected-not-in-d205');
+  assert.ok(expectedNotIn);
+  assert.equal(Math.round(expectedNotIn.grossRON), 700);
+});
+
 test('matchD205: capgains use GROSS gain (not net of losses) to match D205', () => {
   // ANAF D205 cat 27 reports the GROSS short-term gain — broker withholds
   // tax per profitable trade, not on the year's net. If a user has 427094
