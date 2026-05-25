@@ -71,6 +71,40 @@ test('parseXtbDividends: empty/junk input does not throw', () => {
   assert.equal(result.dividends.grossRON, 0);
 });
 
+test('parseXtbDividends: extracts ISO country from "din <Country>" suffix', () => {
+  const text = require('fs').readFileSync('test/fixtures/xtb-dividends-ron.txt', 'utf8');
+  const result = parseXtbDividends(text, 2025);
+  const us = result.dividendRows.find(r => /Statele Unite/i.test(r.category));
+  const de = result.dividendRows.find(r => /Germania/i.test(r.category));
+  assert.equal(us && us.country, 'US');
+  assert.equal(de && de.country, 'DE');
+});
+
+test('parseXtbDividends: aggregates per-country buckets in dividendsByCountry', () => {
+  const text = require('fs').readFileSync('test/fixtures/xtb-dividends-ron.txt', 'utf8');
+  const result = parseXtbDividends(text, 2025);
+  assert.equal(result.dividendsByCountry.length, 2);
+  const us = result.dividendsByCountry.find(c => c.country === 'US');
+  const de = result.dividendsByCountry.find(c => c.country === 'DE');
+  assert.ok(us && us.grossRON > 0 && us.isRomanian === false);
+  assert.ok(de && de.grossRON > 0 && de.isRomanian === false);
+  // Per-country sums equal total
+  const sumGross = result.dividendsByCountry.reduce((s, c) => s + c.grossRON, 0);
+  assert.ok(Math.abs(sumGross - result.dividends.grossRON) < 0.01);
+});
+
+test('parseXtbDividends: dividends without "din X" suffix yield country=null', () => {
+  const text = `
+DIVIDENDE
+1 100.00 10.00 90.00 Instrumente actiuni
+`;
+  const result = parseXtbDividends(text, 2025);
+  assert.equal(result.dividendRows.length, 1);
+  assert.equal(result.dividendRows[0].country, null);
+  const bucket = result.dividendsByCountry[0];
+  assert.equal(bucket.country, null);
+});
+
 // ============ parseXtbPortfolio ============
 
 test('parseXtbPortfolio: captures multiple country rows (regression: only first was captured)', () => {

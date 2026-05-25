@@ -86,6 +86,40 @@ test('parseBtDividends: empty input → no rows, no totals', () => {
   assert.equal(r.dividends.taxWithheldRON, 0);
 });
 
+test('parseBtDividends: tags each row with ISO country code from ISIN prefix', () => {
+  const r = parseBtDividends(DIV_FIXTURE, 2025);
+  const byIsin = Object.fromEntries(r.dividendRows.map(x => [x.isin, x.country]));
+  assert.equal(byIsin['NL0000000001'], 'NL');
+  assert.equal(byIsin['DE0000000002'], 'DE');
+  assert.equal(byIsin['US0000000003'], 'US');
+});
+
+test('parseBtDividends: aggregates per-country buckets in dividendsByCountry', () => {
+  const r = parseBtDividends(DIV_FIXTURE, 2025);
+  assert.equal(r.dividendsByCountry.length, 3);
+  const nl = r.dividendsByCountry.find(c => c.country === 'NL');
+  const de = r.dividendsByCountry.find(c => c.country === 'DE');
+  const us = r.dividendsByCountry.find(c => c.country === 'US');
+  assert.ok(nl && nl.grossRON > 0 && nl.isRomanian === false);
+  assert.ok(de && de.grossRON > 0 && de.isRomanian === false);
+  assert.ok(us && us.grossRON > 0 && us.isRomanian === false);
+  // Per-country sums equal total
+  const sumGross = r.dividendsByCountry.reduce((s, c) => s + c.grossRON, 0);
+  assert.ok(Math.abs(sumGross - r.dividends.grossRON) < 0.01);
+});
+
+test('parseBtDividends: flags Romanian dividends (RO ISIN) with isRomanian=true', () => {
+  const fixture = `
+SYM1 RON ROXXX00ABCD9 100 01.06.2025 0.10 8.00 % 10.00 0.80 0.00 9.20 01.06.2025
+SYM2 EUR DE0000000999 5 14.07.2025 2.00 26.00 % 10.00 2.60 0.00 7.40 14.07.2025
+`;
+  const r = parseBtDividends(fixture, 2025);
+  const ro = r.dividendsByCountry.find(c => c.country === 'RO');
+  const de = r.dividendsByCountry.find(c => c.country === 'DE');
+  assert.ok(ro && ro.isRomanian === true);
+  assert.ok(de && de.isRomanian === false);
+});
+
 // --- parseBtPortfolio ---
 
 const PORT_FIXTURE = `

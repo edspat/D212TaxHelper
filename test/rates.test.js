@@ -5,7 +5,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { BNR_EXCHANGE_RATES, toRON, parseNumber, detectCurrency } = require('../lib/rates');
+const { BNR_EXCHANGE_RATES, toRON, parseNumber, detectCurrency, D212_ALLOWED_COUNTRY_CODES, COUNTRY_CODE_TO_RO, roCountryNameToIso, isinToCountryCode } = require('../lib/rates');
 
 test('BNR_EXCHANGE_RATES contains all years 2019-2025', () => {
   for (const year of [2019, 2020, 2021, 2022, 2023, 2024, 2025]) {
@@ -104,4 +104,63 @@ test('detectCurrency: falls back to document-level header', () => {
   assert.equal(detectCurrency('Plain row', 'Sume în EUR pentru tot raportul'), 'EUR');
   // If both EUR and RON appear in fullText, RON wins (default)
   assert.equal(detectCurrency('Plain row', 'în RON, în EUR'), 'RON');
+});
+
+// --- Country helpers (cap14 / D212 emission) ---
+
+test('D212_ALLOWED_COUNTRY_CODES contains US/DE/RO + XI/XK and excludes XS/XX', () => {
+  assert.ok(D212_ALLOWED_COUNTRY_CODES.has('US'));
+  assert.ok(D212_ALLOWED_COUNTRY_CODES.has('DE'));
+  assert.ok(D212_ALLOWED_COUNTRY_CODES.has('RO'));
+  assert.ok(D212_ALLOWED_COUNTRY_CODES.has('XI'));
+  assert.ok(D212_ALLOWED_COUNTRY_CODES.has('XK'));
+  assert.ok(!D212_ALLOWED_COUNTRY_CODES.has('XS'));
+  assert.ok(!D212_ALLOWED_COUNTRY_CODES.has('XX'));
+  assert.ok(!D212_ALLOWED_COUNTRY_CODES.has('ZZ'));
+});
+
+test('COUNTRY_CODE_TO_RO maps common codes to Romanian names', () => {
+  assert.equal(COUNTRY_CODE_TO_RO.US, 'Statele Unite ale Americii');
+  assert.equal(COUNTRY_CODE_TO_RO.DE, 'Germania');
+  assert.equal(COUNTRY_CODE_TO_RO.NL, 'Olanda');
+  assert.equal(COUNTRY_CODE_TO_RO.GB, 'Marea Britanie');
+  assert.equal(COUNTRY_CODE_TO_RO.RO, 'România');
+});
+
+test('roCountryNameToIso: handles XTB description suffixes', () => {
+  assert.equal(roCountryNameToIso('Statele Unite ale Americii'), 'US');
+  assert.equal(roCountryNameToIso('Statele Unite'), 'US');
+  assert.equal(roCountryNameToIso('din Germania'), 'DE');
+  assert.equal(roCountryNameToIso('din Marea Britanie'), 'GB');
+  assert.equal(roCountryNameToIso('Olanda'), 'NL');
+  assert.equal(roCountryNameToIso('Tarile de Jos'), 'NL');
+  assert.equal(roCountryNameToIso('Franta'), 'FR');
+  assert.equal(roCountryNameToIso('Franța'), 'FR');
+});
+
+test('roCountryNameToIso: handles BT portfolio "COUNTRY / Exchange" suffix', () => {
+  assert.equal(roCountryNameToIso('ROMANIA / BVB'), 'RO');
+  assert.equal(roCountryNameToIso('GERMANIA / XETRA Frankfurt'), 'DE');
+  assert.equal(roCountryNameToIso('FRANTA / Euronext Paris'), 'FR');
+});
+
+test('roCountryNameToIso: returns null for unknown names', () => {
+  assert.equal(roCountryNameToIso('Mauretania'), null);
+  assert.equal(roCountryNameToIso(''), null);
+  assert.equal(roCountryNameToIso(null), null);
+});
+
+test('isinToCountryCode: extracts prefix from valid ISIN', () => {
+  assert.equal(isinToCountryCode('US0378331005'), 'US');
+  assert.equal(isinToCountryCode('ROTLVAACNOR1'), 'RO');
+  assert.equal(isinToCountryCode('DE0007236101'), 'DE');
+  assert.equal(isinToCountryCode('IE00B4L5Y983'), 'IE');
+});
+
+test('isinToCountryCode: returns null for malformed input', () => {
+  assert.equal(isinToCountryCode(''), null);
+  assert.equal(isinToCountryCode(null), null);
+  assert.equal(isinToCountryCode('not-an-isin'), null);
+  assert.equal(isinToCountryCode('US123'), null);
+  assert.equal(isinToCountryCode('US0378331005A'), null); // 13 chars
 });
