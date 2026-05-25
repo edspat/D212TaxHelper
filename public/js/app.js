@@ -3491,14 +3491,21 @@ const App = (() => {
     const hasCap14Warnings = Array.isArray(data.cap14Warnings) && data.cap14Warnings.length > 0;
     if (hasForeignDiv || hasCap14Warnings) {
       const totalForeignRon = (data.roDivForeignByCountry || []).reduce((s, c) => s + (c.grossRON || 0), 0);
+      const totalForeignTax = (data.roDivForeignByCountry || []).reduce((s, c) => s + (c.taxRON || 0), 0);
+      const totalForeignTaxDue = data.roDivForeignTaxDue || 0;
+      const totalForeignCredit = data.roDivForeignTaxCredit || 0;
       const countries = (data.roDivForeignByCountry || []).map(c => c.country || '?').join(', ');
-      html += '<tr><td colspan="2" style="background:rgba(255,193,7,0.10);border-left:3px solid var(--warning);padding:0.75rem 1rem;font-size:0.9rem;line-height:1.4;">';
-      html += '<strong>⚠ Dividende externe via broker român — emit în cap14</strong><br/>';
+      const useInfoStyle = hasForeignDiv && !hasCap14Warnings;
+      const bgColor = useInfoStyle ? 'rgba(13,110,253,0.08)' : 'rgba(255,193,7,0.10)';
+      const borderColor = useInfoStyle ? 'var(--info, #0d6efd)' : 'var(--warning)';
+      const icon = useInfoStyle ? 'ℹ' : '⚠';
+      html += `<tr><td colspan="2" style="background:${bgColor};border-left:3px solid ${borderColor};padding:0.75rem 1rem;font-size:0.9rem;line-height:1.5;">`;
+      html += `<strong>${icon} Dividende externe via broker român — declarate în D212 cap14</strong><br/>`;
       if (hasForeignDiv) {
-        html += `• <strong>${fmtR(totalForeignRon)} RON</strong> de dividende externe (țări: ${countries}) sunt acum declarate în <em>D212 cap14, cod 2018</em>, per țară, cu credit fiscal pentru impozitul reținut la sursă în străinătate.<br/>`;
+        html += `• <strong>${fmtR(totalForeignRon)} RON</strong> brut din ${countries}, cu <strong>${fmtR(totalForeignTax)} RON</strong> impozit reținut la sursă în străinătate.<br/>`;
+        html += `• Calcul cap14: RO datorat <strong>${fmtR(totalForeignTaxDue)} RON</strong> (8%) − credit fiscal <strong>${fmtR(totalForeignCredit)} RON</strong> (capat la 8%) = <strong>${fmtR(Math.max(0, totalForeignTaxDue - totalForeignCredit))} RON</strong> de plată în RO.<br/>`;
+        html += `• Diferența între reținerea străină și creditul fiscal recunoscut (${fmtR(Math.max(0, totalForeignTax - totalForeignCredit))} RON) NU se recuperează prin D212 — e pierdere fiscală conform tratatului US-RO art. 10 (10% portofoliu).<br/>`;
       }
-      html += '• <strong>Ipoteză:</strong> coloana „Impozit reținut" din FișaDividende/raport XTB e tratată drept <em>foreign tax</em> (reținere de către emitentul străin, ex: US 15%), nu impozit RO 8% reținut de broker.<br/>';
-      html += '• Dacă broker-ul a reținut și 8% RO la sursă <em>și</em> a emis D205, verifică cu contabila — momentan această variantă necesită o ajustare manuală.<br/>';
       if (hasCap14Warnings) {
         for (const w of data.cap14Warnings) {
           html += `<span style="color:var(--danger)">⚠ ${w.message}</span><br/>`;
