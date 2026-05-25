@@ -136,6 +136,85 @@ test('resolveRoBrokerDividends: override replaces the sum', () => {
   assert.equal(r.sources.grossRON.tier, TIER.OVERRIDE);
 });
 
+test('resolveRoBrokerDividends: aggregates XTB+BT by country with broker provenance', () => {
+  const yd = {
+    xtbDividendsReport: {
+      dividends: { grossRON: 1000, taxWithheldRON: 150 },
+      dividendsByCountry: [
+        { country: 'US', isRomanian: false, grossRON: 600, taxRON: 90, netRON: 510 },
+        { country: 'DE', isRomanian: false, grossRON: 400, taxRON: 60, netRON: 340 },
+      ],
+    },
+    btDividendsReport: {
+      dividends: { grossRON: 500, taxWithheldRON: 50 },
+      dividendsByCountry: [
+        { country: 'US', isRomanian: false, grossRON: 300, taxRON: 30, netRON: 270 },
+        { country: 'NL', isRomanian: false, grossRON: 200, taxRON: 20, netRON: 180 },
+      ],
+    },
+  };
+  const r = R.resolveRoBrokerDividends(yd, {});
+  const us = r.foreignByCountry.find(c => c.country === 'US');
+  const de = r.foreignByCountry.find(c => c.country === 'DE');
+  const nl = r.foreignByCountry.find(c => c.country === 'NL');
+  assert.equal(us.grossRON, 900); // 600 XTB + 300 BT
+  assert.equal(us.taxRON, 120);
+  assert.equal(us.sources.length, 2);
+  assert.equal(de.grossRON, 400);
+  assert.equal(de.sources.length, 1);
+  assert.equal(de.sources[0].broker, 'XTB');
+  assert.equal(nl.sources[0].broker, 'BT Capital Partners');
+  assert.equal(r.foreignTaxWithheldRON, 90 + 60 + 30 + 20);
+  assert.equal(r.localGrossRON, 0);
+  assert.equal(r.unknownCountryRON, 0);
+});
+
+test('resolveRoBrokerDividends: separates Romanian-source (ISIN starts with RO)', () => {
+  const yd = {
+    btDividendsReport: {
+      dividends: { grossRON: 1500, taxWithheldRON: 120 },
+      dividendsByCountry: [
+        { country: 'RO', isRomanian: true, grossRON: 800, taxRON: 64, netRON: 736 },
+        { country: 'US', isRomanian: false, grossRON: 700, taxRON: 56, netRON: 644 },
+      ],
+    },
+  };
+  const r = R.resolveRoBrokerDividends(yd, {});
+  assert.equal(r.localGrossRON, 800);
+  assert.equal(r.localTaxWithheldRON, 64);
+  assert.equal(r.foreignByCountry.length, 1);
+  assert.equal(r.foreignByCountry[0].country, 'US');
+});
+
+test('resolveRoBrokerDividends: manual EUR/USD entries land in unknownCountryRON', () => {
+  const yd = {
+    roEurDividends: 100,
+    roEurDivTaxPaid: 15,
+    roUsdDividends: 50,
+  };
+  const r = R.resolveRoBrokerDividends(yd, { eurRate: 5, usdRate: 4.5 });
+  // Aggregate gross matches legacy total but is also flagged unknownCountry.
+  assert.equal(r.grossRON, 100 * 5 + 50 * 4.5);
+  assert.equal(r.unknownCountryRON, 100 * 5 + 50 * 4.5);
+  assert.equal(r.foreignByCountry.length, 0);
+  assert.equal(r.localGrossRON, 0);
+});
+
+test('resolveRoBrokerDividends: XTB row without "din X" suffix goes to unknownCountryRON', () => {
+  const yd = {
+    xtbDividendsReport: {
+      dividends: { grossRON: 100, taxWithheldRON: 10 },
+      dividendsByCountry: [
+        { country: null, isRomanian: false, grossRON: 100, taxRON: 10, netRON: 90 },
+      ],
+    },
+  };
+  const r = R.resolveRoBrokerDividends(yd, {});
+  assert.equal(r.unknownCountryRON, 100);
+  assert.equal(r.unknownCountryTaxRON, 10);
+  assert.equal(r.foreignByCountry.length, 0);
+});
+
 // ---------- resolveInterest ----------
 
 test('resolveInterest: 1042-S code 01 contributes US-source interest', () => {

@@ -92,3 +92,76 @@ test('credit fiscal never exceeds Romanian tax due (US-RO treaty)', () => {
   assert.equal(rows[0].str_credit_fiscal, 100);
   assert.equal(rows[0].str_dif_impozit_datorat, 0); // nothing more owed
 });
+
+// --- Per-country RO-broker foreign dividends (XTB / BT Capital Partners) ---
+
+test('roBrokerForeignDividendsByCountry merges per (country, 2018)', () => {
+  // XTB and Fidelity both contribute to the same US:2018 bucket: must produce
+  // exactly ONE cap14 row with combined amounts. Per docs/d212-mapping.md § 4,
+  // cap14 element repeats once per (country × category) tuple.
+  const rows = buildCap14Rows({
+    dividendsRON: 1000, // Fidelity 1042-S
+    usDivForeignTaxRON: 150,
+    divTaxRate: 0.08,
+    roBrokerForeignDividendsByCountry: [
+      { country: 'US', grossRON: 500, taxRON: 75, sources: [{ broker: 'XTB' }] },
+      { country: 'DE', grossRON: 400, taxRON: 100, sources: [{ broker: 'BT Capital Partners' }] },
+    ],
+  });
+  // 2 dividend rows: US (merged) + DE
+  const usDiv = rows.find(r => r.str_categ_venit === '2018' && r.str_stat_realiz_v === 'US');
+  const deDiv = rows.find(r => r.str_categ_venit === '2018' && r.str_stat_realiz_v === 'DE');
+  assert.ok(usDiv);
+  assert.ok(deDiv);
+  assert.equal(usDiv.str_venit_brut, 1500); // 1000 + 500 merged
+  assert.equal(usDiv.str_impozit_platit, 225); // 150 + 75 merged
+  assert.equal(deDiv.str_venit_brut, 400);
+  assert.equal(deDiv.str_impozit_platit, 100);
+  // Ensure no duplicate US row
+  const usCount = rows.filter(r => r.str_categ_venit === '2018' && r.str_stat_realiz_v === 'US').length;
+  assert.equal(usCount, 1);
+});
+
+test('invalid country code (XS) is dropped with a warning', () => {
+  const rows = buildCap14Rows({
+    divTaxRate: 0.08,
+    roBrokerForeignDividendsByCountry: [
+      { country: 'XS', grossRON: 500, taxRON: 50, sources: [{ broker: 'XTB' }] },
+      { country: 'US', grossRON: 1000, taxRON: 150, sources: [{ broker: 'BT Capital Partners' }] },
+    ],
+  });
+  // Only US emitted; XS dropped.
+  const dividendRows = rows.filter(r => r.str_categ_venit === '2018');
+  assert.equal(dividendRows.length, 1);
+  assert.equal(dividendRows[0].str_stat_realiz_v, 'US');
+  assert.equal(rows.warnings.length, 1);
+  assert.equal(rows.warnings[0].kind, 'invalid_country');
+  assert.equal(rows.warnings[0].country, 'XS');
+});
+
+test('unknown-country manual entries surface a warning', () => {
+  const rows = buildCap14Rows({
+    divTaxRate: 0.08,
+    roBrokerUnknownCountryDividendsRON: 250,
+  });
+  assert.equal(rows.length, 0);
+  assert.equal(rows.warnings.length, 1);
+  assert.equal(rows.warnings[0].kind, 'unknown_country');
+});
+
+test('den_stat is populated from COUNTRY_CODE_TO_RO for known codes', () => {
+  const rows = buildCap14Rows({
+    divTaxRate: 0.08,
+    roBrokerForeignDividendsByCountry: [
+      { country: 'DE', grossRON: 100, taxRON: 26, sources: [] },
+      { country: 'NL', grossRON: 100, taxRON: 15, sources: [] },
+      { country: 'GB', grossRON: 100, taxRON: 0, sources: [] },
+    ],
+  });
+  const de = rows.find(r => r.str_stat_realiz_v === 'DE');
+  const nl = rows.find(r => r.str_stat_realiz_v === 'NL');
+  const gb = rows.find(r => r.str_stat_realiz_v === 'GB');
+  assert.equal(de.den_stat, 'Germania');
+  assert.equal(nl.den_stat, 'Olanda');
+  assert.equal(gb.den_stat, 'Marea Britanie');
+});

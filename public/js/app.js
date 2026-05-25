@@ -1742,6 +1742,24 @@ const App = (() => {
     let roInterestRON = _resInt.foreignIncomeRON;
     let dividendsRON_ro = _resRoDiv.grossRON;
     let roDivTaxWithheld = _resRoDiv.taxWithheldRON;
+    // Source split for cap14 emission (Step 4 of D-9 refactor).
+    // localGrossRON / localTaxWithheldRON     — Romanian-source (ISIN[0..2]=RO),
+    //                                            broker withheld 8% at source.
+    // foreignByCountry[]                        — per-country aggregates
+    //                                            (XTB + BT merged) for cap14
+    //                                            categ_venit=2018 emission.
+    // foreignTaxWithheldRON                     — sum of foreignByCountry tax
+    //                                            (treated as foreign tax credit).
+    // unknownCountryRON / unknownCountryTaxRON  — manual EUR/USD Add-Data entries
+    //                                            or XTB rows without "din X"
+    //                                            suffix — taxed at 8% RO with
+    //                                            credit, NOT emitted to XML.
+    let roDivLocalRON = _resRoDiv.localGrossRON || 0;
+    let roDivLocalTaxWithheldRON = _resRoDiv.localTaxWithheldRON || 0;
+    let roDivForeignByCountry = _resRoDiv.foreignByCountry || [];
+    let roDivForeignTaxWithheldRON = _resRoDiv.foreignTaxWithheldRON || 0;
+    let roDivUnknownCountryRON = _resRoDiv.unknownCountryRON || 0;
+    let roDivUnknownCountryTaxRON = _resRoDiv.unknownCountryTaxRON || 0;
     let roLongTermGainRON = _resRoCG.longGainRON;
     let roShortTermGainRON = _resRoCG.shortGainRON;
     let capitalGainsRON_ro = _resRoCG.totalGainRON;
@@ -1828,9 +1846,43 @@ const App = (() => {
     const usDivTax = hasAnafDecl
       ? (decl.dividends?.difImpozitRON || 0)
       : (fd.dividends?.toPayRON ?? Math.max(0, usDivTaxDueRON - usDivCreditRON));
-    // Romania dividends: rate due but Romania broker withholds tax at source (credit fiscal covers it)
-    const roDivTaxDue = dividendsRON_ro * divTaxRate;
-    const roDivTaxNet = Math.max(0, roDivTaxDue - (roDivTaxWithheld || 0));
+    // Romania broker dividends (XTB / BT Capital Partners / manual EUR/USD).
+    //
+    // D-9 split: the OLD code applied a flat 8% to ALL Romanian-broker
+    // dividends, which is correct only for RO-source dividends (BVB issuers
+    // — where the broker withheld 8% RO at source). For foreign-source
+    // dividends paid via the same RO broker (e.g. US/DE/IE stocks via XTB
+    // or BT), the correct treatment is cap14 categ_venit=2018 with credit
+    // fiscal on the foreign withholding (Cod fiscal art. 130 + treaty).
+    //
+    // We split the calc into three buckets:
+    //   - RO-source dividends + unknown-country (manual EUR/USD entries
+    //     where we don't have an ISIN to derive the country): simple 8%
+    //     flow with credit for any withheld tax.
+    //   - Foreign-source dividends per country: emitted via cap14 per-
+    //     country buckets below (in the cap14Rows block). The 8% RO is
+    //     applied per bucket with foreign-tax credit capped at 8%.
+    const roDivLocalTaxBaseRON = roDivLocalRON + roDivUnknownCountryRON;
+    const roDivLocalTaxDue = roDivLocalTaxBaseRON * divTaxRate;
+    const roDivLocalTaxWithheldEffective = roDivLocalTaxWithheldRON + roDivUnknownCountryTaxRON;
+    const roDivLocalTaxNet = Math.max(0, roDivLocalTaxDue - roDivLocalTaxWithheldEffective);
+    let roDivForeignTaxNet = 0;
+    let roDivForeignTaxCredit = 0;
+    let roDivForeignTaxDue = 0;
+    for (const c of roDivForeignByCountry) {
+      const Rd8 = (c.grossRON || 0) * divTaxRate;
+      const Rd10 = Math.min(Rd8, c.taxRON || 0);
+      roDivForeignTaxDue += Rd8;
+      roDivForeignTaxCredit += Rd10;
+      roDivForeignTaxNet += Math.max(0, Rd8 - Rd10);
+    }
+    // Aliases preserved for backward compatibility with downstream renderers
+    // that consume the legacy single-bucket totals (Calcul tab, Declaration
+    // recap, audit export). The semantics are unchanged when there are no
+    // foreign dividends; when there are, `roDivTaxNet` is the per-country
+    // residual after foreign-tax credit instead of the naive 8%×total.
+    const roDivTaxDue = roDivLocalTaxDue + roDivForeignTaxDue;
+    const roDivTaxNet = roDivLocalTaxNet + roDivForeignTaxNet;
     const dividendTaxRON = usDivTax + roDivTaxNet;
     // US capital gains at capGainsTaxRate, Romania domestic rates:
     // 2019-2022: flat 10% (no long/short distinction)
@@ -2000,7 +2052,13 @@ const App = (() => {
     // (`min(usForeignTaxRON, usDivTaxDueRON)`); the excess is recovered, if
     // at all, through the foreign jurisdiction, not via D212.
     const roCapGainsOverwithheld = Math.max(0, (roPortTaxWithheld || 0) - roCapitalGainsTax);
-    const roDivOverwithheld = Math.max(0, (roDivTaxWithheld || 0) - roDivTaxDue);
+    // D-9 refund correction: only Romanian-source over-withholding is
+    // refundable via D212. Foreign tax credit on cap14 dividend buckets is
+    // capped at the Romanian tax due (min(8%, foreign_tax)) — the excess is
+    // not refundable through ANAF. Manual EUR/USD entries are treated as
+    // RO-source for refund purposes (they're typically RO 8% withholding
+    // anyway when the user enters them via Add Data).
+    const roDivOverwithheld = Math.max(0, roDivLocalTaxWithheldEffective - roDivLocalTaxDue);
     const interestOverwithheld = Math.max(0, interestTaxPaid - interestTaxGross);
     const refundOwedRON = roCapGainsOverwithheld + roDivOverwithheld + interestOverwithheld;
     // Net cash flow on D212: positive = pay, negative = refund.
@@ -2040,41 +2098,98 @@ const App = (() => {
     // bundle cannot require() lib/ modules; the lib version is canonical and
     // covered by test/d212-cap14.test.js. Keep both sides aligned.
     const cap14Rows = [];
+    const cap14Warnings = [];
     // Country-code → Romanian denumire mapping used to populate `den_stat`
     // for the Schematron-validated cap14 rows. Extended as new foreign
     // brokers add countries (Revolut currently emits IE, DE, FR, US, GB,
-    // NL most often).
+    // NL most often). Mirror of COUNTRY_CODE_TO_RO in lib/rates.js.
     const COUNTRY_NAME_RO = {
-      US: 'Statele Unite ale Americii',
-      DE: 'Germania',
-      FR: 'Franța',
-      IE: 'Irlanda',
-      NL: 'Olanda',
-      GB: 'Marea Britanie',
-      LU: 'Luxemburg',
-      CH: 'Elveția',
-      AT: 'Austria',
-      BE: 'Belgia',
-      IT: 'Italia',
-      ES: 'Spania',
-      PT: 'Portugalia',
-      LT: 'Lituania',
-      CA: 'Canada',
+      AT: 'Austria', AU: 'Australia', BE: 'Belgia', BG: 'Bulgaria', BR: 'Brazilia',
+      CA: 'Canada', CH: 'Elveția', CN: 'China', CY: 'Cipru', CZ: 'Cehia',
+      DE: 'Germania', DK: 'Danemarca', EE: 'Estonia', ES: 'Spania', FI: 'Finlanda',
+      FR: 'Franța', GB: 'Marea Britanie', GR: 'Grecia', HK: 'Hong Kong', HR: 'Croația',
+      HU: 'Ungaria', IE: 'Irlanda', IL: 'Israel', IN: 'India', IT: 'Italia',
+      JP: 'Japonia', KR: 'Coreea de Sud', LT: 'Lituania', LU: 'Luxemburg', LV: 'Letonia',
+      MX: 'Mexic', NL: 'Olanda', NO: 'Norvegia', NZ: 'Noua Zeelandă', PL: 'Polonia',
+      PT: 'Portugalia', RO: 'România', SE: 'Suedia', SG: 'Singapore', SI: 'Slovenia',
+      SK: 'Slovacia', TR: 'Turcia', US: 'Statele Unite ale Americii', ZA: 'Africa de Sud',
     };
+    // ISO 3166-1 Alpha-2 codes accepted by ANAF Schematron CD-D212-011.
+    // Mirror of D212_ALLOWED_COUNTRY_CODES in lib/rates.js. Codes outside
+    // this set MUST NOT be emitted to cap14 (e.g. XS Eurobonds, XX placeholder).
+    const ALLOWED_COUNTRY_CODES = new Set([
+      'AD','AE','AF','AG','AI','AL','AM','AO','AQ','AR','AS','AT','AU','AW','AX','AZ',
+      'BA','BB','BD','BE','BF','BG','BH','BI','BJ','BL','BM','BN','BO','BQ','BR','BS','BT','BV','BW','BY','BZ',
+      'CA','CC','CD','CF','CG','CH','CI','CK','CL','CM','CN','CO','CR','CU','CV','CW','CX','CY','CZ',
+      'DE','DJ','DK','DM','DO','DZ',
+      'EC','EE','EG','EH','ER','ES','ET',
+      'FI','FJ','FK','FM','FO','FR',
+      'GA','GB','GD','GE','GF','GG','GH','GI','GL','GM','GN','GP','GQ','GR','GS','GT','GU','GW','GY',
+      'HK','HM','HN','HR','HT','HU',
+      'ID','IE','IL','IM','IN','IO','IQ','IR','IS','IT',
+      'JE','JM','JO','JP',
+      'KE','KG','KH','KI','KM','KN','KP','KR','KW','KY','KZ',
+      'LA','LB','LC','LI','LK','LR','LS','LT','LU','LV','LY',
+      'MA','MC','MD','ME','MF','MG','MH','MK','ML','MM','MN','MO','MP','MQ','MR','MS','MT','MU','MV','MW','MX','MY','MZ',
+      'NA','NC','NE','NF','NG','NI','NL','NO','NP','NR','NU','NZ',
+      'OM',
+      'PA','PE','PF','PG','PH','PK','PL','PM','PN','PR','PS','PT','PW','PY',
+      'QA',
+      'RE','RO','RS','RU','RW',
+      'SA','SB','SC','SD','SE','SG','SH','SI','SJ','SK','SL','SM','SN','SO','SR','SS','ST','SV','SX','SY','SZ',
+      'TC','TD','TF','TG','TH','TJ','TK','TL','TM','TN','TO','TR','TT','TV','TW','TZ',
+      'UA','UG','UM','US','UY','UZ',
+      'VA','VC','VE','VG','VI','VN','VU',
+      'WF','WS',
+      'XI','XK',
+      'YE','YT',
+      'ZA','ZM','ZW',
+    ]);
     {
       const capGainsSaleRON = (capitalGainsSaleUSD || 0) * rate;
       const capGainsCostRON = (capitalGainsCostUSD || 0) * rate;
+
+      // D-9: Foreign dividends merged per-country (str_categ_venit=2018).
+      // Combines US 1042-S + RO-broker foreign dividends (XTB / BT) into a
+      // single cap14 row per country. Per docs/d212-mapping.md § 4 the
+      // cap14 element repeats once per (country × category) tuple.
+      const foreignDivBuckets = new Map();
+      const addFDivBucket = (country, grossRON, foreignTaxRON, source) => {
+        if (!grossRON && !foreignTaxRON) return;
+        if (!country) return;
+        const b = foreignDivBuckets.get(country) || { country, grossRON: 0, foreignTaxRON: 0, sources: [] };
+        b.grossRON += grossRON;
+        b.foreignTaxRON += foreignTaxRON;
+        b.sources.push(source);
+        foreignDivBuckets.set(country, b);
+      };
       if (dividendsRON > 0 || usForeignTaxRON > 0) {
-        const Rd1 = dividendsRON;
+        addFDivBucket('US', dividendsRON, usForeignTaxRON, '1042-S');
+      }
+      for (const c of roDivForeignByCountry) {
+        addFDivBucket(c.country, c.grossRON || 0, c.taxRON || 0,
+          (c.sources || []).map(s => s.broker).join('+') || 'RO broker');
+      }
+      for (const b of foreignDivBuckets.values()) {
+        if (!ALLOWED_COUNTRY_CODES.has(b.country)) {
+          cap14Warnings.push({
+            kind: 'invalid_country',
+            country: b.country,
+            grossRON: b.grossRON,
+            message: `Dividende cu cod de țară "${b.country}" omise din cap14 (cod ISO Alpha-2 invalid pentru ANAF).`,
+          });
+          continue;
+        }
+        const Rd1 = b.grossRON;
         const Rd3 = Rd1;
         const Rd7 = Rd3;
         const Rd8 = Rd7 * divTaxRate;
-        const Rd9 = usForeignTaxRON;
+        const Rd9 = b.foreignTaxRON;
         const Rd10 = Math.min(Rd8, Rd9);
         const Rd11 = Math.max(0, Rd8 - Rd10);
         cap14Rows.push({
-          str_stat_realiz_v: 'US',
-          den_stat: 'Statele Unite ale Americii',
+          str_stat_realiz_v: b.country,
+          den_stat: COUNTRY_NAME_RO[b.country] || b.country,
           str_categ_venit: '2018',
           den_categ_venit: 'Dividende',
           dubla_impunere: '1',
@@ -2089,6 +2204,13 @@ const App = (() => {
           str_impozit_platit: Math.round(Rd9),
           str_credit_fiscal: Math.round(Rd10),
           str_dif_impozit_datorat: Math.round(Rd11),
+        });
+      }
+      if (roDivUnknownCountryRON > 0) {
+        cap14Warnings.push({
+          kind: 'unknown_country',
+          grossRON: roDivUnknownCountryRON,
+          message: 'Există dividende fără țară identificată (intrări manuale EUR/USD sau XTB fără sufixul "din ..."). Re-introdu-le cu țara emitentului pentru a apărea în XML cap14.',
         });
       }
       if (capGainsSaleRON > 0 || usNetGainsRON > 0) {
@@ -2331,6 +2453,18 @@ const App = (() => {
       cap11Rows,
       // D212 Cap. I §2.1 — Foreign-source income block (gap D-7 prep)
       cap14Rows,
+      cap14Warnings,
+      // D-9: foreign-dividend split exposed for UI (Calcul tab cap14 view
+      // and the source-of-foreign-dividends warning banner).
+      roDivLocalRON,
+      roDivLocalTaxWithheldRON,
+      roDivForeignByCountry,
+      roDivForeignTaxWithheldRON,
+      roDivForeignTaxDue,
+      roDivForeignTaxCredit,
+      roDivForeignTaxNet,
+      roDivUnknownCountryRON,
+      roDivUnknownCountryTaxRON,
       // D212 oblig_realizat — CASS investments + global summary (etapa 2)
       obligRealizat,
       // Phase 3 source map: per-field tier + label so the UI can render
