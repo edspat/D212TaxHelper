@@ -135,7 +135,8 @@
     "d205OnlyLocal": "only local",
     "d205AnafGross": "ANAF amount",
     "d205LocalGross": "Local amount",
-    "d205UnmatchedLocalSummary": "local sources without ANAF match"
+    "d205UnmatchedLocalSummary": "local sources without ANAF match",
+    "d205ExpectedNotInD205Summary": "foreign-source income — expected to NOT appear in D205"
   },
   "dashboard": {
     "totalIncome": "Total Income",

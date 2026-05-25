@@ -21,7 +21,7 @@ test('normPayerName strips accents, suffixes, case', () => {
 
 test('identifyBroker maps known payer name fingerprints', () => {
   assert.equal(identifyBroker('XTB S.A. Varsovia Sucursala Bucuresti'), 'XTB');
-  assert.equal(identifyBroker('BT Capital Partners'), 'BT Capital');
+  assert.equal(identifyBroker('BT Capital Partners'), 'BT Capital Partners');
   assert.equal(identifyBroker('SALT BANK SA'), 'SALT Bank');
   assert.equal(identifyBroker('ING BANK N.V. AMSTERDAM SUCURSALA BUCURESTI'), 'ING Bank');
   assert.equal(identifyBroker('Goldring SA'), 'Goldring');
@@ -110,16 +110,60 @@ test('matchD205: unmatched-anaf when no local source covers an entry', () => {
   assert.match(r.matches[0].hint, /SALT BANK/);
 });
 
-test('matchD205: unmatched-local when we have a PDF ANAF lacks D205 for', () => {
-  // No ANAF entries at all, but we have XTB dividends locally.
+test('matchD205: foreign-source dividends via RO broker → expected-not-in-d205', () => {
+  // XTB dividends are foreign-source income (US-issuer, etc.). They DO NOT
+  // appear in D205 because the payer is the foreign issuer, not the
+  // Romanian intermediary. Matcher must classify them as
+  // 'expected-not-in-d205' (informational), not 'unmatched-local'.
   const yd = {
     xtbDividendsReport: { dividends: { grossRON: 1000, taxWithheldRON: 100 } },
   };
   const r = matchD205([], yd);
   assert.equal(r.unmatchedLocal.length, 1);
   assert.equal(r.unmatchedLocal[0].broker, 'XTB');
-  assert.equal(r.unmatchedLocal[0].status, 'unmatched-local');
-  assert.equal(r.totals.unmatchedLocalCount, 1);
+  assert.equal(r.unmatchedLocal[0].status, 'expected-not-in-d205');
+  assert.equal(r.totals.unmatchedLocalCount, 0);
+  assert.equal(r.totals.expectedNotInD205Count, 1);
+});
+
+test('matchD205: capgains use GROSS gain (not net of losses) to match D205', () => {
+  // ANAF D205 cat 27 reports the GROSS short-term gain — broker withholds
+  // tax per profitable trade, not on the year's net. If a user has 427094
+  // gross gain + 37699 losses (net 389395), the local breakdown row that
+  // maps to D205 must be 427094, not 389395.
+  const yd = {
+    xtbPortfolio: {
+      countries: [
+        { shortGainRON: 427094, shortLossRON: 37699, shortTaxRON: 12812 },
+      ],
+    },
+  };
+  const d205 = [
+    { payerName: 'Xtb SA Varsovia Sucursala Bucuresti', category: '27', grossRON: 427095, taxRON: 12812 },
+  ];
+  const r = matchD205(d205, yd);
+  // 1 RON diff vs ANAF's 427095 — rounding, well under MATCH_EPS.
+  assert.equal(r.matches.length, 1);
+  assert.equal(r.matches[0].status, 'matched-exact');
+});
+
+test('matchD205: BT Capital Partners portfolio is included in local breakdown', () => {
+  // Regression: an earlier matcher version only iterated XTB + Tradeville,
+  // leaving BT Capital Partners portfolio rows invisible to the match.
+  const yd = {
+    btPortfolio: {
+      countries: [
+        { shortGainRON: 84151, shortLossRON: 23748, shortTaxRON: 2526 },
+      ],
+    },
+  };
+  const d205 = [
+    { payerName: 'BT Capital Partners', category: '27', grossRON: 84151, taxRON: 2526 },
+  ];
+  const r = matchD205(d205, yd);
+  assert.equal(r.matches.length, 1);
+  assert.equal(r.matches[0].status, 'matched-exact');
+  assert.equal(r.matches[0].local.broker, 'BT Capital Partners');
 });
 
 test('matchD205: same payer, multiple categories tracked independently', () => {

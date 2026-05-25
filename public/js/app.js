@@ -1041,11 +1041,26 @@ const App = (() => {
       }
       html += `</tbody></table></div>`;
     }
-    if (result.unmatchedLocal.length > 0) {
+    // Split unmatched-local rows by status so the UI distinguishes
+    // "real" mismatches (problem) from foreign-source dividends that
+    // are EXPECTED to not appear in D205 (informational).
+    const realUnmatched = result.unmatchedLocal.filter((u) => u.status === 'unmatched-local');
+    const expectedNotInD205 = result.unmatchedLocal.filter((u) => u.status === 'expected-not-in-d205');
+
+    if (realUnmatched.length > 0) {
       html += `<details style="border:1px solid var(--border);border-radius:var(--radius);padding:0.5rem 0.75rem;background:rgba(255,193,7,0.04);">
-        <summary style="cursor:pointer;font-size:0.85rem;font-weight:500;">⚠ ${result.unmatchedLocal.length} ${esc(I18n.t('validate.d205UnmatchedLocalSummary') || 'surse locale fără potrivire ANAF')}</summary>
+        <summary style="cursor:pointer;font-size:0.85rem;font-weight:500;">⚠ ${realUnmatched.length} ${esc(I18n.t('validate.d205UnmatchedLocalSummary') || 'surse locale fără potrivire ANAF')}</summary>
         <ul style="margin:0.5rem 0 0;padding-left:1.2rem;font-size:0.8rem;">`;
-      for (const u of result.unmatchedLocal) {
+      for (const u of realUnmatched) {
+        html += `<li><strong>${esc(u.broker)}</strong> · ${esc(u.label)} · ${esc(fmt(u.grossRON))} — <small style="color:var(--text-muted);">${esc(u.hint || '')}</small></li>`;
+      }
+      html += `</ul></details>`;
+    }
+    if (expectedNotInD205.length > 0) {
+      html += `<details style="border:1px solid var(--border);border-radius:var(--radius);padding:0.5rem 0.75rem;background:rgba(88,166,255,0.05);margin-top:0.5rem;">
+        <summary style="cursor:pointer;font-size:0.85rem;font-weight:500;">ℹ ${expectedNotInD205.length} ${esc(I18n.t('validate.d205ExpectedNotInD205Summary') || 'surse externe — așteptat să NU apară în D205')}</summary>
+        <ul style="margin:0.5rem 0 0;padding-left:1.2rem;font-size:0.8rem;">`;
+      for (const u of expectedNotInD205) {
         html += `<li><strong>${esc(u.broker)}</strong> · ${esc(u.label)} · ${esc(fmt(u.grossRON))} — <small style="color:var(--text-muted);">${esc(u.hint || '')}</small></li>`;
       }
       html += `</ul></details>`;
@@ -1064,7 +1079,7 @@ const App = (() => {
       .replace(/\b(sa|srl|nv|sucursala|bucuresti|romania|amsterdam|warsaw|varsovia|partners|trust|group)\b/g, ' ')
       .replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
     const fps = [
-      [/^xtb\b|xtrade brokers/, 'XTB'], [/^bt capital|bt securities/, 'BT Capital'],
+      [/^xtb\b|xtrade brokers/, 'XTB'], [/^bt capital|bt securities/, 'BT Capital Partners'],
       [/tradeville/, 'Tradeville'], [/goldring/, 'Goldring'],
       [/^ing\b/, 'ING Bank'], [/^salt\b/, 'SALT Bank'], [/^bcr\b/, 'BCR'],
       [/^bt\b|banca transilvania/, 'Banca Transilvania'],
@@ -1078,20 +1093,33 @@ const App = (() => {
     const local = [];
     if (yd && yd.xtbDividendsReport) {
       const d = yd.xtbDividendsReport;
-      if (d.dividends && d.dividends.grossRON > 0) local.push({ broker: 'XTB', category: '20', label: 'Dividende', grossRON: d.dividends.grossRON, taxRON: d.dividends.taxWithheldRON || 0, source: 'xtbDividendsReport.dividends' });
+      // Foreign-source dividends via a Romanian broker DO NOT appear on
+      // D205 (payer is the foreign issuer, not the intermediary). Flag
+      // them with foreignSource so the matcher emits 'expected-not-in-d205'
+      // instead of an alarming 'unmatched-local'.
+      if (d.dividends && d.dividends.grossRON > 0) local.push({ broker: 'XTB', category: '20', label: 'Dividende', grossRON: d.dividends.grossRON, taxRON: d.dividends.taxWithheldRON || 0, source: 'xtbDividendsReport.dividends', foreignSource: true });
       if (d.interest && d.interest.grossRON > 0) local.push({ broker: 'XTB', category: '09', label: 'Dobânzi', grossRON: d.interest.grossRON, taxRON: d.interest.taxWithheldRON || 0, source: 'xtbDividendsReport.interest' });
     }
-    for (const [src, key] of [['XTB', 'xtbPortfolio'], ['Tradeville', 'tradevillePortfolio']]) {
+    if (yd && yd.btDividendsReport) {
+      const d = yd.btDividendsReport;
+      if (d.dividends && d.dividends.grossRON > 0) local.push({ broker: 'BT Capital Partners', category: '20', label: 'Dividende', grossRON: d.dividends.grossRON, taxRON: d.dividends.taxWithheldRON || 0, source: 'btDividendsReport.dividends', foreignSource: true });
+    }
+    // Portfolio capital gains: D205 reports GROSS gain (gains only, no
+    // loss offset). Sum across countries but DO NOT subtract losses — the
+    // net (gain - loss) is what enters the D212 calculation, not D205.
+    for (const [src, key] of [['XTB', 'xtbPortfolio'], ['Tradeville', 'tradevillePortfolio'], ['BT Capital Partners', 'btPortfolio']]) {
       const p = yd && yd[key]; if (!p || !Array.isArray(p.countries)) continue;
-      let lg = 0, lt = 0, sg = 0, st = 0;
+      let lg = 0, lt = 0, sg = 0, st = 0, ll = 0, sl = 0;
       for (const c of p.countries) {
-        lg += (c.longGainRON || c.longGain || 0) - (c.longLossRON || c.longLoss || 0);
+        lg += (c.longGainRON || c.longGain || 0);
+        ll += (c.longLossRON || c.longLoss || 0);
         lt += c.longTaxRON || c.longTax || 0;
-        sg += (c.shortGainRON || c.shortGain || 0) - (c.shortLossRON || c.shortLoss || 0);
+        sg += (c.shortGainRON || c.shortGain || 0);
+        sl += (c.shortLossRON || c.shortLoss || 0);
         st += c.shortTaxRON || c.shortTax || 0;
       }
-      if (lg > 0 || lt > 0) local.push({ broker: src, category: '26', label: 'Capgains ≥1y', grossRON: lg, taxRON: lt, source: `${key}.long` });
-      if (sg > 0 || st > 0) local.push({ broker: src, category: '27', label: 'Capgains <1y', grossRON: sg, taxRON: st, source: `${key}.short` });
+      if (lg > 0 || lt > 0) local.push({ broker: src, category: '26', label: 'Capgains ≥1y', grossRON: lg, lossRON: ll, taxRON: lt, source: `${key}.long` });
+      if (sg > 0 || st > 0) local.push({ broker: src, category: '27', label: 'Capgains <1y', grossRON: sg, lossRON: sl, taxRON: st, source: `${key}.short` });
     }
     const pool = local.map((l) => ({ ...l, _matched: false }));
     const matches = [];
@@ -1134,16 +1162,25 @@ const App = (() => {
         });
       }
     }
-    const unmatchedLocal = pool.filter((l) => !l._matched).map(({ _matched, ...rest }) => ({
-      ...rest, status: 'unmatched-local',
-      hint: `Avem date locale (${rest.broker} · ${rest.label} · ${Math.round(rest.grossRON || 0).toLocaleString('ro-RO')} RON) dar nu apare D205 corespunzător la ANAF.`,
-    }));
+    const unmatchedLocal = pool.filter((l) => !l._matched).map(({ _matched, ...rest }) => {
+      if (rest.foreignSource) {
+        return {
+          ...rest, status: 'expected-not-in-d205',
+          hint: `Venit din surse externe via broker român (${rest.broker} · ${rest.label} · ${Math.round(rest.grossRON || 0).toLocaleString('ro-RO')} RON). NU apare la ANAF în D205 — plătitorul real e emitentul străin, nu intermediarul român. Se declară separat ca venit din străinătate (D212 cap14).`,
+        };
+      }
+      return {
+        ...rest, status: 'unmatched-local',
+        hint: `Avem date locale (${rest.broker} · ${rest.label} · ${Math.round(rest.grossRON || 0).toLocaleString('ro-RO')} RON) dar nu apare D205 corespunzător la ANAF.`,
+      };
+    });
     const totals = {
       exactCount: matches.filter((m) => m.status === 'matched-exact').length,
       nearCount: matches.filter((m) => m.status === 'matched-amount').length,
       possibleCount: matches.filter((m) => m.status === 'possible').length,
       unmatchedAnafCount: matches.filter((m) => m.status === 'unmatched-anaf').length,
-      unmatchedLocalCount: unmatchedLocal.length,
+      unmatchedLocalCount: unmatchedLocal.filter((l) => l.status === 'unmatched-local').length,
+      expectedNotInD205Count: unmatchedLocal.filter((l) => l.status === 'expected-not-in-d205').length,
     };
     return { matches, unmatchedLocal, totals };
   }

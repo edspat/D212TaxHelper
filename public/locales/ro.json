@@ -135,7 +135,8 @@
     "d205OnlyLocal": "doar local",
     "d205AnafGross": "Sumă ANAF",
     "d205LocalGross": "Sumă local",
-    "d205UnmatchedLocalSummary": "surse locale fără potrivire ANAF"
+    "d205UnmatchedLocalSummary": "surse locale fără potrivire ANAF",
+    "d205ExpectedNotInD205Summary": "surse externe — așteptat să NU apară în D205"
   },
   "dashboard": {
     "totalIncome": "Venit Total",

@@ -945,6 +945,18 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     // PIETE EXTERNE). Stored under btDividendsReport to keep BT and XTB
     // visible side-by-side in the resolver and Add Data UI.
     if (type === 'bt_dividends') {
+      // Symmetric content check (see bt_portfolio handler below for context).
+      const looksLikeDividends = /DIVIDENDE\s*\/\s*DOBANZI\s+INCASATE/i.test(text);
+      const looksLikePortfolio = /FISA\s+DE\s+PORTOFOLIU|Transferul\s+titlurilor/i.test(text);
+      if (!looksLikeDividends && looksLikePortfolio) {
+        if (!dryRun) {
+          try { fs.unlinkSync(path.join(DATA_DIR, `bt_dividends_${parsedYear}_raw.txt`)); } catch (_) {}
+        }
+        return res.status(400).json({
+          error: 'Fișierul încărcat pare să fie BT Fișă de Portofoliu, nu Fișă Dividende. Selectează tipul „Romania (BT Capital Partners) - Portfolio Sheet" în loc de „Fișă Dividende".',
+          contentMismatch: true,
+        });
+      }
       const parsed = parseBtDividends(text, parsedYear);
       if (!dryRun) db.mergeYearData(parsedYear, { btDividendsReport: parsed });
       return res.json({ success: true, dryRun, year: parsedYear, type, parsed });
@@ -952,6 +964,21 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
     // BT Capital Partners — Fisa de Portofoliu (capital gains per country).
     if (type === 'bt_portfolio') {
+      // Validate the PDF content actually matches the requested type. The
+      // FisaDividende and FisaPortofoliu share a similar header layout and
+      // are easy to swap — if the user picks the wrong dropdown the parser
+      // silently produces an empty result. Detect the mismatch early.
+      const looksLikePortfolio = /FISA\s+DE\s+PORTOFOLIU|Transferul\s+titlurilor/i.test(text);
+      const looksLikeDividends = /DIVIDENDE\s*\/\s*DOBANZI\s+INCASATE/i.test(text);
+      if (!looksLikePortfolio && looksLikeDividends) {
+        if (!dryRun) {
+          try { fs.unlinkSync(path.join(DATA_DIR, `bt_portfolio_${parsedYear}_raw.txt`)); } catch (_) {}
+        }
+        return res.status(400).json({
+          error: 'Fișierul încărcat pare să fie BT Fișă Dividende, nu Fișă de Portofoliu. Selectează tipul „Romania (BT Capital Partners) - Fișă Dividende" în loc de „Fișă de Portofoliu".',
+          contentMismatch: true,
+        });
+      }
       const parsed = parseBtPortfolio(text, parsedYear);
       if (!dryRun) db.mergeYearData(parsedYear, { btPortfolio: parsed });
       return res.json({ success: true, dryRun, year: parsedYear, type, parsed });
