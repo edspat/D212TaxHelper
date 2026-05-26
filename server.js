@@ -337,7 +337,7 @@ app.put('/api/data/:year', (req, res) => {
       'interestIncome', 'interestTaxPaid', 'rentalIncome', 'rentalTaxPaid', 'royaltyIncome',
       'royaltyTaxPaid', 'gamblingIncome', 'gamblingTaxPaid', 'otherIncome',
       'otherTaxPaid', 'stockWithholdingPaid', 'exchangeRate', 'eurRate', 'minSalary',
-      'd212Deadline', 'roGainsCountries', 'priorLosses',
+      'd212Deadline', 'roGainsCountries', 'priorLosses', 'pfaNetIncome',
       // Inline-edit correction reasons (paired with the manual-override fields above).
       // Persisted so the manual_data_*_raw.txt audit trail records WHY a value was overridden.
       'fidelityDividendsReason', 'usDivTaxPaidReason', 'xtbDividendsReason',
@@ -614,7 +614,7 @@ app.delete('/api/raw/:filename', (req, res) => {
             'interestIncome', 'interestTaxPaid', 'rentalIncome', 'rentalTaxPaid', 'royaltyIncome',
             'royaltyTaxPaid', 'gamblingIncome', 'gamblingTaxPaid', 'otherIncome',
             'otherTaxPaid', 'stockWithholdingPaid', 'salaryTaxedIncome', 'exchangeRate', 'eurRate', 'minSalary',
-            'd212Deadline', 'roGainsCountries', 'taxRates', 'priorLosses'
+            'd212Deadline', 'roGainsCountries', 'taxRates', 'priorLosses', 'pfaNetIncome'
           ];
           for (const k of manualKeys) {
             delete yearData[k];

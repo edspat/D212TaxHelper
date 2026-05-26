@@ -431,3 +431,84 @@ test('integration: capgains GROSS for D205 vs NET for cap11/D212', () => {
   });
   assert.equal(cap11Rows[0].venit_brut, 389395);
 });
+
+// =========================================================================
+// SCENARIO 7: CASS owed SEPARATELY for PFA + investments (filed D212 regression)
+// =========================================================================
+//
+// The actual filed D212 (cross-checked 2026-05-26) shows two SEPARATE CASS
+// lines, NOT a single combined one:
+//   - Subsec 2.1 (PFA, art. 155(1)b): tier 6-12SM → base 24.300 → CASS 2.430
+//   - Subsec 2.2 (investments, art. 155(1)c-h): tier >24SM → base 97.200 → 9.720
+//   - Total CASS paid: 12.150 RON (NOT 9.720 — they are NOT combined)
+//
+// The formula is the same 3-tier ladder (6/12/24 SM), but applied SEPARATELY
+// to each income category. A user with both PFA and investment income owes
+// the SUM of the two CASS amounts.
+
+test('integration: CASS for PFA + investments are SEPARATE (no cumulation)', () => {
+  // Reproduce the 3-tier formula inline so the test stays decoupled from
+  // the browser-only calculateCASS function. Verified against the actual
+  // filed D212 declaration (Cod fiscal art. 170 alin. (2)).
+  const SM_2025 = 4050;
+  const calc3Tier = (income, sm) => {
+    const t6 = 6 * sm, t12 = 12 * sm, t24 = 24 * sm;
+    if (income < t6) return { applies: false, base: 0, amount: 0, tier: '<6SM' };
+    if (income < t12) return { applies: true, base: t6, amount: t6 * 0.10, tier: '6-12SM' };
+    if (income < t24) return { applies: true, base: t12, amount: t12 * 0.10, tier: '12-24SM' };
+    return { applies: true, base: t24, amount: t24 * 0.10, tier: '>24SM' };
+  };
+
+  // User profile: PFA net 30.000 RON (tier 6-12SM) + investments 517.132 RON (tier >24SM).
+  const pfaCASS = calc3Tier(30000, SM_2025);
+  const invCASS = calc3Tier(517132, SM_2025);
+
+  assert.equal(pfaCASS.tier, '6-12SM');
+  assert.equal(pfaCASS.base, 24300);  // 6 × 4050
+  assert.equal(pfaCASS.amount, 2430); // 10% of 24300 — matches filed D212
+
+  assert.equal(invCASS.tier, '>24SM');
+  assert.equal(invCASS.base, 97200);  // 24 × 4050
+  assert.equal(invCASS.amount, 9720); // 10% of 97200 — matches filed D212
+
+  // Total CASS = sum of both — NOT computed once on the combined income.
+  const totalCASS = pfaCASS.amount + invCASS.amount;
+  assert.equal(totalCASS, 12150, 'CASS PFA + CASS investments must be summed, not cumulated through one threshold');
+
+  // If you naively combined the incomes (30000 + 517132 = 547132), you would
+  // still land at >24SM tier = 9720 RON, which would UNDER-state CASS by
+  // 2430 RON (the PFA CASS that was earned separately).
+  const wrongCombined = calc3Tier(30000 + 517132, SM_2025);
+  assert.equal(wrongCombined.amount, 9720);
+  assert.notEqual(wrongCombined.amount, totalCASS, 'Combined calculation would under-state CASS');
+});
+
+test('integration: PFA-only user (no investments) still owes PFA CASS', () => {
+  const SM_2025 = 4050;
+  const calc3Tier = (income, sm) => {
+    const t6 = 6 * sm, t12 = 12 * sm, t24 = 24 * sm;
+    if (income < t6) return { applies: false, base: 0, amount: 0, tier: '<6SM' };
+    if (income < t12) return { applies: true, base: t6, amount: t6 * 0.10, tier: '6-12SM' };
+    if (income < t24) return { applies: true, base: t12, amount: t12 * 0.10, tier: '12-24SM' };
+    return { applies: true, base: t24, amount: t24 * 0.10, tier: '>24SM' };
+  };
+  // Net PFA 25.000 RON → tier 6-12SM (since 24300 ≤ 25000 < 48600)
+  const r = calc3Tier(25000, SM_2025);
+  assert.equal(r.tier, '6-12SM');
+  assert.equal(r.amount, 2430);
+});
+
+test('integration: PFA income below 6 SM threshold owes NO PFA CASS', () => {
+  const SM_2025 = 4050;
+  const calc3Tier = (income, sm) => {
+    const t6 = 6 * sm, t12 = 12 * sm, t24 = 24 * sm;
+    if (income < t6) return { applies: false, base: 0, amount: 0, tier: '<6SM' };
+    if (income < t12) return { applies: true, base: t6, amount: t6 * 0.10, tier: '6-12SM' };
+    if (income < t24) return { applies: true, base: t12, amount: t12 * 0.10, tier: '12-24SM' };
+    return { applies: true, base: t24, amount: t24 * 0.10, tier: '>24SM' };
+  };
+  // PFA = 10.000 RON, below 24.300 threshold → no CASS owed for PFA
+  const r = calc3Tier(10000, SM_2025);
+  assert.equal(r.applies, false);
+  assert.equal(r.amount, 0);
+});

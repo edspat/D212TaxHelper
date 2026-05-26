@@ -2064,9 +2064,22 @@ const App = (() => {
     let cassApplies = cassResult.applies;
     const cassInfo = cassResult;
 
+    // PFA (activități independente) CASS — Cod fiscal art. 155(1)b + art. 170.
+    // CASS for PFA is owed SEPARATELY from CASS for investment income — each
+    // category has its own threshold ladder (6/12/24 SM) and its own base.
+    // A user with BOTH PFA and investment income owes the SUM, not the cap.
+    // Reference: D212 cap I §3 subsec 2.1 (PFA) vs subsec 2.2 (investments).
+    // The same 3-tier formula applies — only the input changes.
+    const pfaNetIncome = parseFloat(yd.pfaNetIncome) || 0;
+    const pfaCassResult = pfaNetIncome > 0
+      ? calculateCASS(pfaNetIncome, year, savedMinSalary, 'investment')
+      : { applies: false, base: 0, amount: 0, tier: '<6SM' };
+    const pfaCassTax = pfaCassResult.amount || 0;
+    const totalCassTax = cassTax + pfaCassTax;
+
     const incomeTaxGross = decl.totalTax || (dividendTaxRON + capitalGainsTaxRON + interestTax + rentalTaxToPay + royaltyTaxToPay + otherTaxToPay);
     const incomeTaxOnly = incomeTaxGross;
-    const totalTax = incomeTaxOnly + cassTax;
+    const totalTax = incomeTaxOnly + totalCassTax;
 
     // Refund detection: when a Romanian payer has withheld more tax than what
     // the D212 calculation actually requires (typically broker capital-gains
@@ -2404,6 +2417,11 @@ const App = (() => {
       cassTax,
       cassApplies,
       cassInfo,
+      // PFA (activități independente) CASS — separate from investment CASS.
+      pfaNetIncome,
+      pfaCassTax,
+      pfaCassInfo: pfaCassResult,
+      totalCassTax,
       totalIncome: totalInvestmentIncome,
       totalIncome_cass: totalInvestmentIncome_cass,
       incomeTaxOnly,
@@ -3822,11 +3840,15 @@ const App = (() => {
       }
       html += dataRow(I18n.t('taxes.refundTotal'), '<strong style="color:var(--success);">' + fmtR(data.refundOwedRON) + ' RON</strong>', { topBorder: true });
     }
-    // CASS
-    html += dataRow(I18n.t('taxes.oweCASS'), fmtR(data.cassTax) + ' RON', { indent: true });
+    // CASS (investments) + CASS (PFA) — separate per Cod fiscal art. 155 + art. 170.
+    html += dataRow(I18n.t('taxes.oweCASS') + ' (investiții)', fmtR(data.cassTax) + ' RON', { indent: true });
+    if ((data.pfaCassTax || 0) > 0) {
+      html += dataRow(I18n.t('taxes.oweCASSPfa') || 'CASS datorată (PFA art. 155(1)b)', fmtR(data.pfaCassTax) + ' RON', { indent: true });
+      html += dataRow(I18n.t('taxes.oweCASSTotal') || 'Total CASS (investiții + PFA)', '<strong>' + fmtR(data.totalCassTax) + ' RON</strong>', { indent: true, topBorder: true });
+    }
     html += emptyRow();
     // Final amount: cash flow taking refund into account
-    const finalNet = incomeTaxToPay - (data.refundOwedRON || 0) + data.cassTax;
+    const finalNet = incomeTaxToPay - (data.refundOwedRON || 0) + (data.totalCassTax || data.cassTax);
     if (finalNet >= 0) {
       html += dataRow(I18n.t('taxes.oweTotalToPay'), '<strong style="color:var(--warning);font-size:1.15rem;">' + fmtR(finalNet) + ' RON</strong>', { bold: true, topBorder: true, highlight: true });
     } else {
@@ -5028,6 +5050,8 @@ const App = (() => {
     document.getElementById('input-gambling-tax-paid').value = yd.gamblingTaxPaid || '';
     document.getElementById('input-other-income').value = yd.otherIncome || '';
     document.getElementById('input-other-tax-paid').value = yd.otherTaxPaid || '';
+    const pfaInput = document.getElementById('input-pfa-net-income');
+    if (pfaInput) pfaInput.value = yd.pfaNetIncome || '';
     document.getElementById('input-exchange-rate').value = yd.exchangeRate || rate;
     const defaultEurRate = exchangeRates[selectedYear]?.eurRon || 4.97;
     document.getElementById('input-eur-rate').value = yd.eurRate || defaultEurRate;
@@ -5222,6 +5246,7 @@ const App = (() => {
       gamblingTaxPaid: document.getElementById('input-gambling-tax-paid').value,
       otherIncome: document.getElementById('input-other-income').value,
       otherTaxPaid: document.getElementById('input-other-tax-paid').value,
+      pfaNetIncome: (document.getElementById('input-pfa-net-income') || {}).value,
       stockWithholdingPaid: document.getElementById('input-stock-withholding').value,
       salaryTaxedIncome: document.getElementById('input-salary-taxed').value
     };
