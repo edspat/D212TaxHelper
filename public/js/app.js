@@ -3490,6 +3490,92 @@ const App = (() => {
 
     let html = '';
 
+    // P4 — Source badges + conflict detector.
+    // ----------------------------------------
+    // Tier emoji conventions:
+    //   🏛  ANAF official import (anaf-doc)
+    //   📄  Parsed broker document (document)
+    //   🛠  Manual override (override) — user said "I know better"
+    //   ✋  Manual Add-Data entry (manual) — no doc but typed in
+    //   🔁  Derived from another tier (derived) — e.g. USD × BNR
+    const TIER_BADGE = {
+      'anaf-doc': '🏛',
+      'document': '📄',
+      'override':  '🛠',
+      'manual':    '✋',
+      'derived':   '🔁',
+    };
+    const tierLabel = {
+      'anaf-doc': 'ANAF import',
+      'document': 'Document parsat',
+      'override': 'Override manual',
+      'manual':   'Intrare manuală',
+      'derived':  'Derivat (calcul)',
+    };
+    const renderBadge = (srcInfo) => {
+      if (!srcInfo || !srcInfo.present) return '';
+      const e = TIER_BADGE[srcInfo.tier] || '?';
+      const titleParts = [`${tierLabel[srcInfo.tier] || srcInfo.tier}: ${srcInfo.label || ''}`];
+      if (Array.isArray(srcInfo.alternates) && srcInfo.alternates.length > 0) {
+        for (const alt of srcInfo.alternates) {
+          titleParts.push(`Alternativ (${tierLabel[alt.tier] || alt.tier}): ${alt.label || ''} = ${alt.value}`);
+        }
+      }
+      const title = titleParts.join('\n').replace(/"/g, '&quot;');
+      return ` <span title="${title}" style="font-size:0.85em;opacity:0.85;cursor:help;">${e}</span>`;
+    };
+
+    // P4 — Conflict detector. Inspects every field in data.sourceMap and
+    // surfaces materially different alternates (e.g. Fidelity statement
+    // says 1350 but the Add Data form says 1200). The banner shows up
+    // only if at least one conflict exists.
+    const SR = window.SourceResolver;
+    const conflicts = [];
+    if (SR && SR.detectConflicts && data.sourceMap) {
+      const detect = SR.detectConflicts;
+      const checkField = (catLabel, fieldLabel, srcInfo) => {
+        const flags = detect(srcInfo, { absEps: 1, relEps: 0.01 });
+        for (const f of flags) {
+          conflicts.push({ cat: catLabel, field: fieldLabel, chosen: f.chosen, alternative: f.alternative, delta: f.delta });
+        }
+      };
+      const sm = data.sourceMap;
+      if (sm.usDividends) {
+        checkField('Dividende US', 'gross USD', sm.usDividends.grossUSD);
+        checkField('Dividende US', 'foreign tax USD', sm.usDividends.foreignTaxUSD);
+      }
+      if (sm.roBrokerDividends) {
+        checkField('Dividende RO broker', 'gross RON', sm.roBrokerDividends.grossRON);
+        checkField('Dividende RO broker', 'impozit reținut RON', sm.roBrokerDividends.taxWithheldRON);
+      }
+      if (sm.interest) {
+        checkField('Dobânzi', 'income RON', sm.interest.incomeRON);
+        checkField('Dobânzi', 'impozit RON', sm.interest.taxWithheldRON);
+      }
+      if (sm.usCapitalGains) {
+        checkField('Capgains US', 'taxable RON', sm.usCapitalGains.taxableRON);
+      }
+      if (sm.roBrokerGains) {
+        checkField('Capgains RO', 'long gain RON', sm.roBrokerGains.longGainRON);
+        checkField('Capgains RO', 'short gain RON', sm.roBrokerGains.shortGainRON);
+        checkField('Capgains RO', 'impozit reținut RON', sm.roBrokerGains.taxWithheldRON);
+      }
+      if (sm.salaryBIK) {
+        checkField('Salariu BIK', 'taxed RON', sm.salaryBIK.taxedRON);
+      }
+    }
+    if (conflicts.length > 0) {
+      html += '<tr><td colspan="2" style="background:rgba(255,193,7,0.10);border-left:3px solid var(--warning);padding:0.75rem 1rem;font-size:0.9rem;line-height:1.5;">';
+      html += `<strong>⚠ ${conflicts.length} conflict${conflicts.length > 1 ? 'e' : ''} între surse — doc-ul a fost folosit, manual override ignorat</strong><br/>`;
+      html += '<span style="color:var(--text-muted)">Documentul parsed a câștigat pentru fiecare câmp (tier mai înalt). Dacă vrei să folosești valoarea manuală, șterge documentul sau setează override explicit pe Add Data.</span><br/>';
+      for (const c of conflicts) {
+        const cE = TIER_BADGE[c.chosen.tier] || '?';
+        const aE = TIER_BADGE[c.alternative.tier] || '?';
+        html += `• <strong>${esc(c.cat)} — ${esc(c.field)}</strong>: folosit ${cE} ${esc(c.chosen.label || '')} = <strong>${c.chosen.value}</strong>; ignorat ${aE} ${esc(c.alternative.label || '')} = ${c.alternative.value} (Δ ${c.delta.toFixed(2)})<br/>`;
+      }
+      html += '</td></tr>';
+    }
+
     // D-9 warning banner: explain the foreign-tax assumption + cap14 emission.
     // Shown only when there's actually foreign dividend data (XTB/BT) so the
     // legend doesn't pollute the screen for users with only RO income.
@@ -3523,10 +3609,40 @@ const App = (() => {
     // === SECTION A: CE AM CÂȘTIGAT ===
     html += sectionRow('\ud83d\udcb0 ' + I18n.t('taxes.sectionEarned'));
 
+    // P4 — Source legend (collapsible). Shown only on years that have
+    // multi-tier data so users with simple setups aren't distracted.
+    const hasMultiTier = Object.values(data.sourceMap || {}).some(catSources =>
+      Object.values(catSources || {}).some(s => s && Array.isArray(s.alternates) && s.alternates.length > 0)
+    );
+    if (hasMultiTier || conflicts.length > 0) {
+      html += '<tr><td colspan="2" style="padding:0;">';
+      html += '<details style="margin:0.25rem 0;padding:0.5rem 1rem;background:var(--bg-secondary);border-radius:4px;font-size:0.85rem;">';
+      html += '<summary style="cursor:pointer;font-weight:600;">📋 Surse de date — legendă badge-uri</summary>';
+      html += '<div style="margin-top:0.5rem;line-height:1.6;">';
+      html += '<span title="Override manual: explicit user override always wins">🛠 = override manual</span> &nbsp; ';
+      html += '<span title="ANAF official import">🏛 = import ANAF (D212 PDF/XML oficial)</span> &nbsp; ';
+      html += '<span title="Parsed broker document">📄 = document broker parsat</span> &nbsp; ';
+      html += '<span title="Manual Add-Data entry">✋ = intrare manuală pe Add Data</span> &nbsp; ';
+      html += '<span title="Derived from another tier">🔁 = derivat (calcul din altă sursă)</span><br/>';
+      html += '<span style="color:var(--text-muted)">Hover pe orice badge pentru a vedea sursa exactă + alternativele ignorate.</span>';
+      html += '</div>';
+      html += '</details>';
+      html += '</td></tr>';
+    }
+
+    // P4 — Source-map shortcuts for inline badges next to the headline values.
+    const _sm = data.sourceMap || {};
+    const _bUsGain = renderBadge((_sm.usCapitalGains || {}).taxableRON);
+    const _bUsDiv = renderBadge((_sm.usDividends || {}).grossRON);
+    const _bRoLong = renderBadge((_sm.roBrokerGains || {}).longGainRON);
+    const _bRoShort = renderBadge((_sm.roBrokerGains || {}).shortGainRON);
+    const _bRoDiv = renderBadge((_sm.roBrokerDividends || {}).grossRON);
+    const _bInt = renderBadge((_sm.interest || {}).incomeRON);
+
     // -- US income --
     html += dataRow('<strong>' + I18n.t('taxes.subsectionUS') + '</strong>', '', { indent: false });
-    html += dataRow(I18n.t('taxes.earnUsGains') + data.usBrokerLabel, fmtR(usGainsRON) + ' RON', { indent: true });
-    html += dataRow(I18n.t('taxes.earnUsDiv') + data.usDivBrokerLabel, fmtR(usDivRON) + ' RON', { indent: true });
+    html += dataRow(I18n.t('taxes.earnUsGains') + data.usBrokerLabel + _bUsGain, fmtR(usGainsRON) + ' RON', { indent: true });
+    html += dataRow(I18n.t('taxes.earnUsDiv') + data.usDivBrokerLabel + _bUsDiv, fmtR(usDivRON) + ' RON', { indent: true });
     if (data.salaryTaxedRON > 0) {
       html += dataRow(I18n.t('taxes.earnSalaryTaxedDeduction') || 'Income already taxed as salary', '-' + fmtR(data.salaryTaxedRON) + ' RON', { indent: true, green: true });
     }
@@ -3535,9 +3651,9 @@ const App = (() => {
 
     // -- Romania income --
     html += dataRow('<strong>' + I18n.t('taxes.subsectionRO') + '</strong>', '', { indent: false });
-    html += dataRow(I18n.t('taxes.earnRoGainsLong') + data.roBrokerLabel, fmtR(roLong) + ' RON', { indent: true });
-    html += dataRow(I18n.t('taxes.earnRoGainsShort') + data.roBrokerLabel, fmtR(roShort) + ' RON', { indent: true });
-    html += dataRow(I18n.t('taxes.earnRoDiv') + data.roBrokerLabel, fmtR(roDivGross) + ' RON', { indent: true });
+    html += dataRow(I18n.t('taxes.earnRoGainsLong') + data.roBrokerLabel + _bRoLong, fmtR(roLong) + ' RON', { indent: true });
+    html += dataRow(I18n.t('taxes.earnRoGainsShort') + data.roBrokerLabel + _bRoShort, fmtR(roShort) + ' RON', { indent: true });
+    html += dataRow(I18n.t('taxes.earnRoDiv') + data.roBrokerLabel + _bRoDiv, fmtR(roDivGross) + ' RON', { indent: true });
     // D-9: Foreign-source dividends via Romanian broker — show per-country
     // breakdown beneath the legacy aggregate so the user can verify the
     // cap14 emission. The legacy aggregate already includes these amounts.
@@ -3559,7 +3675,7 @@ const App = (() => {
         { indent: true, muted: true }
       );
     }
-    html += dataRow(I18n.t('taxes.earnInterest'), fmtR(data.interestIncomeRON) + ' RON', { indent: true });
+    html += dataRow(I18n.t('taxes.earnInterest') + _bInt, fmtR(data.interestIncomeRON) + ' RON', { indent: true });
     if (gamblingIncome > 0) {
       html += dataRow(I18n.t('taxes.earnGambling'), fmtR(gamblingIncome) + ' RON', { indent: true });
     }
