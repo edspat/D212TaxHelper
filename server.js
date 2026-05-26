@@ -459,10 +459,20 @@ app.post('/api/export/audit-pack/:year', (req, res) => {
     const rawFiles = [];
     try {
       const names = fs.readdirSync(DATA_DIR)
-        .filter(f => f.endsWith(rawSuffix))
+        // Defense-in-depth: ignore anything that looks like a path traversal
+        // attempt or subdirectory navigation. The endsWith check already
+        // excludes most files, but a symlink/junction with the right suffix
+        // could still slip through and have the system read an unrelated file.
+        .filter(f => f.endsWith(rawSuffix) && !f.includes('..') && !f.includes('/') && !f.includes('\\'))
         .sort();
       for (const name of names) {
-        const content = fs.readFileSync(path.join(DATA_DIR, name), 'utf8');
+        const fullPath = path.join(DATA_DIR, name);
+        // Skip symlinks/junctions whose target resolves outside DATA_DIR.
+        try {
+          const real = fs.realpathSync(fullPath);
+          if (!real.startsWith(DATA_DIR)) continue;
+        } catch (e) { continue; }
+        const content = fs.readFileSync(fullPath, 'utf8');
         rawFiles.push({ name, content });
       }
     } catch (e) {

@@ -2099,10 +2099,20 @@ const App = (() => {
     // CAS deductible currently 0 (we don't yet model CAS pension — that's a
     // separate enhancement; the bulk of small PFAs don't owe CAS because
     // they have employee CAS retention from another job).
+    //
+    // GAP (acknowledged): a higher-income PFA (venit > 12 SM) DOES owe CAS
+    // 25% × baza_aleasa per art. 148. When that lands, this block needs:
+    //   const pfaCasDeductible = (pondere × cas_datorat);
+    //   const pfaTaxableIncome = max(0, pfaNetIncome − pfaCasDeductible − pfaCassDeductible);
+    // For now, users with high PFA CAS would over-state their PFA income tax
+    // by the CAS amount. Documented in lib/rules-catalog.js (pfa-income-tax).
     const pfaCassActualRate = (pfaNetIncome > 0) ? Math.min(pfaCassTax, pfaNetIncome * 0.10) : 0;
     const pfaCassDeductible = pfaCassActualRate;
     const pfaTaxableIncome = Math.max(0, pfaNetIncome - pfaCassDeductible);
-    const pfaIncomeTaxRate = 0.10; // 10% flat (Cod fiscal art. 64-67)
+    // Per OUG 156/2024 we keep the PFA income tax rate at 10% — the law text
+    // changes dividend (8→10%) and interest (10→16%) but does NOT touch PFA
+    // (Cod fiscal art. 64). Update if a later ordinance modifies art. 64.
+    const pfaIncomeTaxRate = 0.10;
     const pfaIncomeTax = Math.round(pfaTaxableIncome * pfaIncomeTaxRate);
 
     const totalCassTax = cassTax + pfaCassTax;
