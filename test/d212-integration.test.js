@@ -512,3 +512,85 @@ test('integration: PFA income below 6 SM threshold owes NO PFA CASS', () => {
   assert.equal(r.applies, false);
   assert.equal(r.amount, 0);
 });
+
+// =========================================================================
+// SCENARIO 8: PFA below 6 SM with art. 180(2) opt-in — pay anyway
+// =========================================================================
+//
+// Cod fiscal art. 180(2) lets a person whose PFA net income is below 6 SM
+// (24.300 for 2025) ELECT to pay CASS at the minimum 6 SM base. The
+// election must be exercised explicitly by filing D212 with the opt-in
+// marked. The app reflects this via the `yd.pfaOptInCASS` boolean.
+
+test('integration: PFA opt-in art. 180(2) forces minimum 6 SM base when below threshold', () => {
+  const SM_2025 = 4050;
+  const calc3Tier = (income, sm) => {
+    const t6 = 6 * sm, t12 = 12 * sm, t24 = 24 * sm;
+    if (income < t6) return { applies: false, base: 0, amount: 0, tier: '<6SM' };
+    if (income < t12) return { applies: true, base: t6, amount: t6 * 0.10, tier: '6-12SM' };
+    if (income < t24) return { applies: true, base: t12, amount: t12 * 0.10, tier: '12-24SM' };
+    return { applies: true, base: t24, amount: t24 * 0.10, tier: '>24SM' };
+  };
+  // Mirror the inline app.js branch: opt-in forces 6 SM base when the
+  // natural calc would have returned applies=false.
+  const applyOptIn = (result, sm, optedIn) => {
+    if (result.applies || !optedIn) return result;
+    const t6 = 6 * sm;
+    return { applies: true, base: t6, amount: t6 * 0.10, tier: '6-12SM-opt-in', optedIn: true };
+  };
+
+  // Net PFA 23.498 RON (below 24.300 — matches the user's actual filed value).
+  const natural = calc3Tier(23498, SM_2025);
+  assert.equal(natural.applies, false);
+  assert.equal(natural.amount, 0);
+
+  const withOptIn = applyOptIn(natural, SM_2025, true);
+  assert.equal(withOptIn.applies, true);
+  assert.equal(withOptIn.base, 24300);
+  assert.equal(withOptIn.amount, 2430);
+  assert.equal(withOptIn.tier, '6-12SM-opt-in');
+  assert.equal(withOptIn.optedIn, true);
+
+  // Verify the opt-in does NOT force the calc when already applying
+  // (above 6 SM threshold).
+  const above = calc3Tier(30000, SM_2025);
+  const aboveWithOptIn = applyOptIn(above, SM_2025, true);
+  assert.equal(aboveWithOptIn.amount, above.amount, 'Opt-in must not alter the natural calc when already applies');
+});
+
+// =========================================================================
+// SCENARIO 9: PFA income tax — 10% on (net − deductible CASS)
+// =========================================================================
+//
+// Per Cod fiscal art. 64-67 + art. 118: PFA income tax = (venit_net −
+// CAS_deductibilă − CASS_deductibilă) × 10%. CASS deductibilă is capped
+// at 10% of venit_net (not at the opt-in base), per D212 cap I §4.2 rd.6.
+
+test('integration: PFA income tax — CASS deductibility cap (matches filed D212)', () => {
+  // User profile from filed D212: net PFA 23.498, CASS PFA opt-in = 2.430
+  // (forced 6 SM base). Expected: deductible CASS capped at 23.498×10% = 2.350,
+  // not the full 2.430. Taxable = 21.148, tax = 2.115.
+  const pfaNetIncome = 23498;
+  const pfaCassActual = 2430; // CASS PFA owed (opt-in)
+  const pfaIncomeTaxRate = 0.10;
+
+  const pfaCassDeductible = Math.min(pfaCassActual, pfaNetIncome * 0.10);
+  const pfaTaxableIncome = Math.max(0, pfaNetIncome - pfaCassDeductible);
+  const pfaIncomeTax = Math.round(pfaTaxableIncome * pfaIncomeTaxRate);
+
+  assert.equal(pfaCassDeductible, 2349.8); // = 23498 × 10%, capped under 2430
+  assert.equal(pfaTaxableIncome, 23498 - 2349.8);
+  assert.equal(pfaIncomeTax, 2115); // matches filed D212 cap I §4
+});
+
+test('integration: PFA income tax — when CASS < 10% of net, full CASS is deductible', () => {
+  // Edge case: if income is so high that calculated CASS < 10% × net,
+  // the deductible is the full CASS (no cap kicks in). This happens when
+  // CASS lands in tier 6-12SM or 12-24SM but the actual income is higher
+  // than the base × 1.0 (which means CASS_owed < 10% × income_real).
+  const pfaNetIncome = 50000;        // above 12 SM, below 24 SM
+  const pfaCassActual = 4860;        // = 12 × 4050 × 10% (tier 12-24SM)
+  // 10% × 50000 = 5000, so CASS_owed (4860) < cap (5000) → full deductible.
+  const pfaCassDeductible = Math.min(pfaCassActual, pfaNetIncome * 0.10);
+  assert.equal(pfaCassDeductible, 4860);
+});

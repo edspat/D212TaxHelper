@@ -2069,15 +2069,45 @@ const App = (() => {
     // category has its own threshold ladder (6/12/24 SM) and its own base.
     // A user with BOTH PFA and investment income owes the SUM, not the cap.
     // Reference: D212 cap I §3 subsec 2.1 (PFA) vs subsec 2.2 (investments).
-    // The same 3-tier formula applies — only the input changes.
+    //
+    // Opt-in branch (Cod fiscal art. 180 alin. (2)): even if the PFA net
+    // income is below the 6 SM threshold, the user MAY elect to pay CASS
+    // at the minimum base of 6 SM. The election is exercised by filing
+    // D212 with the opt-in marked. We mirror that semantics here: if
+    // `pfaOptInCASS` is truthy AND the natural calc says applies=false,
+    // we force base = 6 SM and amount = 10% × 6 SM.
     const pfaNetIncome = parseFloat(yd.pfaNetIncome) || 0;
-    const pfaCassResult = pfaNetIncome > 0
+    const pfaOptInCASS = !!yd.pfaOptInCASS;
+    let pfaCassResult = pfaNetIncome > 0
       ? calculateCASS(pfaNetIncome, year, savedMinSalary, 'investment')
       : { applies: false, base: 0, amount: 0, tier: '<6SM' };
+    if (!pfaCassResult.applies && pfaOptInCASS) {
+      const _sm = savedMinSalary || (cassThresholds[year] || cassThresholds[2025]).minSalary;
+      const _t6 = 6 * _sm;
+      pfaCassResult = { applies: true, base: _t6, amount: _t6 * 0.10, tier: '6-12SM-opt-in', optedIn: true };
+    }
     const pfaCassTax = pfaCassResult.amount || 0;
+
+    // PFA income tax — Cod fiscal art. 84 + art. 118 (CAS + CASS deductible
+    // for income tax basis). Formula per D212 cap I §4:
+    //   chelt_CASS_deductibilă = min(CASS_datorat, venit_net × 10%)
+    //                          (D212 cap I §4.2 rd.6 — "CASS calculată
+    //                          asupra veniturilor nete realizate")
+    //   venit_impozabil        = max(0, venit_net − CAS_deductibilă − chelt_CASS_deductibilă)
+    //   impozit_PFA            = venit_impozabil × 10%
+    //
+    // CAS deductible currently 0 (we don't yet model CAS pension — that's a
+    // separate enhancement; the bulk of small PFAs don't owe CAS because
+    // they have employee CAS retention from another job).
+    const pfaCassActualRate = (pfaNetIncome > 0) ? Math.min(pfaCassTax, pfaNetIncome * 0.10) : 0;
+    const pfaCassDeductible = pfaCassActualRate;
+    const pfaTaxableIncome = Math.max(0, pfaNetIncome - pfaCassDeductible);
+    const pfaIncomeTaxRate = 0.10; // 10% flat (Cod fiscal art. 64-67)
+    const pfaIncomeTax = Math.round(pfaTaxableIncome * pfaIncomeTaxRate);
+
     const totalCassTax = cassTax + pfaCassTax;
 
-    const incomeTaxGross = decl.totalTax || (dividendTaxRON + capitalGainsTaxRON + interestTax + rentalTaxToPay + royaltyTaxToPay + otherTaxToPay);
+    const incomeTaxGross = decl.totalTax || (dividendTaxRON + capitalGainsTaxRON + interestTax + rentalTaxToPay + royaltyTaxToPay + otherTaxToPay + pfaIncomeTax);
     const incomeTaxOnly = incomeTaxGross;
     const totalTax = incomeTaxOnly + totalCassTax;
 
@@ -2417,10 +2447,15 @@ const App = (() => {
       cassTax,
       cassApplies,
       cassInfo,
-      // PFA (activități independente) CASS — separate from investment CASS.
+      // PFA (activități independente) CASS + income tax — separate from investment CASS.
       pfaNetIncome,
+      pfaOptInCASS,
       pfaCassTax,
       pfaCassInfo: pfaCassResult,
+      pfaCassDeductible,
+      pfaTaxableIncome,
+      pfaIncomeTax,
+      pfaIncomeTaxRate,
       totalCassTax,
       totalIncome: totalInvestmentIncome,
       totalIncome_cass: totalInvestmentIncome_cass,
@@ -3708,7 +3743,10 @@ const App = (() => {
     if (data.otherGross > 0) {
       html += dataRow(I18n.t('taxes.earnOther'), fmtR(data.otherGross) + ' RON', { indent: true });
     }
-    const roSubtotalIncome = roLong + roShort + roDivGross + data.interestIncomeRON + gamblingIncome + data.rentalGross + data.royaltyGross + data.otherGross;
+    if ((data.pfaNetIncome || 0) > 0) {
+      html += dataRow(I18n.t('taxes.earnPfa') || 'Venit net PFA (activități independente)', fmtR(data.pfaNetIncome) + ' RON', { indent: true });
+    }
+    const roSubtotalIncome = roLong + roShort + roDivGross + data.interestIncomeRON + gamblingIncome + data.rentalGross + data.royaltyGross + data.otherGross + (data.pfaNetIncome || 0);
     html += dataRow(I18n.t('taxes.subtotalRO'), fmtR(roSubtotalIncome) + ' RON', { indent: true, bold: true, topBorder: true });
 
     // -- Foreign-broker income (Revolut) --
@@ -3822,8 +3860,16 @@ const App = (() => {
     if (data.otherGross > 0) {
       html += dataRow(I18n.t('taxes.oweOther'), fmtR(data.otherTaxToPay) + ' RON', { indent: true });
     }
+    // PFA income tax (art. 84 + 118: CASS deductible from base)
+    if ((data.pfaNetIncome || 0) > 0) {
+      html += dataRow(I18n.t('taxes.owePfa') || 'Impozit PFA (10%, art. 64-67)', fmtR(data.pfaIncomeTax || 0) + ' RON', { indent: true });
+      if ((data.pfaCassDeductible || 0) > 0) {
+        html += dataRow(I18n.t('taxes.pfaCassDed') || '&nbsp;&nbsp;− CASS deductibilă (art. 118)', '-' + fmtR(data.pfaCassDeductible) + ' RON', { indent: true, muted: true });
+        html += dataRow(I18n.t('taxes.pfaTaxable') || '&nbsp;&nbsp;= venit impozabil', fmtR(data.pfaTaxableIncome || 0) + ' RON', { indent: true, muted: true });
+      }
+    }
     // Subtotal income tax
-    const incomeTaxToPay = Math.max(0, usGainsTax) + usDivTax + roCapGainsNetOwed + revolutTaxOwed + roDivNetOwed + interestTaxRemaining + (data.rentalTaxToPay || 0) + (data.royaltyTaxToPay || 0) + (data.otherTaxToPay || 0);
+    const incomeTaxToPay = Math.max(0, usGainsTax) + usDivTax + roCapGainsNetOwed + revolutTaxOwed + roDivNetOwed + interestTaxRemaining + (data.rentalTaxToPay || 0) + (data.royaltyTaxToPay || 0) + (data.otherTaxToPay || 0) + (data.pfaIncomeTax || 0);
     html += dataRow(I18n.t('taxes.oweIncomeTaxSubtotal'), '<strong>' + fmtR(incomeTaxToPay) + ' RON</strong>', { topBorder: true });
     // Refund: when Romanian broker withheld more than the actual tax due (after losses)
     if ((data.refundOwedRON || 0) > 0) {
@@ -5052,6 +5098,8 @@ const App = (() => {
     document.getElementById('input-other-tax-paid').value = yd.otherTaxPaid || '';
     const pfaInput = document.getElementById('input-pfa-net-income');
     if (pfaInput) pfaInput.value = yd.pfaNetIncome || '';
+    const pfaOptIn = document.getElementById('input-pfa-opt-in-cass');
+    if (pfaOptIn) pfaOptIn.checked = !!yd.pfaOptInCASS;
     document.getElementById('input-exchange-rate').value = yd.exchangeRate || rate;
     const defaultEurRate = exchangeRates[selectedYear]?.eurRon || 4.97;
     document.getElementById('input-eur-rate').value = yd.eurRate || defaultEurRate;
@@ -5247,6 +5295,7 @@ const App = (() => {
       otherIncome: document.getElementById('input-other-income').value,
       otherTaxPaid: document.getElementById('input-other-tax-paid').value,
       pfaNetIncome: (document.getElementById('input-pfa-net-income') || {}).value,
+      pfaOptInCASS: !!(document.getElementById('input-pfa-opt-in-cass') || {}).checked,
       stockWithholdingPaid: document.getElementById('input-stock-withholding').value,
       salaryTaxedIncome: document.getElementById('input-salary-taxed').value
     };
