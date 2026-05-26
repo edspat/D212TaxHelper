@@ -210,6 +210,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 const BROWSER_LIB_FILES = new Set([
   'source-resolver.js',
   'income-resolvers.js',
+  'rules-catalog.js',
 ]);
 app.get('/lib/:filename', (req, res) => {
   const filename = path.basename(req.params.filename);

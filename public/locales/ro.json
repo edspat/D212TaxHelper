@@ -85,6 +85,7 @@
     "subValidate": "🔬 Validează & pregătește",
     "subSubmit": "🧭 Ghid depunere ANAF",
     "subRaw": "📜 Date brute",
+    "subRules": "⚖️ Reguli & Referințe",
     "income": "Detalii Venituri",
     "taxes": "Calcul Impozite",
     "validate": "🔬 Validare & Pregătire D212",
@@ -92,6 +93,22 @@
     "input": "Adaugă Date",
     "import": "Importă Document",
     "raw": "Date Brute"
+  },
+  "rules": {
+    "title": "⚖️ Reguli & Referințe fiscale",
+    "intro": "Sursa de adevăr pentru fiecare calcul: articol Cod fiscal, paragraf instrucțiuni D212, formulă verbatim și pointer la implementare. Conceput pentru a fi citit de contabili / auditori care vor să verifice corectitudinea cifrelor.",
+    "howToUse": "Cum să folosești această pagină",
+    "howToUseBody": "Fiecare card reprezintă o regulă fiscală implementată în aplicație. Citește citatele legale, formula verbatim și pointer-ul la cod. Dacă observi o regulă lipsă sau o discrepanță, ",
+    "submitMissing": "deschide un issue",
+    "verified": "Verificat",
+    "taxRates": "Cote impozit",
+    "codFiscal": "Cod fiscal",
+    "instructions": "Instrucțiuni D212",
+    "formula": "Formulă",
+    "example": "Exemplu",
+    "input": "Intrare",
+    "seeAlso": "Vezi și",
+    "footnote": "Sursele oficiale sunt în <code>docs/anaf/d212-2025/</code>. Toate citările trebuie verificate împotriva PDF-urilor ANAF."
   },
   "validate": {
     "title": "🔬 Validare & Pregătire D212",

@@ -533,7 +533,8 @@ const App = (() => {
       { id: 'submit',   i18n: 'nav.subSubmit',   fallback: '🧭 Ghid depunere ANAF' },
     ],
     advanced: [
-      { id: 'raw', i18n: 'nav.subRaw', fallback: '📜 Raw Data' },
+      { id: 'raw',   i18n: 'nav.subRaw',   fallback: '📜 Raw Data' },
+      { id: 'rules', i18n: 'nav.subRules', fallback: '⚖️ Reguli & Referințe' },
     ],
   };
   // Reverse map for routing legacy subtab names through their parent group.
@@ -621,6 +622,7 @@ const App = (() => {
 
     // Section-specific render hooks — keep behavior parity with the old flow.
     if (subtab === 'raw') loadRawFiles();
+    if (subtab === 'rules') renderRulesPage();
     if (subtab === 'input') populateForm();
     if (subtab === 'import') renderImportExistingPanel();
     if (subtab === 'submit') wireSubmitTabLinks();
@@ -6156,6 +6158,94 @@ const App = (() => {
     submitBtn.style.removeProperty('background');
     submitBtn.style.minWidth = '';
     if (typeof indInterval !== 'undefined') clearInterval(indInterval);
+  }
+
+  // ============ RULES & REFERENCES (P2) ============
+  /**
+   * Render the accountant-facing rules catalog page. Pulls from
+   * `lib/rules-catalog.js` (loaded as window.RulesCatalog) and produces
+   * a card-per-rule layout grouped by category. Legal text stays in
+   * Romanian (preserved verbatim from sources); chrome labels come from
+   * the locale files.
+   */
+  function renderRulesPage() {
+    const container = document.getElementById('rules-content');
+    if (!container) return;
+    const RC = window.RulesCatalog;
+    if (!RC || !Array.isArray(RC.RULES)) {
+      container.innerHTML = '<p style="color:var(--danger)">RulesCatalog missing — was /lib/rules-catalog.js loaded?</p>';
+      return;
+    }
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const grouped = RC.getRulesByCategory();
+    const categoryOrder = Object.keys(RC.CATEGORIES);
+    const tStaleDays = 365; // > 1 year unchecked = visual warning
+    const today = Date.now();
+
+    const ruleCard = (r) => {
+      const verifiedTs = r.lastVerified ? Date.parse(r.lastVerified) : 0;
+      const ageDays = verifiedTs ? Math.floor((today - verifiedTs) / 86400000) : null;
+      const stale = ageDays !== null && ageDays > tStaleDays;
+      const verifiedBadge = r.lastVerified
+        ? `<span style="font-size:0.8rem;color:${stale ? 'var(--danger)' : 'var(--text-muted)'};margin-left:0.5rem;">${I18n.t('rules.verified') || 'Verificat'}: ${esc(r.lastVerified)}${stale ? ' ⚠' : ''}</span>`
+        : '';
+      const rates = (r.taxRates || []).map(s => `<li>${esc(s)}</li>`).join('');
+      const formula = (r.formula || []).map(s => esc(s)).join('\n');
+      const seeAlso = (r.seeAlso || [])
+        .map(id => `<a href="#rule-${esc(id)}" style="color:var(--accent);text-decoration:none;">${esc(id)}</a>`)
+        .join(' · ');
+      const exampleBlock = r.example
+        ? `<div style="margin-top:0.5rem;padding:0.5rem;background:var(--bg-secondary);border-radius:4px;font-size:0.88rem;">
+             <strong>${I18n.t('rules.example') || 'Exemplu'}:</strong>
+             <div style="margin-top:0.3rem;"><em>${I18n.t('rules.input') || 'Intrare'}:</em> ${esc(r.example.input)}</div>
+             <pre style="margin:0.3rem 0 0 0;padding:0.3rem;background:var(--bg);border-radius:3px;font-size:0.85rem;white-space:pre-wrap;">${esc(r.example.output)}</pre>
+           </div>`
+        : '';
+      const narrativeBlock = r.narrative
+        ? `<div style="margin-top:0.5rem;font-size:0.9rem;line-height:1.4;">${esc(r.narrative)}</div>`
+        : '';
+      const seeAlsoBlock = seeAlso
+        ? `<div style="margin-top:0.4rem;font-size:0.85rem;color:var(--text-muted);">${I18n.t('rules.seeAlso') || 'Vezi și'}: ${seeAlso}</div>`
+        : '';
+      return `
+        <div id="rule-${esc(r.id)}" class="card" style="margin-bottom:0.75rem;padding:0.9rem 1rem;">
+          <h3 style="margin:0 0 0.4rem 0;font-size:1.05rem;">${esc(r.title)}${verifiedBadge}</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.88rem;">
+            <div><strong>${I18n.t('rules.taxRates') || 'Cote impozit'}:</strong><ul style="margin:0.2rem 0 0 1rem;padding:0;">${rates}</ul></div>
+            <div>
+              <div><strong>${I18n.t('rules.codFiscal') || 'Cod fiscal'}:</strong> ${esc(r.lawArticle)}</div>
+              <div><strong>${I18n.t('rules.instructions') || 'Instrucțiuni D212'}:</strong> ${esc(r.instructionParagraph)}</div>
+            </div>
+          </div>
+          <div style="margin-top:0.5rem;">
+            <strong>${I18n.t('rules.formula') || 'Formulă'}:</strong>
+            <pre style="margin:0.3rem 0 0 0;padding:0.5rem;background:var(--bg-secondary);border-radius:4px;font-size:0.85rem;line-height:1.35;white-space:pre-wrap;">${esc(formula)}</pre>
+          </div>
+          ${narrativeBlock}
+          ${exampleBlock}
+          <div style="margin-top:0.5rem;font-size:0.8rem;color:var(--text-muted);">
+            <code>${esc(r.codeRef)}</code>
+          </div>
+          ${seeAlsoBlock}
+        </div>
+      `;
+    };
+
+    const groupTitle = (key) => `<h2 style="margin:1.5rem 0 0.75rem 0;font-size:1.2rem;">${esc(RC.CATEGORIES[key])}</h2>`;
+
+    let html = `<div style="margin-bottom:1rem;padding:0.75rem 1rem;background:rgba(13,110,253,0.08);border-left:3px solid var(--info,#0d6efd);font-size:0.9rem;line-height:1.4;border-radius:4px;">`;
+    html += `<strong>${I18n.t('rules.howToUse') || 'Cum să folosești această pagină'}:</strong> `;
+    html += I18n.t('rules.howToUseBody') || 'Fiecare card reprezintă o regulă fiscală implementată în aplicație. Citește citatele legale, formula verbatim și pointer-ul la cod. Dacă observi o regulă lipsă sau o discrepanță, ';
+    html += `<a href="https://github.com/edspat/D212TaxHelper/issues/new?template=missing-rule.md" target="_blank" rel="noopener" style="color:var(--accent);">${I18n.t('rules.submitMissing') || 'deschide un issue'}</a>.`;
+    html += `</div>`;
+    for (const cat of categoryOrder) {
+      const rules = grouped[cat] || [];
+      if (rules.length === 0) continue;
+      html += groupTitle(cat);
+      for (const r of rules) html += ruleCard(r);
+    }
+    html += `<p style="margin-top:1.5rem;font-size:0.85rem;color:var(--text-muted);text-align:center;">${I18n.t('rules.footnote') || 'Sursele oficiale sunt în <code>docs/anaf/d212-2025/</code>. Toate citările trebuie verificate împotriva PDF-urilor ANAF.'}</p>`;
+    container.innerHTML = html;
   }
 
   // ============ RAW DATA ============

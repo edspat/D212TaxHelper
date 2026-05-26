@@ -85,6 +85,7 @@
     "subValidate": "🔬 Validate & prepare",
     "subSubmit": "🧭 ANAF submission guide",
     "subRaw": "📜 Raw data",
+    "subRules": "⚖️ Rules & References",
     "income": "Income Details",
     "taxes": "Tax Calculation",
     "validate": "🔬 Validate & Prepare D212",
@@ -92,6 +93,22 @@
     "input": "Add Data",
     "import": "Import Document",
     "raw": "Raw Data"
+  },
+  "rules": {
+    "title": "⚖️ Fiscal Rules & References",
+    "intro": "Source of truth for every computation: Cod fiscal article, D212 instruction paragraph, verbatim formula, and pointer to the implementation. Built for Romanian accountants / auditors who want to verify the numbers.",
+    "howToUse": "How to use this page",
+    "howToUseBody": "Each card represents one fiscal rule implemented in the app. Read the legal citations, the verbatim formula and the code pointer. If you spot a missing rule or a discrepancy, ",
+    "submitMissing": "open an issue",
+    "verified": "Verified",
+    "taxRates": "Tax rates",
+    "codFiscal": "Cod fiscal",
+    "instructions": "D212 Instructions",
+    "formula": "Formula",
+    "example": "Example",
+    "input": "Input",
+    "seeAlso": "See also",
+    "footnote": "Official sources are in <code>docs/anaf/d212-2025/</code>. Every citation must be verified against the ANAF PDFs."
   },
   "validate": {
     "title": "🔬 Validate & Prepare D212",

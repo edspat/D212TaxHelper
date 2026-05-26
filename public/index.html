@@ -933,6 +933,15 @@
         <textarea id="raw-editor" class="raw-text-box hidden" rows="20"></textarea>
       </div>
     </section>
+    <!-- Rules & References Tab (P2) -->
+    <section id="tab-rules" class="tab-content">
+      <div class="card">
+        <h2 data-i18n="rules.title">⚖️ Reguli & Referințe fiscale</h2>
+        <p style="color:var(--text-muted);font-size:0.92rem;" data-i18n="rules.intro">Sursa de adevăr pentru fiecare calcul: articol Cod fiscal, paragraf instrucțiuni D212, formulă verbatim și pointer la implementare. Conceput pentru a fi citit de contabili / auditori care vor să verifice corectitudinea cifrelor.</p>
+        <div id="rules-content"></div>
+      </div>
+    </section>
+
   </main>
 
   <footer>
@@ -1052,6 +1061,7 @@
   -->
   <script src="/lib/source-resolver.js"></script>
   <script src="/lib/income-resolvers.js"></script>
+  <script src="/lib/rules-catalog.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>
