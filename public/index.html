@@ -289,8 +289,10 @@
         <p class="subtitle" data-i18n="taxes.dclSubtitle">Use these values to fill in the Declarație Unică D212 form on ANAF portal.</p>
         <p style="margin-top:0.5rem;"><a href="https://www.anaf.ro/declaratii/duf" target="anaf_d212" rel="noopener" class="btn-primary" style="display:inline-block;padding:0.5rem 1.2rem;text-decoration:none;font-size:0.9rem;" onclick="window.open(this.href,'anaf_d212','width=1200,height=900,menubar=no,toolbar=no,location=yes,status=no,scrollbars=yes,resizable=yes');return false;" data-i18n="taxes.dclOpenANAF">🔗 Open D212 Form on ANAF</a>
         <button type="button" id="btn-export-d212-xml" class="btn-primary" style="margin-left:0.5rem;padding:0.5rem 1.2rem;font-size:0.9rem;" data-i18n="taxes.exportXml">📤 Exportă D212 XML (skeleton)</button>
+        <button type="button" id="btn-export-audit-pack" class="btn-primary" style="margin-left:0.5rem;padding:0.5rem 1.2rem;font-size:0.9rem;background:var(--success);" data-i18n="taxes.exportAuditPack">📦 Exportă pachet control ANAF</button>
         </p>
         <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.4rem;" data-i18n="taxes.exportXmlHint">XML-ul generat conține cap11/cap14 cu valorile calculate; deschide-l în tool-ul ANAF, completează datele personale (nume, CNP, IBAN) și depune-l prin SPV.</p>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem;" data-i18n="taxes.exportAuditPackHint">Pachet ZIP cu toate documentele necesare verificării calculelor (raport-uri broker text, JSON parsate, rate BNR, metodologie, trace calcul). Conține date sensibile — nu îl trimite prin email.</p>
         <p class="subtitle" style="font-size:0.75rem;color:var(--text-muted);" data-i18n="taxes.dclVersion">Version: A1.0.6/08.12.2025</p>
 
         <div class="dcl-section">

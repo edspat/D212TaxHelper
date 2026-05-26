@@ -193,6 +193,10 @@ const App = (() => {
     const xmlBtn = document.getElementById('btn-export-d212-xml');
     if (xmlBtn) xmlBtn.addEventListener('click', () => exportD212Xml(selectedYear));
 
+    // P3 — export ANAF audit pack (ZIP with all supporting documents)
+    const auditBtn = document.getElementById('btn-export-audit-pack');
+    if (auditBtn) auditBtn.addEventListener('click', () => exportAuditPack(selectedYear));
+
     // Fetch OCR engine status
     fetchOcrStatus();
 
@@ -5231,6 +5235,59 @@ const App = (() => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       showToast(I18n.t('taxes.exportXmlDone') || `XML salvat: D212_${year}_skeleton.xml`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  /**
+   * P3 — Export ANAF audit pack as a deterministic ZIP archive.
+   *
+   * Posts the current year's computed values + (if available) generated
+   * D212 XML to the server, which adds raw broker statements + parsed
+   * JSON + methodology + BNR rates and streams back a ZIP file.
+   */
+  async function exportAuditPack(year) {
+    try {
+      const computed = computeYearData(year);
+      // Best-effort: also try to grab the generated XML from the same
+      // path the export-xml button uses; ignore failures (the pack
+      // simply won't include it).
+      let generatedXml = null;
+      try {
+        const xmlResp = await fetch(`/api/d212-xml/${year}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cap11Rows: computed.cap11Rows || [],
+            cap14Rows: computed.cap14Rows || [],
+            obligRealizat: computed.obligRealizat || null,
+          }),
+        });
+        if (xmlResp.ok) generatedXml = await xmlResp.text();
+      } catch (e) { /* not fatal */ }
+
+      const resp = await fetch(`/api/export/audit-pack/${year}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ computed, generatedXml }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: resp.statusText }));
+        throw new Error(err.error || `HTTP ${resp.status}`);
+      }
+      const blob = await resp.blob();
+      const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `D212-audit-pack-${year}-${today}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      const sizeKB = (blob.size / 1024).toFixed(1);
+      showToast((I18n.t('taxes.exportAuditPackDone') || 'Pachet audit salvat') + ` (${sizeKB} KB)`, 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }

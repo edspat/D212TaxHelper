@@ -13,6 +13,7 @@ const { parseXtbDividends, parseXtbPortfolio } = require('./lib/parsers/xtb');
 const { parseBtDividends, parseBtPortfolio } = require('./lib/parsers/bt');
 const { parseRevolutStatement } = require('./lib/parsers/revolut');
 const { buildD212Xml } = require('./lib/d212-xml-builder');
+const { buildAuditPack } = require('./lib/audit-pack-builder');
 const { parseD212Xml } = require('./lib/d212-xml-parser');
 
 // ============ PaddleOCR CONFIGURATION ============
@@ -428,6 +429,63 @@ app.get('/api/raw', (req, res) => {
     res.json(result);
   } catch (err) {
     res.json([]);
+  }
+});
+
+// POST /api/export/audit-pack/:year
+//
+// Build a ZIP archive containing every supporting document needed to
+// reproduce the D212 declaration for the given year. The pack is
+// deterministic — same inputs produce byte-identical output — and is
+// streamed directly back to the browser, NEVER persisted on disk or
+// posted to any external service (P3 spec).
+//
+// Optional body: { computed: { ... computeYearData output ... }, generatedXml: '...' }
+// (UI passes these because they only exist client-side.)
+app.post('/api/export/audit-pack/:year', (req, res) => {
+  try {
+    const year = parseInt(req.params.year, 10);
+    if (!year || year < 2019 || year > 2099) {
+      return res.status(400).json({ error: 'Invalid year' });
+    }
+    const yearData = db.getYearData(year) || {};
+    const computed = req.body && req.body.computed ? req.body.computed : null;
+    const generatedXml = req.body && req.body.generatedXml ? String(req.body.generatedXml) : null;
+
+    // Collect raw broker text files for this year. We keep the filename
+    // as the broker emitted it (matches the data/ folder convention),
+    // sorted for deterministic ordering.
+    const rawSuffix = `_${year}_raw.txt`;
+    const rawFiles = [];
+    try {
+      const names = fs.readdirSync(DATA_DIR)
+        .filter(f => f.endsWith(rawSuffix))
+        .sort();
+      for (const name of names) {
+        const content = fs.readFileSync(path.join(DATA_DIR, name), 'utf8');
+        rawFiles.push({ name, content });
+      }
+    } catch (e) {
+      // Best-effort — if data dir read fails, ship the pack without raw files.
+    }
+
+    let appVersion = '';
+    try {
+      const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+      appVersion = pkg.version || '';
+    } catch (e) { /* ignore */ }
+
+    const buf = buildAuditPack({ year, yearData, computed, rawFiles, generatedXml, appVersion });
+
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const filename = `D212-audit-pack-${year}-${today}.zip`;
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', String(buf.length));
+    res.send(buf);
+  } catch (err) {
+    console.error('[audit-pack]', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
