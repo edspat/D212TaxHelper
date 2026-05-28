@@ -41,3 +41,63 @@ jobs:
 
       - name: Unit + e2e tests
         run: npm test
+
+  pr-cleanliness:
+    name: pr-cleanliness
+    runs-on: ubuntu-latest
+    # Only meaningful for PRs (compares against the target branch).
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify PR contains no .gitignored files
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          echo "Base: $BASE_SHA"
+          echo "Head: $HEAD_SHA"
+
+          # Files added or modified by this PR (deletions are fine).
+          mapfile -t CHANGED < <(git diff --name-only --diff-filter=AM "$BASE_SHA...$HEAD_SHA")
+
+          if [ "${#CHANGED[@]}" -eq 0 ]; then
+            echo "No added/modified files. PR is clean."
+            exit 0
+          fi
+
+          echo "Changed files (${#CHANGED[@]}):"
+          printf '  %s\n' "${CHANGED[@]}"
+
+          # `git check-ignore --no-index` reports any path that matches a
+          # .gitignore rule, even if the file is tracked (catches `git add -f`
+          # of personal data, portable build output, db files, etc.).
+          # Negation patterns like `!data/pdf_metadata.json` are honored.
+          # Exit 0 = at least one match; 1 = none; >1 = real error.
+          OFFENDERS=""
+          set +e
+          OFFENDERS=$(git check-ignore --verbose --no-index -- "${CHANGED[@]}")
+          RC=$?
+          set -e
+          if [ "$RC" -gt 1 ]; then
+            echo "::error::git check-ignore failed (exit $RC)"
+            exit "$RC"
+          fi
+
+          if [ -n "$OFFENDERS" ]; then
+            echo ""
+            echo "::error::PR contains files that match .gitignore rules."
+            echo "These look like personal data, build artifacts, or local-only"
+            echo "files that should not be committed. Either remove them or, if"
+            echo "they truly belong, update .gitignore (e.g. with a negation"
+            echo "rule like \`!data/pdf_metadata.json\`)."
+            echo ""
+            echo "$OFFENDERS"
+            exit 1
+          fi
+
+          echo "PR is clean — no .gitignored files committed."
