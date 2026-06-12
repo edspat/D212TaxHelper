@@ -35,6 +35,7 @@ const APP_ITEMS = [
   'setup_paddleocr.js', // Enables Lite→Full upgrade
   'package.json',
   'package-lock.json',
+  'lib',       // v1.6.0 modules: parsers, source-resolver, rules-catalog, d212/d205, audit-pack, minizip
   'public',
   'scripts',
   'LICENSE',
