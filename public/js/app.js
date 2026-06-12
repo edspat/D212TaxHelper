@@ -271,6 +271,10 @@ const App = (() => {
           .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
           .replace(/\*([^*]+)\*/g, '<em>$1</em>')
           .replace(/`([^`]+)`/g, '<code style="background:var(--bg-secondary);padding:0.1rem 0.35rem;border-radius:3px;font-size:0.9em;">$1</code>')
+          // Images: ![alt](src) — run before links so image-in-link badges
+          // like [![CI](badge.svg)](url) resolve correctly.
+          .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, src) =>
+            `<img src="${src}" alt="${alt}" style="max-width:100%;height:auto;vertical-align:middle;">`)
           .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, href) => {
             if (href.startsWith('#')) {
               return `<a href="${href}" class="doc-anchor-link" style="color:var(--accent)">${text}</a>`;
