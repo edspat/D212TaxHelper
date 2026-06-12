@@ -276,18 +276,39 @@ const App = (() => {
           codeSpans.push(code);
           return `\u0000CODE${codeSpans.length - 1}\u0000`;
         });
+        // Rewrite a repo-relative path (not http(s)/protocol-absolute/root)
+        // to its GitHub URL so in-app docs behave like they do on the repo page.
+        const toRepoUrl = (p) => {
+          if (/^(https?:|mailto:|tel:|\/)/i.test(p)) return p;
+          const REPO = 'https://github.com/edspat/D212TaxHelper';
+          const clean = p.replace(/^\.\//, '');
+          const kind = clean.endsWith('/') ? 'tree' : 'blob';
+          return `${REPO}/${kind}/main/${clean.replace(/\/$/, '')}`;
+        };
+        // Images need the raw bytes, not the GitHub HTML blob page.
+        const toRepoRawUrl = (p) => {
+          if (/^(https?:|\/)/i.test(p)) return p;
+          const clean = p.replace(/^\.\//, '').replace(/\/$/, '');
+          return `https://raw.githubusercontent.com/edspat/D212TaxHelper/main/${clean}`;
+        };
         out = out
           .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
           .replace(/\*([^*]+)\*/g, '<em>$1</em>')
           // Images: ![alt](src) — run before links so image-in-link badges
-          // like [![CI](badge.svg)](url) resolve correctly.
+          // like [![CI](badge.svg)](url) resolve correctly. Relative repo
+          // images are rewritten to raw.githubusercontent so they don't 404
+          // against the SPA.
           .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, src) =>
-            `<img src="${src}" alt="${alt}" style="max-width:100%;height:auto;vertical-align:middle;">`)
+            `<img src="${toRepoRawUrl(src)}" alt="${alt}" style="max-width:100%;height:auto;vertical-align:middle;">`)
           .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, href) => {
             if (href.startsWith('#')) {
               return `<a href="${href}" class="doc-anchor-link" style="color:var(--accent)">${text}</a>`;
             }
-            return `<a href="${href}" target="_blank" rel="noopener" style="color:var(--accent)">${text}</a>`;
+            // Relative repo links (e.g. ROADMAP.md, docs/d212-mapping.md,
+            // docs/anaf/d212-2025/) don't resolve in-app — the browser would
+            // hit localhost:3000/<path> and fall through to the SPA. Rewrite
+            // them to GitHub URLs so they behave like they do on the repo page.
+            return `<a href="${toRepoUrl(href)}" target="_blank" rel="noopener" style="color:var(--accent)">${text}</a>`;
           });
         // Restore protected code spans as literal <code>.
         out = out.replace(/\u0000CODE(\d+)\u0000/g, (_, i) =>
