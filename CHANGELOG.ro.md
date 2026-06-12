@@ -1,6 +1,85 @@
 # D212 Asistent Fiscal - Istoric versiuni
 
-## v1.6.0 (2026-05-12)
+## v1.6.0 (2026-06-12)
+
+> Versiunea v1.6.0 a fost decupată inițial pe 2026-05-12; intrările de mai jos au fost adăugate
+> incremental pe branch-ul `develop` până la 2026-06-12 și fac parte din același release v1.6.0.
+
+### 🗂️ Navigare reconstruită: 5 tab-uri principale cu sub-tab-uri
+- Bara de navigare consolidată din 8 tab-uri plate în **5 tab-uri grupate**: **Panou Principal**, **📥 Date** (Adaugă/Editează · Importă), **📊 Calcul** (Detalii Venituri · Impozit & CASS), **🧾 Depunere** (Validează & Pregătește D212 · Ghid Depunere D212), **⚙ Avansat** (Date Brute · Reguli & Referințe)
+- **Bară de sub-tab-uri** pe al doilea rând, vizibilă doar când grupul activ are mai multe sub-tab-uri; memorie per-grup care restaurează ultimul sub-tab vizitat via `localStorage`
+- Link-urile vechi (`#tab-income`) și apelurile `switchTab('income'|'validate'|...)` continuă să funcționeze printr-un resolver automat grup/sub-tab
+
+### 🧾 Ghid Depunere D212 (tab nou)
+- Parcurgere pas cu pas a fluxului oficial ANAF DUF (precompletare → modificare → trimitere), cu capturi anonimizate de referință în `public/assets/screenshots/`
+- Tabel de mapare DUF — fiecare valoare calculată de aplicație corelată cu atributul XML / câmpul de pe ecran din DUF
+- Banner avertizare: precompletarea DUF nu este disponibilă la autentificarea cu certificat digital calificat (doar utilizator+parolă SPV)
+
+### 🔬 Validează & Pregătește D212 (sub-tab nou sub Depunere)
+- **Import DUF XML** — încarcă XML-ul descărcat din `Preluare/modificare date` și aplicația face un diff side-by-side cu valorile calculate local din documentele de broker
+- **Selector per rând ANAF/Local** — fiecare rând în conflict expune o alegere explicită; alegerile se propagă direct în tabelul *„Valori de introdus în DUF"* de la baza paginii
+- **Cross-check D205 per plătitor** — introducere manuală (sau lipire din clipboard din modalul *Toate sursele* din portal) a rândurilor D205 per plătitor (XTB / ING / SALT / BT…); matcher-ul marchează `exact / aproape / posibil / doar ANAF / doar local`, cu bucket dedicat pentru veniturile de sursă străină care se așteaptă să LIPSEASCĂ din D205
+- **Ghid integrat „Cum colectez din portalul DUF"** cu 2 căi (wizard Preluare/modificare vs. Centralizator) și 4 capturi anonimizate
+- Toate scrub-urile de date personale (CNP, CIF, sume) sunt protejate de un test de regresie pentru anonimizare
+
+### 📤 Export D212 XML (nivel schelet)
+- Modul nou `lib/d212-xml-builder.js` emite un XML D212 aliniat cu structura output-ului DUF de la ANAF
+- Blocul `<oblig_realizat>` poartă acum blocul CASS investiții (`cass_ven_inv`) calculat de aplicație
+- `cap11Rows` emise pentru câștigurile de capital de sursă română (defalcare per-categorie cu rândurile Rd.1–Rd.8)
+- `cap14` emite dividendele străine XTB/BT **per țară sursă** cu creditul fiscal corect, confirmă 10% ca reținere la sursă conform tratatului W-8BEN, și afișează cifrele într-un banner pe tab-ul Calcul
+- Extragere de țară adăugată parserelor BT (via ISIN) și XTB (via text românesc); agregatul `byCountry` curge până în `cap14`
+- Schema și regulile susținute de XSD-ul oficial ANAF + 6 fișiere schematron, deja livrate în `docs/anaf/d212-2025/`
+
+### 📥 Tab-ul „Date": verificare importuri + introducere manuală, separate
+- UX nou cu două moduri și un toggle „Avansat" pentru expunerea câmpurilor rareori folosite
+- Panou **„Documente deja importate"** pe sub-tab-ul Import — listă la vedere cu butoane de ștergere pentru tot ce alimentează calculul curent
+- **Editare inline** a rândurilor importate per țară + câmp dedicat *Motiv* pentru overrides manuale
+- **Dropdown tip document grupat în 6 optgroups** (era listă plată de 14) — mai ușor de găsit Fidelity vs. Morgan Stanley vs. XTB vs. BT vs. Revolut vs. ANAF
+- Acțiune **„Resetare an"** — șterge toate datele anului fiscal selectat dintr-un singur click (cu confirmare)
+- Fix: click pe un sub-tab nu mai dezactivează tab-ul părinte
+
+### 🆕 Brokeri noi
+- **Revolut consolidated statement** (broker străin) — valuta detectată automat din PDF; baza CASS fixată pe câștigul NET conform Instr. D212 pct.51; afișat în Detalii Venituri ca *„Vânzări Acțiuni International"*; tooltip explică că Revolut Securities Europe UAB NU reține impozit pe câștiguri la sursă, deci impozitul RO se datorează integral fără credit fiscal extern
+- **BT Capital Partners (bt-trade.ro)** — parser complet pentru brokerul român, cu extragere de țară pe baza ISIN, gestionare dividende de sursă străină și aliniere cu eticheta brokerului român
+
+### 💼 Suport PFA (activități independente, art. 155(1)b)
+- Câmp nou „Venit net PFA" + calcul CASS dedicat care rulează scara 6/12/24 SM **independent** de CASS-ul pe investiții
+- Linie nouă de impozit pe venit PFA: `10% × (net − CASS deductibilă)` conform Cod fiscal art. 64-67 (rata clarificată față de 16% pentru veniturile din investiții)
+- Checkbox opt-in pentru art. 180(2): plata CASS PFA pe baza minimă de 6 SM chiar și când venitul net este sub plafon
+
+### ⚖️ Pagina „Reguli & Referințe" (sub-tab Avansat)
+- Modul nou `lib/rules-catalog.js` expune toate regulile aplicate de motor, cu citații la articolele din Codul fiscal + paragrafele din Instr. D212
+- Pagină căutabilă pentru contabili — fiecare regulă listează ancora legală, liniile afectate și un link *„open an issue"* pentru raportarea regulilor lipsă
+- Template nou `.github/ISSUE_TEMPLATE/missing-rule.md` pentru propunerile de reguli
+
+### 📦 Export ANAF Audit Pack
+- Un click → **ZIP determinist** cu tot ce trebuie pentru un audit ANAF: fișiere brute de broker, JSON parsate, intrări D205, XML D212, trace de reguli
+- `lib/minizip.js` 100% JS — fără dependențe de compresie externe, CRC + timestamp-uri deterministe astfel încât două exporturi din aceleași date produc bytes identici
+- Întărit împotriva atacurilor path-traversal (review fix)
+
+### 🔢 Refactor calcul: source-resolver + resolveri per categorie
+- **Faza 1**: primitivă nouă `lib/source-resolver.js` — un singur loc care știe de unde provine fiecare valoare (XTB / Fidelity / BT / Revolut / 1042-S / manual)
+- **Faza 2**: `lib/income-resolvers.js` — resolveri per categorie de venit (dividende, dobânzi, câștiguri de capital, jocuri noroc, alte) cu o suită de teste de 422 linii; **fără schimbare de comportament**, doar substrat curat
+- **Faza 3**: resolverii cablați în `_computeYearDataImpl` cu un `sourceMap` returnat alături de totalurile calculate; modulele din `lib/` sunt IIFE-wrapped ca să le poată încărca browserul fără bundling
+- **Insigne de sursă + detector de conflicte** pe tab-ul Calcul — fiecare cifră arată de unde a venit; conflictele (ex: DUF ANAF vs. document local de broker) ridică un avertisment vizibil
+
+### 🐛 Corecturi parser real-money
+- **1042-S — PDF-uri multi-formular**: formularele care grupau mai mult de un cod de venit (ex: 06 dividende + 01 dobânzi) pierdeau tot ce era după primul. Acum se extrag toate formularele; impozitul federal reținut este citit din blocul de valori final (uneori era gol)
+- **1042-S Dobânzi (cod 01)** alimentează acum atât calculul dobânzilor RO **cât și** creditul fiscal extern din `cap14` (era ignorat tăcut)
+- **Lipire D205** — când coloana *Venit brut* e goală (unii plătitori o lasă goală), matcher-ul ia acum valoarea din coloana *Baza* în loc să înregistreze 0
+
+### 🧪 Teste
+- Scenarii integration end-to-end D212 (`test/d212-integration.test.js`) — 596 linii, acoperind 5 configurații reprezentative din lumea reală
+- `audit-pack-builder`, `d205-categories`, `d205-matcher`, `d212-cap11`, `d212-cap14`, `d212-oblig-realizat`, `d212-personal`, `d212-xml-builder`, `d212-xml-parser`, `income-resolvers`, `minizip`, `parser-1042s`, `parsers-bt`, `parsers-revolut`, `rules-catalog`, `source-resolver` — toate fișiere de test noi
+
+### 🛡️ CI / igienă
+- Job nou **pr-cleanliness** în GitHub Actions impune `.gitignore` via `git check-ignore` pe fiecare PR (gata cu scurgerile de `_commit_msg.txt` sau `_PR_BODY.md`)
+- Testul de regresie pentru anonimizare protejează orice modificare adusă screenshot-urilor / datelor de eșantion
+- Fișierele scratch `_commit_msg.txt`, `_PR_BODY.md` și prietenii lor adăugate în `.gitignore`
+
+### 🛠️ Module interne noi (în `lib/`)
+- `audit-pack-builder.js`, `d205-categories.js`, `d205-matcher.js`, `d212-cap11.js`, `d212-cap14.js`, `d212-duf-compare.js`, `d212-oblig-realizat.js`, `d212-personal.js`, `d212-xml-builder.js`, `d212-xml-parser.js`, `income-resolvers.js`, `minizip.js`, `parsers/bt.js`, `parsers/revolut.js`, `rules-catalog.js`, `source-resolver.js`
+- Validatori CNP + IBAN în `lib/` (cablarea UI amânată pentru un release viitor)
 
 ### 🇷🇴 Brokeri noi & venituri în EUR/USD
 - **BT Trade** adăugat în lista brokerilor români (sugestii la „Adaugă Date → Broker România")

@@ -1,6 +1,85 @@
 # D212 Tax Helper - Changelog
 
-## v1.6.0 (2026-05-12)
+## v1.6.0 (2026-06-12)
+
+> Initial v1.6.0 cut was tagged on 2026-05-12; the entries below were added incrementally
+> on the `develop` branch up to 2026-06-12 and are all part of the same v1.6.0 release.
+
+### 🗂️ Navigation rebuilt: 5 top-level tabs with sub-tabs
+- Top navigation consolidated from 8 flat tabs to **5 grouped tabs**: **Dashboard**, **📥 Data** (Add/Edit · Import), **📊 Calculation** (Income Details · Tax & CASS), **🧾 Submission** (Validate & Prepare D212 · D212 Submission Guide), **⚙ Advanced** (Raw Data · Rules & References)
+- Second-row **sub-tab bar** appears only when the active group has more than one sub-tab; per-group memory restores the last visited sub-tab via `localStorage`
+- Legacy anchor links and `switchTab('income'|'validate'|...)` callers keep working through an automatic group/sub-tab resolver
+
+### 🧾 D212 Submission Guide (new top-level tab)
+- Step-by-step walkthrough of the official ANAF DUF flow (pre-fill → modify → submit), with anonymized reference screenshots in `public/assets/screenshots/`
+- DUF field-mapping table cross-referencing every value the app computes with the corresponding XML attribute / DUF screen field
+- Caveat banner: DUF pre-fill is unavailable when authenticating with a qualified digital certificate (only SPV username+password)
+
+### 🔬 Validate & Prepare D212 (new sub-tab under Submission)
+- **DUF XML import** — drop the XML downloaded from `Preluare/modificare date` and the app diffs it side-by-side against the values computed locally from broker documents
+- **Per-row ANAF/Local picker** — each conflicting row exposes an explicit choice; the picks bake straight into the *"Values to enter in DUF"* table at the bottom of the page
+- **Per-payer D205 cross-check** — manual entry (or clipboard paste from the *Toate sursele* portal modal) of D205 rows per payer (XTB / ING / SALT / BT…); the matcher flags `exact / near / possible / only ANAF / only local`, with a dedicated bucket for foreign-source income expected to be absent from D205
+- **In-tab "How to collect from the DUF portal" guide** with 2 paths (Preluare/modificare wizard vs. Centralizator) and 4 anonymized screenshots
+- All scrubbing of personal data (CNP, fiscal codes, amounts) is gated by an anonymization regression test
+
+### 📤 D212 XML export (skeleton level)
+- New `lib/d212-xml-builder.js` emits a D212 XML aligned with the ANAF DUF output structure
+- `<oblig_realizat>` block now carries the CASS investment block (`cass_ven_inv`) computed by the app
+- `cap11Rows` emitted for Romanian-source capital gains (per-category breakdown with Rd.1–Rd.8 lines)
+- `cap14` emits XTB/BT foreign dividends **per source country** with the proper credit fiscal, confirms 10% as the W-8BEN treaty WHT, and surfaces the numbers in a banner on the Calculation tab
+- Country extraction added to BT (via ISIN) and XTB (via Romanian text) parsers; `byCountry` aggregate flows all the way to `cap14`
+- Schema and rules backed by the official ANAF XSD + 6 schematron files shipped in `docs/anaf/d212-2025/`
+
+### 📥 "Data" tab: imports verification + manual entry, separated
+- New two-mode UX with an "Advanced" toggle to expose seldom-used fields
+- **"Documents already imported"** panel on the Import sub-tab — at-a-glance list with delete buttons for everything currently feeding the calculation
+- **Inline edit** of imported per-country rows + dedicated *Motiv* (reason) field for manual overrides
+- **Document-type dropdown grouped into 6 optgroups** (was a flat list of 14) — easier to find Fidelity vs. Morgan Stanley vs. XTB vs. BT vs. Revolut vs. ANAF documents
+- **"Reset year"** action — wipe all data for the selected fiscal year in one click (with confirm)
+- Fix: clicking a sub-tab no longer deactivates its parent tab
+
+### 🆕 New broker support
+- **Revolut consolidated statement** (foreign broker) — currency auto-detected from the PDF; CASS base pinned to NET gain per Instr. D212 pct.51; surfaced on Income Details as *"Vânzări Acțiuni International"*; tooltip explains Revolut Securities Europe UAB does NOT withhold capital-gains tax at source so the full RO tax is owed with no foreign credit
+- **BT Capital Partners (bt-trade.ro)** — full parser for the Romanian broker, with ISIN-based country extraction, foreign-source dividend handling, and matcher aligned with the Romanian broker label
+
+### 💼 PFA support (independent activities, art. 155(1)b)
+- New PFA net income input + dedicated CASS calculation that runs the 6/12/24 SM ladder **independently** of investment CASS
+- New PFA income tax line: `10% × (net − deductible CASS)` per Cod fiscal art. 64-67 (rate clarified vs. the 16% investment-income rate)
+- Opt-in checkbox for art. 180(2): pay PFA CASS at the minimum 6 SM base even when net income is below the threshold
+
+### ⚖️ "Rules & References" page (Advanced sub-tab)
+- New `lib/rules-catalog.js` exposes every rule the engine applies, with citations to Cod fiscal articles + Instr. D212 paragraphs
+- Searchable page for accountants — each rule lists the legal anchor, the affected lines, and an *"open an issue"* link to report missing rules
+- New `.github/ISSUE_TEMPLATE/missing-rule.md` for rule proposals
+
+### 📦 ANAF Audit Pack export
+- One-click **deterministic ZIP** of everything needed for an ANAF audit: raw broker files, parsed JSON, D205 entries, D212 XML, rules trace
+- Pure-JS `lib/minizip.js` — no external compression dependency, deterministic CRC + timestamps so two exports from the same data produce identical bytes
+- Hardened against path-traversal attacks (review fix)
+
+### 🔢 Calculation refactor: source-resolver + per-category resolvers
+- **Phase 1**: new `lib/source-resolver.js` primitive — single place that knows where each value comes from (XTB / Fidelity / BT / Revolut / 1042-S / manual)
+- **Phase 2**: `lib/income-resolvers.js` — per-category resolvers (dividends, interest, capital gains, gambling, other) with a 422-line test suite; **no behavior change**, just a clean substrate
+- **Phase 3**: resolvers wired into `_computeYearDataImpl` with a `sourceMap` returned alongside the computed totals; `lib/` modules IIFE-wrapped so the browser can load them without bundling
+- **Source badges + conflict detector** on the Tax Calculation tab — every figure shows where it came from; conflicts (e.g. ANAF DUF vs. local broker doc) raise a visible warning
+
+### 🐛 Real-money parser fixes
+- **1042-S — multi-form PDFs**: forms bundling more than one income code (e.g. 06 dividends + 01 interest) were dropping all but the first. Now extracts every form; federal tax withheld is read from the trailing value block (was sometimes blank)
+- **1042-S Interest (code 01)** now feeds both the RO interest calculation **and** the `cap14` foreign-tax credit (was silently dropped)
+- **D205 paste** — when the *Venit brut* column is empty (some payers leave it blank), the matcher now picks the value from the *Baza* column instead of recording 0
+
+### 🧪 Tests
+- D212 end-to-end integration scenarios (`test/d212-integration.test.js`) — 596 lines, covering 5 representative real-world configurations
+- `audit-pack-builder`, `d205-categories`, `d205-matcher`, `d212-cap11`, `d212-cap14`, `d212-oblig-realizat`, `d212-personal`, `d212-xml-builder`, `d212-xml-parser`, `income-resolvers`, `minizip`, `parser-1042s`, `parsers-bt`, `parsers-revolut`, `rules-catalog`, `source-resolver` — all new test files
+
+### 🛡️ CI / hygiene
+- New **pr-cleanliness** GitHub Actions job enforces `.gitignore` via `git check-ignore` on every PR (no more `_commit_msg.txt` or `_PR_BODY.md` leaks)
+- Anonymization regression test gates any change to the screenshots / sample data
+- Scratch files `_commit_msg.txt`, `_PR_BODY.md` and friends added to `.gitignore`
+
+### 🛠️ Internal modules (new in `lib/`)
+- `audit-pack-builder.js`, `d205-categories.js`, `d205-matcher.js`, `d212-cap11.js`, `d212-cap14.js`, `d212-duf-compare.js`, `d212-oblig-realizat.js`, `d212-personal.js`, `d212-xml-builder.js`, `d212-xml-parser.js`, `income-resolvers.js`, `minizip.js`, `parsers/bt.js`, `parsers/revolut.js`, `rules-catalog.js`, `source-resolver.js`
+- CNP + IBAN validators in `lib/` (UI wiring deferred to a future release)
 
 ### 🇷🇴 New brokers & EUR/USD income via Romanian broker
 - **BT Trade** added to the Romanian broker list (suggested values under "Add Data → Romania Broker")

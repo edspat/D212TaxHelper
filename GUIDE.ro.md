@@ -1,6 +1,6 @@
 # D212 Asistent Fiscal - Ghid de Utilizare
 
-**Versiune ghid:** 2.9 | **Versiune aplicație:** 1.5.3 | **Ultima actualizare:** 19.04.2026
+**Versiune ghid:** 3.0 | **Versiune aplicație:** 1.6.0 | **Ultima actualizare:** 12.06.2026
 
 ---
 
@@ -10,42 +10,54 @@
 2. [Pornirea aplicației](#2-pornirea-aplicației)
 3. [Navigare și comenzi](#3-navigare-și-comenzi)
 4. [Tab 1 - Panou Principal](#4-tab-1---panou-principal)
-5. [Tab 2 - Detalii Venituri](#5-tab-2---detalii-venituri)
-6. [Tab 3 - Calcul Impozite](#6-tab-3---calcul-impozite)
-7. [Tab 4 - Adaugă Date](#7-tab-4---adaugă-date)
-8. [Tab 5 - Importă Document](#8-tab-5---importă-document)
-9. [Tab 6 - Date Brute](#9-tab-6---date-brute)
-10. [Logica fiscală și reguli](#10-logica-fiscală-și-reguli)
-11. [Asistentul D212 — Cum completezi Declarația Unică](#11-asistentul-d212--cum-completezi-declarația-unică)
-12. [Administrarea datelor](#12-administrarea-datelor)
-13. [Versiunea portabilă](#13-versiunea-portabilă)
-14. [Depanare](#14-depanare)
-15. [Istoric versiuni aplicație](#15-istoric-versiuni-aplicație)
+5. [Tab 2 - 📥 Date (Adaugă/Editează + Importă)](#5-tab-2----date-adaugăeditează--importă)
+6. [Tab 3 - 📊 Calcul (Detalii Venituri + Impozit & CASS)](#6-tab-3----calcul-detalii-venituri--impozit--cass)
+7. [Tab 4 - 🧾 Depunere (Validează & Pregătește + Ghid Depunere)](#7-tab-4----depunere-validează--pregătește--ghid-depunere)
+8. [Tab 5 - ⚙ Avansat (Date Brute + Reguli & Referințe)](#8-tab-5----avansat-date-brute--reguli--referințe)
+9. [Logica fiscală și reguli](#9-logica-fiscală-și-reguli)
+10. [Suport PFA (activități independente)](#10-suport-pfa-activități-independente)
+11. [Suport multi-valută (RON / EUR / USD)](#11-suport-multi-valută-ron--eur--usd)
+12. [ANAF Audit Pack (export ZIP determinist)](#12-anaf-audit-pack-export-zip-determinist)
+13. [Administrarea datelor](#13-administrarea-datelor)
+14. [Versiunea portabilă](#14-versiunea-portabilă)
+15. [Depanare](#15-depanare)
+16. [Istoric versiuni aplicație](#16-istoric-versiuni-aplicație)
 
 ---
 
 ## 1. Introducere
 
-**D212 Asistent Fiscal** este o aplicație web locală destinată rezidenților fiscali din România care primesc venituri din investiții atât de la **brokeri din SUA** (Fidelity, Morgan Stanley) cât și de la **brokeri din România** (XTB, Tradeville) pentru a:
+**D212 Asistent Fiscal** este o aplicație web locală destinată rezidenților fiscali din România care primesc venituri din investiții atât de la **brokeri din SUA** (Fidelity, Morgan Stanley) cât și de la **brokeri din România** (XTB, BT Capital Partners, Tradeville) sau de la **brokeri străini** (Revolut) pentru a:
 
-- Importa și parsa documente financiare (PDF-uri și imagini)
-- Calcula impozitul pe venit, impozitul pe câștiguri de capital, impozitul pe dividende și CASS (contribuția de asigurări sociale de sănătate)
-- Genera valorile necesare completării **Declarației Unice D212** pe portalul ANAF
+- Importa și parsa documente financiare (PDF-uri, imagini, DUF XML pre-completat de la ANAF)
+- Calcula impozitul pe venit, câștigurile de capital, dividende, dobânzi și CASS (sistemul de paliere)
+- Genera valorile (și fișierul XML) necesare completării **Declarației Unice D212** pe portalul ANAF
+- Valida valorile completate de ANAF (DUF) împotriva propriilor documente și a sumelor D205 raportate de plătitori
 - Compara datele financiare pe mai mulți ani fiscali
 
 ### Pentru cine este această aplicație?
 
 Aplicația este concepută special pentru:
 - Angajații companiilor din USA cu puncte de lucru în România care primesc acțiuni (RSU), acțiuni ESPP și dividende prin Fidelity / Morgan Stanley
-- Investitori care și-au transferat acțiunile la un broker din România (ex: XTB)
+- Investitori care tranzacționează prin brokeri români (**XTB**, **BT Capital Partners**, **Tradeville**) sau prin brokerul străin **Revolut**
+- PFA (activități independente) care depun D212 alături de venituri din investiții
 - Oricine depune D212 pentru venituri din investiții în România
 
 ### Funcționalități principale
-- **11 parsere de documente** — extrage automat datele din PDF-uri și imagini
-- **PaddleOCR** — OCR superior pentru documente scanate (inclusiv tabele Fișă de Portofoliu Tradeville)
+- **13+ parsere de documente** — Fidelity (anual, extras, confirmări), Morgan Stanley Stock Plan, 1042-S (multi-formular), XTB (dividende + portofoliu), Tradeville, BT Capital Partners, Revolut, adeverințe ANAF, D-212, DUF XML
+- **Navigare grupată în 5 tab-uri** — Panou Principal · 📥 Date · 📊 Calcul · 🧾 Depunere · ⚙ Avansat
+- **Validează & Pregătește D212** — import DUF XML, diff side-by-side ANAF vs. local, cross-check D205 per plătitor
+- **Export D212 XML** — fișier XML aliniat cu structura DUF (Cap I.1 + Cap I.4 + `<oblig_realizat>` + CASS)
+- **Ghid Depunere D212** — parcurgere oficială a fluxului DUF cu capturi anonimizate și tabel de mapare DUF
+- **Reguli & Referințe** — pagină căutabilă pentru contabili (Cod fiscal + Instr. D212)
+- **ANAF Audit Pack** — ZIP determinist cu tot ce trebuie pentru un audit
+- **Insigne de sursă + detector de conflicte** pe tab-ul Calcul
+- **Suport multi-valută** (RON / EUR / USD) prin brokeri români (XTB, BT) cu cursuri BNR 2019-2025
+- **Suport PFA** — venit net, scara CASS 6/12/24 SM, opt-in art. 180(2)
+- **PaddleOCR** — OCR superior pentru documente scanate (varianta Full)
 - **Bilingv** — interfață completă în Română (RO) și Engleză (EN)
 - **Offline și privat** — rulează în totalitate pe calculatorul tău, nicio dată nu este trimisă nicăieri
-- **Temă întunecată** — confortabilă pentru ochi, design responsiv
+- **Temă întunecată/luminoasă/auto** — confortabilă pentru ochi, design responsiv, WCAG 2.1 AA
 - **Portabil** — poate fi distribuit ca un folder independent (fără instalare)
 
 ---
@@ -90,10 +102,11 @@ Aplicația rulează la **http://localhost:3000**.
 | Element | Descriere |
 |---------|-----------|
 | **☰ (Hamburger)** | Afișează/ascunde meniul de navigare pe ecrane mici |
-| **Butoane tab-uri** | 6 tab-uri: Panou Principal, Detalii Venituri, Calcul Impozite, Adaugă Date, Importă Document, Date Brute |
+| **Butoane tab-uri (5 grupuri)** | **Panou Principal** · **📥 Date** (sub-tab-uri: Adaugă/Editează, Importă) · **📊 Calcul** (sub-tab-uri: Detalii Venituri, Impozit & CASS) · **🧾 Depunere** (sub-tab-uri: Validează & Pregătește D212, Ghid Depunere) · **⚙ Avansat** (sub-tab-uri: Date Brute, Reguli & Referințe). Bara de sub-tab-uri apare automat sub bara principală când grupul are mai multe pagini. |
 | **Selector limbă** | Comută între **RO** (Română) și **EN** (Engleză). Toate etichetele și indicațiile se actualizează instant. |
 | **🖥️/🌙/☀️ Comutare temă** | Ciclează între **Auto** (🖥️ urmează preferința sistemului), **Întunecată** (🌙) și **Luminoasă** (☀️). Alegerea se salvează în browser. Graficele se re-desenează automat cu culorile noii teme. |
 | **Selector an** | Alege anul fiscal vizualizat/editat. Lista afișează anii care au date, plus anul fiscal implicit (anul precedent). Toate tab-urile se actualizează la schimbarea anului. |
+| **↻ Reset an** | (Avansat) Șterge toate datele pentru anul afișat — fișierele brute, JSON parsate, intrările D205 și confirmările de tranzacție. Necesită confirmare. |
 
 ### Bara de jos (Footer)
 
@@ -132,113 +145,15 @@ Panoul Principal oferă o vedere de ansamblu a situației tale financiare pentru
 
 ---
 
-## 5. Tab 2 — Detalii Venituri
+## 5. Tab 2 — 📥 Date (Adaugă/Editează + Importă)
 
-Acest tab afișează defalcarea detaliată a veniturilor cu toate cifrele din spatele calculelor.
+Tab-ul **Date** grupează cele două fluxuri de intrare a datelor sub o singură bară de sub-tab-uri: **Adaugă/Editează** (input manual) și **Importă** (încărcare PDF/imagine/XML).
 
-### Tabelul principal de venituri
+### 5.1 Sub-tab Adaugă/Editează
 
-Fiecare rând reprezintă o categorie de venit:
+Folosește acest sub-tab pentru a introduce sau suprascrie manual datele financiare pentru anul selectat. Datele introduse aici au prioritate față de datele din documente importate.
 
-| Rând | USD | RON | Impozit SUA | Impozit RO |
-|------|-----|-----|-------------|------------|
-| Dividende SUA | ✓ | ✓ (convertit) | 10% reținut (convenție) | 0% (fără dublă impozitare) |
-| Dividende România | - | ✓ | - | 8-16% (reținut de broker) |
-| Vânzări acțiuni SUA | ✓ | ✓ (convertit) | - | 10-16% |
-| Vânzări acțiuni România ≥1an | - | ✓ | - | 1-3% (final, reținut) |
-| Vânzări acțiuni România <1an | - | ✓ | - | 3-6% (final, reținut) |
-| Venituri din dobânzi | - | ✓ | - | 10-16% |
-| Venituri jocuri noroc | - | ✓ | - | Deja reținut |
-
-### Deduceri Reținere Acțiuni
-
-Afișează intrările individuale de reținere din acțiuni din fluturaș (importate prin documentul **MSFT - Stock Award**). Aceste sume se deduc din impozitul total datorat.
-
-### Vânzări Acțiuni România
-
-Vedere detaliată a tranzacțiilor prin brokerul din România (XTB), defalcate pe:
-- **≥1 an** perioadă de deținere (cotă mai mică)
-- **<1 an** perioadă de deținere (cotă mai mare)
-- **Dividende** primite prin brokerul românesc
-- **Dobânzi** câștigate prin brokerul românesc
-
-### Vânzări Acțiuni SUA (Confirmări Tranzacții)
-
-Lista tranzacție cu tranzacție din confirmările brokerului SUA (Fidelity). Afișează data, simbolul, numărul de acțiuni vândute, prețul, încasările, comisioanele și încasările nete.
-
----
-
-## 6. Tab 3 — Calcul Impozite
-
-Cel mai important tab — arată exact ce datorezi și oferă asistentul de completare D212.
-
-### Sumarul Calculului de Impozite
-
-Împărțit în 3 secțiuni clar etichetate:
-
-#### 💰 Secțiunea A: Ce am câștigat (Venituri brute)
-Listează toate categoriile de venituri cu valorile în RON:
-- Câștiguri capital SUA, dividende SUA
-- Câștiguri capital România (≥1an și <1an), dividende România
-- Venituri din dobânzi, venituri jocuri de noroc
-- **Total venituri din investiții**
-
-#### ✅ Secțiunea B: Ce s-a plătit deja (Reținut la sursă)
-Afișează ce a fost deja colectat:
-- Impozit dividende reținut în SUA (10% conform convenției RO-SUA)
-- Impozit câștiguri reținut de broker România (impozit final, 1%/3%)
-- Impozit dividende reținut de broker România
-- Impozit dobânzi reținut
-- Rețineri din stock awards
-- **Total deja plătit**
-
-#### 📝 Secțiunea C: Ce mai am de plătit (Obligații D212)
-Ce rămâne de declarat și plătit:
-- Impozit câștiguri capital SUA (10%)
-- Impozit dividende SUA (de obicei 0 — convenție)
-- Elemente broker România (marcate ca „Impozit final — reținut la sursă, nu se declară")
-- Impozit dobânzi rămas
-- CASS (contribuție sănătate)
-- Deducere rețineri acțiuni
-- **⚠ TOTAL DE PLĂTIT PE D212** — acesta este numărul care contează
-
-#### Termen de plată
-Afișat la final — termenul de depunere și plată D212 (ex: 25 mai 2026 pentru anul fiscal 2025).
-
-### CASS (Contribuția de Asigurări Sociale de Sănătate)
-
-Defalcarea detaliată a calculului CASS:
-- Afișează salariul minim brut și sistemul de paliere
-- Evidențiază palierul tău activ
-- Arată suma CASS datorată
-- Listează tipurile de venituri supuse CASS
-- Confirmă că CAS (pensie 25%) NU se aplică pentru venituri din investiții
-
-**Sistemul de paliere CASS pentru venituri din investiții (2025):**
-
-Conform instrucțiunilor D212 pct. 52.1.1–52.1.3, CASS pentru venituri din investiții este plafonat la **24SM** (3 paliere).
-Palierul 60SM se aplică doar activităților independente (PFA), nu veniturilor din investiții.
-
-| Palier | Interval venituri | Baza CASS | Suma CASS |
-|--------|-------------------|-----------|-----------|
-| <6 SM | < 24.300 RON | - | 0 |
-| 6-12 SM | 24.300 - 48.600 | 24.300 | 2.430 |
-| 12-24 SM | 48.600 - 97.200 | 48.600 | 4.860 |
-| ≥24 SM | ≥ 97.200 | 97.200 | 9.720 |
-
-*SM = salariu minim brut (4.050 RON/lună în 2025)*
-
-### Asistentul D212
-
-Vezi [Secțiunea 11](#11-asistentul-d212--cum-completezi-declarația-unică) pentru instrucțiuni detaliate.
-
----
-
-## 7. Tab 4 — Adaugă Date
-
-Folosește acest tab pentru a introduce sau suprascrie manual datele financiare pentru anul selectat. Datele introduse aici au prioritate față de datele din documente importate.
-
-### Cardul Venituri și Deduceri
+#### Cardul Venituri și Deduceri
 
 | Câmp | Descriere |
 |------|-----------|
@@ -281,51 +196,245 @@ Suprascrie cotele implicite pentru anul selectat:
 
 Fiecare secțiune are propriul buton de **Salvare**. Butoanele afișează anul selectat (ex: „Salvează Datele (2025)").
 
----
+### 5.2 Sub-tab Importă
 
-## 8. Tab 5 — Importă Document
+Încarcă PDF-uri, imagini sau DUF XML pentru a extrage automat datele financiare.
 
-Încarcă PDF-uri sau imagini pentru a extrage automat datele financiare.
-
-### Cum se importă
+#### Cum se importă
 
 1. **Selectează anul** folosind butoanele de alegere an
-2. **Selectează tipul documentului** din lista derulantă
-3. **Alege unul sau mai multe fișiere** (PDF sau imagine — JPG, PNG, GIF, BMP, TIFF, WebP)
+2. **Selectează tipul documentului** din lista derulantă (grupată în 6 optgroups: Fidelity / Morgan Stanley / XTB / BT / Revolut / ANAF)
+3. **Alege unul sau mai multe fișiere** (PDF, imagine — JPG, PNG, GIF, BMP, TIFF, WebP — sau XML pentru DUF)
 4. Click pe **Încarcă și Procesează**
 
-Datele extrase sunt parsate și salvate automat. Un mesaj de succes/eroare apare.
+Datele extrase sunt parsate și salvate automat. Un mesaj de succes/eroare apare. Sub formular, panoul **„Documente deja importate"** listează fișierele procesate pentru anul curent, cu buton de ștergere per document.
 
-### Tipuri de documente acceptate
+#### Tipuri de documente acceptate
 
 | Tip document | Sursă | Ce extrage |
 |--------------|-------|------------|
 | **ANAF - Declarație Unică D-212** | Portalul ANAF | Dividende (USD/RON), câștiguri capital, CASS, curs, impozit total |
+| **ANAF - DUF XML pre-completat** | Portalul ANAF (Preluare/modificare date) | Capitolul I.1 (cap11Rows), Capitolul I.4 (dividende străine), `<oblig_realizat>`, CASS — folosit la diff-ul din tab-ul Depunere |
 | **SUA (Fidelity) - Raport Investiții** | Fidelity (PDF anual) | Total dividende, impozite reținute, valoare cont, câștiguri nete |
 | **ANAF - Adeverință de Venit** | Angajator (document salarial) | Venituri din dobânzi, impozit dobânzi plătit, venituri și impozit jocuri noroc |
 | **MSFT - Document Stock Award** | Fluturaș / portal beneficii | Intrări individuale reținere acțiuni (date + sume în RON) |
 | **SUA (Fidelity) - Confirmare Tranzacție** | Fidelity (PDF per tranzacție) | Tranzacții individuale: data, simbol, acțiuni, preț, încasări, comisioane. Suportă **mai multe fișiere** deodată. Deduplicare după număr referință. |
-| **România (XTB) - Dividende și Dobânzi** | Cont XTB (RAPORT DIVIDENDE) | Dividende (brut, impozit reținut), dobânzi (brut, impozit reținut) |
-| **România (XTB) - Portofoliu** | Cont XTB (FIȘĂ PORTOFOLIU) | Câștiguri pe termen lung și scurt, impozit reținut, defalcare pe țări |
+| **SUA (Morgan Stanley) - Stock Plan Statement** | Morgan Stanley (PDF anual) | Vânzări (brut, taxe, net), eliberări RSU, dividende, impozit IRS reținut |
+| **România (XTB) - Dividende și Dobânzi** | Cont XTB (RAPORT DIVIDENDE) | Dividende (brut, impozit reținut), dobânzi (brut, impozit reținut), suport multi-valută (RON/EUR/USD) |
+| **România (XTB) - Portofoliu** | Cont XTB (FIȘĂ PORTOFOLIU) | Câștiguri pe termen lung și scurt, impozit reținut, defalcare pe țări, multi-valută |
+| **România (BT Capital Partners)** | bt-trade.ro | Tranzacții, dividende, dobânzi prin brokerul BT, multi-valută EUR/USD |
+| **Revolut (Consolidated Statement)** | Revolut Securities Europe | Vânzări de acțiuni, dividende (cu impozit reținut la sursă), dobânzi |
+| **România (Tradeville) - Fișă Portofoliu** | Tradeville | Portofoliu, câștiguri/pierderi, dividende (necesită PaddleOCR) |
 | **SUA (Fidelity) - Extras de Cont** | Fidelity (raport periodic) | Acțiuni vândute, transferuri (către XTB), dividende YTD, totaluri tranzacții |
-| **Tax Form - 1042-S** | Formular IRS | Venit brut, impozit federal reținut, cod venit. Pentru dividende (cod 06), are prioritate față de raportul de investiții. |
+| **Tax Form - 1042-S (multi-formular)** | Formular IRS | Venit brut, impozit federal reținut, cod venit. Suport pentru PDF-uri cu mai multe formulare. Pentru dividende (cod 06), are prioritate față de raportul de investiții. |
 
-### Sfaturi
+#### Sfaturi
 - **Motor OCR:** Aplicația detectează automat PaddleOCR (versiunea Full) sau revine la Tesseract.js (versiunea Lite). Motorul activ este afișat ca insignă în partea de sus a tab-ului Import.
 - **Butoane Upgrade / Downgrade:** Lângă insignă, click pe **Upgrade la Full** pentru a instala PaddleOCR (~1,7 GB) sau **Downgrade la Lite** pentru a-l șterge — totul din aplicație, fără repornire.
 - **PaddleOCR** oferă rezultate mult mai bune pentru documente scanate, în special tabele complexe precum Fișa de Portofoliu Tradeville.
 - **Imaginile** (capturi de ecran, fotografii) sunt procesate cu OCR. Durează câteva secunde.
-- Dacă calitatea OCR este prea scăzută, aplicația te va îndruma să introduci datele manual în tab-ul Adaugă Date.
+- Dacă calitatea OCR este prea scăzută, aplicația te va îndruma să introduci datele manual în tab-ul Adaugă/Editează.
 - **Confirmările de tranzacție** suportă încărcarea mai multor fișiere simultan — fiecare fișier este parsat separat și adăugat (cu deduplicare).
 - **Formularele 1042-S** sunt deduplicate după identificatorul unic — reîncărcarea aceluiași formular nu creează duplicate.
 
 ---
 
-## 9. Tab 6 — Date Brute
+## 6. Tab 3 — 📊 Calcul (Detalii Venituri + Impozit & CASS)
+
+Tab-ul **Calcul** grupează cele două vederi analitice: **Detalii Venituri** (defalcare per categorie cu insigne de sursă) și **Impozit & CASS** (calculul final + asistentul D212).
+
+### 6.1 Sub-tab Detalii Venituri
+
+Afișează defalcarea detaliată a veniturilor cu toate cifrele din spatele calculelor.
+
+#### Insigne de sursă + detector de conflicte (nou în v1.6.0)
+
+Fiecare cifră afișată este însoțită de o **insignă de sursă** care indică de unde provine valoarea:
+- 🔵 **DUF** — preluată din DUF XML pre-completat de ANAF
+- 🟢 **Local** — calculată din documentele tale importate (Fidelity, XTB, BT, Revolut, 1042-S etc.)
+- 🟣 **Manual** — introdusă manual în tab-ul Date → Adaugă/Editează
+- 🟡 **D205** — extrasă din raportul D205 al plătitorului
+
+Când valoarea ANAF (DUF) **diferă** de valoarea local calculată, apare un **⚠️ avertisment de conflict** cu butonul „Vezi diferențele" care deschide diff-ul side-by-side din tab-ul Depunere.
+
+#### Tabelul principal de venituri
+
+Fiecare rând reprezintă o categorie de venit:
+
+| Rând | USD | RON | Impozit SUA | Impozit RO |
+|------|-----|-----|-------------|------------|
+| Dividende SUA | ✓ | ✓ (convertit) | 10% reținut (convenție) | 0% (fără dublă impozitare) |
+| Dividende România | - | ✓ | - | 8-16% (reținut de broker) |
+| Dividende străine (alte țări) | - | ✓ | per țară | per țară, cu credit fiscal limitat la cota RO |
+| Vânzări acțiuni SUA | ✓ | ✓ (convertit) | - | 10-16% |
+| Vânzări acțiuni România ≥1an | - | ✓ | - | 1-3% (final, reținut) |
+| Vânzări acțiuni România <1an | - | ✓ | - | 3-6% (final, reținut) |
+| Venituri din dobânzi (RO + străine) | - | ✓ | - | 10-16% |
+| Venituri jocuri noroc | - | ✓ | - | Deja reținut |
+
+#### Deduceri Reținere Acțiuni
+
+Afișează intrările individuale de reținere din acțiuni din fluturaș (importate prin documentul **MSFT - Stock Award**). Aceste sume se deduc din impozitul total datorat.
+
+#### Vânzări Acțiuni România
+
+Vedere detaliată a tranzacțiilor prin brokerul din România (XTB, BT Capital Partners), defalcate pe:
+- **≥1 an** perioadă de deținere (cotă mai mică)
+- **<1 an** perioadă de deținere (cotă mai mare)
+- **Dividende** primite prin brokerul românesc
+- **Dobânzi** câștigate prin brokerul românesc
+- **Multi-valută** — XTB și BT acceptă RON, EUR și USD; valorile sunt convertite la cursul mediu BNR
+
+#### Vânzări Acțiuni SUA (Confirmări Tranzacții)
+
+Lista tranzacție cu tranzacție din confirmările brokerului SUA (Fidelity). Afișează data, simbolul, numărul de acțiuni vândute, prețul, încasările, comisioanele și încasările nete.
+
+### 6.2 Sub-tab Impozit & CASS
+
+Cel mai important sub-tab — arată exact ce datorezi și oferă asistentul de completare D212.
+
+#### Sumarul Calculului de Impozite
+
+Împărțit în 3 secțiuni clar etichetate:
+
+##### 💰 Secțiunea A: Ce am câștigat (Venituri brute)
+Listează toate categoriile de venituri cu valorile în RON:
+- Câștiguri capital SUA, dividende SUA
+- Câștiguri capital România (≥1an și <1an), dividende România
+- Dividende străine (alte țări), defalcate per țară
+- Venituri din dobânzi, venituri jocuri de noroc
+- Venit net PFA (dacă este activat — vezi Secțiunea 10)
+- **Total venituri din investiții**
+
+##### ✅ Secțiunea B: Ce s-a plătit deja (Reținut la sursă)
+Afișează ce a fost deja colectat:
+- Impozit dividende reținut în SUA (10% conform convenției RO-SUA)
+- Impozit dividende străine reținut (per țară, cu credit fiscal)
+- Impozit câștiguri reținut de broker România (impozit final, 1%/3%)
+- Impozit dividende reținut de broker România
+- Impozit dobânzi reținut
+- Rețineri din stock awards
+- **Total deja plătit**
+
+##### 📝 Secțiunea C: Ce mai am de plătit (Obligații D212)
+Ce rămâne de declarat și plătit:
+- Impozit câștiguri capital SUA (10%)
+- Impozit dividende SUA (de obicei 0 — convenție)
+- Impozit dividende străine (diferență dacă reținerea străină < cota RO)
+- Elemente broker România (marcate ca „Impozit final — reținut la sursă, nu se declară")
+- Impozit dobânzi rămas
+- CASS investiții (3 paliere) și CASS PFA (4 paliere, dacă activ)
+- Impozit pe venit PFA (10%)
+- Deducere rețineri acțiuni
+- **⚠ TOTAL DE PLĂTIT PE D212** — acesta este numărul care contează
+
+##### Termen de plată
+Afișat la final — termenul de depunere și plată D212 (ex: 25 mai 2026 pentru anul fiscal 2025).
+
+#### CASS (Contribuția de Asigurări Sociale de Sănătate)
+
+Defalcarea detaliată a calculului CASS:
+- Afișează salariul minim brut și sistemul de paliere
+- Evidențiază palierul tău activ
+- Arată suma CASS datorată (separat pentru investiții vs. PFA)
+- Listează tipurile de venituri supuse CASS
+- Confirmă că CAS (pensie 25%) NU se aplică pentru venituri din investiții (se aplică doar la PFA cu venit > 12 SM)
+
+**Sistemul de paliere CASS pentru venituri din investiții (2025):**
+
+Conform instrucțiunilor D212 pct. 52.1.1–52.1.3, CASS pentru venituri din investiții este plafonat la **24SM** (3 paliere).
+Palierul 60SM se aplică doar activităților independente (PFA, vezi Secțiunea 10), nu veniturilor din investiții.
+
+| Palier | Interval venituri | Baza CASS | Suma CASS |
+|--------|-------------------|-----------|-----------|
+| <6 SM | < 24.300 RON | - | 0 |
+| 6-12 SM | 24.300 - 48.600 | 24.300 | 2.430 |
+| 12-24 SM | 48.600 - 97.200 | 48.600 | 4.860 |
+| ≥24 SM | ≥ 97.200 | 97.200 | 9.720 |
+
+*SM = salariu minim brut (4.050 RON/lună în 2025)*
+
+#### Asistentul D212 (mod legacy)
+
+Asistentul D212 clasic (text de copiat pas-cu-pas) este încă disponibil aici, dar pentru anul fiscal 2025+ recomandăm folosirea **tab-ului Depunere → Validează & Pregătește D212** și a exportului XML (vezi Secțiunea 7).
+
+---
+
+## 7. Tab 4 — 🧾 Depunere (Validează & Pregătește + Ghid Depunere)
+
+Tab-ul **Depunere** este **nou în v1.6.0** și grupează fluxul complet de pregătire și submitere a D212. Conține două sub-tab-uri.
+
+### 7.1 Sub-tab 🔬 Validează & Pregătește D212
+
+Acest sub-tab este punctul central pentru a confrunta valorile **ANAF (din DUF XML pre-completat)** cu valorile **locale (calculate din documentele tale)** și a alege ce trimiți la ANAF.
+
+#### Pas 1 — Importă DUF XML
+
+1. Conectează-te pe portalul ANAF → **Declarația Unică 212** → **Preluare/modificare date** → descarcă DUF XML
+2. Folosește butonul **„Importă DUF XML"** din partea de sus a sub-tab-ului (sau încarcă fișierul din tab-ul Date → Importă)
+3. Aplicația parsează:
+   - `cap11Rows` (Capitolul I.1 — câștiguri capital România per tranzacție)
+   - Capitolul I.4 (dividende străine per țară, cu credit fiscal)
+   - Blocul `<oblig_realizat>` (sumar obligații, CASS, impozit final)
+   - Date personale (CNP, adresă, IBAN) — Capitolul I.5
+
+#### Pas 2 — Diff side-by-side ANAF vs. Local
+
+Pentru fiecare rând și valoare, aplicația afișează un tabel cu trei coloane:
+- **ANAF (DUF)** — ce a pre-completat ANAF
+- **Local** — ce a calculat aplicația din documentele tale
+- **Selector** — radio buton pentru a alege ce versiune să folosești în XML-ul final
+
+Diferențele sunt evidențiate vizual:
+- ✅ **Identic** — ANAF și local coincid
+- ⚠️ **Diferență mică** (< 10 RON) — probabil rotunjire
+- 🔴 **Diferență mare** — necesită atenție
+
+#### Pas 3 — Cross-check D205 per plătitor
+
+Aplicația citește toate intrările D205 raportate de plătitori (extrase din DUF sau încărcate manual) și le compară cu calculele tale per plătitor (CUI/CIF). Matcher-ul are 5 niveluri:
+- 🟢 **Exact** — sumele coincid perfect
+- 🟡 **Aproape** — diferență < 5%
+- 🟠 **Posibil** — diferență 5-20%
+- 🔴 **Doar ANAF** — plătitor declarat de ANAF dar fără document local
+- 🔵 **Doar local** — calcul local fără raport D205 corespondent
+
+#### Pas 4 — Exportă D212 XML
+
+Click pe **„📤 Exportă D212 XML"**. Aplicația emite un fișier XML aliniat 100% cu structura DUF:
+- Cap I.1 (`cap11Rows`) cu câștigurile/pierderile RO per tranzacție
+- Cap I.4 cu dividendele străine per țară (credit fiscal limitat la cota RO)
+- Blocul `<oblig_realizat>` cu sumarul obligațiilor + CASS investiții
+- Date personale (CNP, IBAN, adresă)
+
+Acest XML poate fi încărcat direct pe portalul ANAF în secțiunea „Import declarație".
+
+### 7.2 Sub-tab 🧾 Ghid Depunere D212
+
+Parcurgere pas cu pas a fluxului oficial DUF cu **capturi de ecran anonimizate** și un **tabel de mapare DUF** (câmp ANAF → câmp aplicație):
+
+1. **Autentificare** pe portalul ANAF cu certificat digital
+2. **Preluare/modificare date** — descărcare DUF XML
+3. **Capitolul I — Date personale și venituri** — câmpuri DUF mapate la valorile aplicației
+4. **Capitolul I.1 — Câștiguri capital RO** — rândurile `cap11Rows`
+5. **Capitolul I.4 — Dividende străine** — per țară, cu credit fiscal
+6. **Sumar obligații** — `<oblig_realizat>`, CASS, impozit final
+7. **Submitere** — export XML din aplicație → import pe portalul ANAF → verificare → semnare → submitere
+8. **Plată** — generare ordin de plată, scadență 25 mai
+
+Toate capturile sunt anonimizate (CNP/IBAN/nume cenzurate) și sunt incluse în pachetul aplicației la `public/assets/screenshots/`.
+
+---
+
+## 8. Tab 5 — ⚙ Avansat (Date Brute + Reguli & Referințe)
+
+Tab-ul **Avansat** grupează două instrumente pentru utilizatorii avansați și contabili: **Date Brute** (inspecție/editare fișiere) și **Reguli & Referințe** (catalog reguli fiscale).
+
+### 8.1 Sub-tab Date Brute
 
 Vizualizează, editează sau șterge textul brut extras din documentele importate.
 
-### Controale
+#### Controale
 
 | Buton | Descriere |
 |-------|-----------|
@@ -335,7 +444,7 @@ Vizualizează, editează sau șterge textul brut extras din documentele importat
 | **Anulează** | Renunță la modificări și revine la modul vizualizare |
 | **Șterge** | **Șterge permanent** fișierul text ȘI datele parsate asociate. Necesită confirmare. |
 
-### Ce fișiere sunt stocate
+#### Ce fișiere sunt stocate
 
 Fiecare document importat creează un fișier text în `data/`:
 ```
@@ -346,18 +455,42 @@ fidelity_statement_2025_raw.txt
 trade_confirmation_2025_raw.txt
 xtb_dividends_2025_raw.txt
 xtb_portfolio_2025_raw.txt
+bt_trades_2025_raw.txt
+revolut_statement_2025_raw.txt
 form_1042s_2025_raw.txt
+duf_2025_raw.xml
 ```
 
-### Când să folosești Șterge (Purge)
+#### Când să folosești Șterge (Purge)
 - Dacă ai importat documentul greșit
 - Dacă vrei să reimportezi o versiune corectată (șterge mai întâi, apoi reimportează)
 - Ștergerea `trade_confirmation_*` șterge și `trades.json`
 - Ștergerea `stock_award_*` șterge și `stock_awards.json`
+- Pentru a șterge **TOATE** datele unui an, folosește butonul **↩ Reset An** din header (mai rapid)
+
+### 8.2 Sub-tab Reguli & Referințe (nou în v1.6.0)
+
+Pagină **căutabilă** dedicată contabililor și utilizatorilor care vor să verifice baza legală a fiecărui calcul. Fiecare regulă afișează:
+- **ID regulă** (ex: `R-CASS-INV-24SM`)
+- **Descriere** umană
+- **Articolul din Codul fiscal** (ex: Art. 170 alin. (1) Cod fiscal)
+- **Paragraful din Instrucțiunile D212** (ex: pct. 52.1.2)
+- **Exemplu de aplicare** (când există)
+
+#### Categorii de reguli
+- **Impozit pe venit** — dividende, dobânzi, câștiguri capital (cote 2019-2026+)
+- **CASS investiții** — paliere 6/12/24 SM, plafonare, exclude veniturile reținute final
+- **CASS PFA** — paliere 6/12/24/60 SM, opt-in art. 180(2)
+- **Credit fiscal extern** — limitare la cota RO, per țară, dovedire reținere străină
+- **Pierderi reportate** — max 70% din câștigul anului, reportare 7 ani
+- **D205** — categorii de venit, mapare per plătitor
+
+#### Căutare
+Bara de căutare filtrează regulile în timp real după ID, descriere, articol sau cuvânt-cheie.
 
 ---
 
-## 10. Logica fiscală și reguli
+## 9. Logica fiscală și reguli
 
 ### Dividende SUA (Convenția RO-SUA pentru evitarea dublei impuneri)
 
@@ -415,55 +548,126 @@ Sunt 4 scenarii pentru câștigurile de capital din vânzări prin brokerul SUA:
 
 ---
 
-## 11. Asistentul D212 — Cum completezi Declarația Unică
+## 10. Suport PFA (activități independente)
 
-Asistentul D212 (situat în partea de jos a tab-ului **Calcul Impozite**) furnizează valorile exacte pe care să le copiezi în formularul ANAF. Apasă butonul **"🔗 Deschide formularul D212 pe ANAF"** pentru a deschide formularul direct într-o fereastră nouă.
+**Nou în v1.6.0.** Aplicația suportă deponenții **PFA** (Persoană Fizică Autorizată — activități independente în sistem real, art. 64-67 Cod fiscal) care declară venituri PFA alături de veniturile din investiții pe aceeași D212.
 
-### Pas cu pas: Depunerea D212 pe portalul ANAF
+### Activare
 
-1. Apasă butonul **"🔗 Deschide formularul D212 pe ANAF"** (sau accesează [ANAF D212](https://www.anaf.ro/declaratii/duf)) și autentifică-te
-2. Navighează la **Declarații** → **Declarația Unică 212**
-3. Creează o declarație nouă pentru anul fiscal afișat
+În sub-tab-ul **Date → Adaugă/Editează**, există un card nou **„Venituri PFA — activități independente"**. Bifează opțiunea **„Am venituri PFA pentru acest an"** pentru a-l activa.
 
-### Capitolul I — Impozit pe Venit și Contribuții Sociale
+### Câmpuri
 
-#### Subsecțiunea I.2.1: Venituri din străinătate (SUA)
+| Câmp | Descriere |
+|------|-----------|
+| **Venit brut PFA (RON)** | Total încasări din activitatea independentă (sistem real) |
+| **Cheltuieli deductibile (RON)** | Cheltuieli aferente activității (chirie, utilități, materiale, etc.) |
+| **Venit net PFA (RON)** | Auto-calculat: Brut − Cheltuieli. Editabil dacă declari direct net. |
+| **Opt-in art. 180(2)** | Bifă pentru cei care optează voluntar la baza CASS = venit net (în loc de palier) |
+| **CAS (pensie)** | Auto-aplicat dacă venit net > 12 SM. Cota 25% pe baza aleasă. |
 
-Copiază aceste valori din tabelul **Venituri din străinătate** din aplicație:
-- Țara sursă: **S.U.A.**
-- Curs de schimb: RON/USD (media anuală BNR)
-- **CÂȘTIGURI DE CAPITAL:** Valoare vânzare (USD și RON), deducere sume impozitate ca salariu, câștiguri impozabile, impozit datorat
-- **DIVIDENDE:** Dividende brut (USD și RON), impozit datorat în România, impozit plătit în SUA (10% credit convenție), diferență de plată (de obicei 0)
+### Sistem paliere CASS PFA (2025)
 
-#### Venituri România (Doar dobânzi)
+**Diferit** de paliere investiții — PFA are 4 paliere, plătite voluntar sub 6 SM:
 
-Doar **veniturile din dobânzi** de la brokerul din România trebuie declarate. Acțiunile și dividendele de la brokerul din România sunt impozit final (reținut la sursă), marcate ca „Impozit final — reținut la sursă, nu se declară".
+| Palier | Interval venit net | Baza CASS | Suma CASS (10%) |
+|--------|--------------------|-----------|-----------------|
+| <6 SM | < 24.300 RON | voluntar (6 SM) | 2.430 (opțional) |
+| 6-12 SM | 24.300 - 48.600 | 24.300 | 2.430 |
+| 12-24 SM | 48.600 - 97.200 | 48.600 | 4.860 |
+| 24-60 SM | 97.200 - 243.000 | venit net efectiv | 10% × net |
+| ≥60 SM | ≥ 243.000 | 243.000 (plafon) | 24.300 |
 
-#### Subsecțiunea I.3.2: CASS
+### Impact pe D212
 
-Copiază:
-- Salariu minim, venituri extrasalariale totale, palier CASS, baza de calcul, CASS datorată
-
-#### Secțiunea I.7: Sumar obligații
-
-Copiază sumele sumar:
-- Impozit câștiguri capital SUA
-- Impozit dividende SUA de plată
-- Impozit dobânzi
-- Total impozit pe venit
-- CASS datorată
-- Deducere rețineri acțiuni (dacă există)
-- **TOTAL DE PLATĂ** — aceasta este suma pe care trebuie să o plătești până la termen
-
-### Capitolul II — Opțiune plată CASS (Opțional pentru 2025+)
-
-Începând cu D212 pentru anul fiscal 2025, **Capitolul II nu mai este obligatoriu**. Aplicația afișează:
-- Dacă CASS nu se datorează (venitul sub 6×SM), confirmă cu ✅
-- Dacă vrei voluntar să optezi pentru plata anticipată CASS, sunt afișate baza și suma
+- Venitul net PFA este adăugat la **Capitolul I.1** al D212 ca venit din activități independente
+- CASS PFA și CAS (dacă e cazul) sunt **separate** de CASS investiții — ambele apar în sumarul obligațiilor
+- XML-ul exportat din tab-ul Depunere include blocul `<venituriActivitatiIndependente>` plus contribuțiile corespunzătoare
 
 ---
 
-## 12. Administrarea datelor
+## 11. Suport multi-valută (RON / EUR / USD)
+
+**Extins în v1.6.0.** Brokerii români **XTB** și **BT Capital Partners** pot raporta tranzacții în mai multe valute (RON, EUR, USD). Aplicația detectează automat valuta per linie și convertește la cursul mediu BNR al anului.
+
+### Cursuri BNR integrate
+
+| An | EUR/RON | USD/RON |
+|----|---------|---------|
+| 2019 | 4.7452 | 4.2379 |
+| 2020 | 4.8371 | 4.2440 |
+| 2021 | 4.9204 | 4.1604 |
+| 2022 | 4.9315 | 4.6884 |
+| 2023 | 4.9465 | 4.5683 |
+| 2024 | 4.9750 | 4.5982 |
+| 2025 | 5.0700 | 4.6700 (provizoriu) |
+
+### Cum funcționează
+
+1. Parserul broker detectează valuta liniei (din simbol `RON`/`EUR`/`USD` sau coloana valută)
+2. Conversia se face cu cursul mediu anual BNR — transparent în tab-ul **Detalii Venituri** (insignă valută + curs aplicat)
+3. Dividende reținute în EUR sau USD prin broker român sunt convertite la RON și adunate la totalul `dividendePrinBrokerRO`
+4. Detector de conflicte semnalează când valoarea convertită diferă de ce a raportat ANAF (DUF)
+
+### Note
+
+- Pentru brokerii **străini** (Fidelity, Morgan Stanley, Revolut), conversia rămâne la cursul BNR per anul fiscal
+- Pentru brokerii **români**, dividende în valută străină (ex: dividende Microsoft via XTB) sunt impozite finale (reținute de broker) și nu se redeclar
+
+---
+
+## 12. ANAF Audit Pack (export ZIP determinist)
+
+**Nou în v1.6.0.** Pentru cazul în care ANAF cere documente justificative (în general 5 ani de la depunere), aplicația poate genera un **ZIP determinist** care conține tot ce trebuie pentru un audit.
+
+### Cum se generează
+
+În tab-ul **🧾 Depunere → 🔬 Validează & Pregătește D212**, după ce ai exportat XML-ul, apare butonul **"📦 Export ANAF Audit Pack"**. Click → se salvează `D212-AuditPack-{An}-{Hash}.zip`.
+
+### Conținut
+
+ZIP-ul include (în structură ierarhică explicită):
+
+```
+D212-AuditPack-2025-abc123/
+├── README.txt                    # Index al pachetului + sume de control
+├── manifest.json                 # Versiune aplicație, dată export, an fiscal, hash
+├── raw/                          # Fișiere brute ale documentelor importate
+│   ├── investment_2025_raw.txt
+│   ├── trade_confirmation_2025_raw.txt
+│   ├── xtb_dividends_2025_raw.txt
+│   └── … (toate fișierele _raw.txt)
+├── parsed/                       # Date parsate JSON
+│   ├── parsed_data_2025.json
+│   ├── trades_2025.json
+│   └── stock_awards_2025.json
+├── d205/                         # Intrări D205 per plătitor
+│   └── d205_2025.json
+├── d212/                         # XML D212 generat
+│   ├── d212_2025.xml
+│   └── d212_2025_anaf_duf.xml    # DUF original ANAF (dacă importat)
+└── trace/                        # Trace de aplicare reguli
+    ├── rules_applied.json        # Reguli aplicate cu citate Cod fiscal
+    └── calculation_audit.json    # Pas-cu-pas calcul venituri → impozit → CASS
+```
+
+### Determinismul
+
+ZIP-ul este **bit-identic** la export repetat pe aceleași date:
+- Timpurile fișierelor sunt fixate la `1980-01-01 00:00:00` (constanta ZIP)
+- Ordinea fișierelor este alfabetică stabilă
+- CRC32 calculat per fișier
+- Hash-ul SHA256 al ZIP-ului apare în numele fișierului și în manifest
+
+Aceasta permite **verificarea integrității** la cerere ANAF — contabilul poate re-rula exportul și compara hash-ul.
+
+### Implementare
+
+ZIP-ul este creat cu implementarea proprie `lib/minizip.js` — **zero dependențe externe** — pentru a garanta același output indiferent de versiunea Node.js sau platformă.
+
+---
+
+## 13. Administrarea datelor
 
 ### Unde sunt stocate datele
 
@@ -506,7 +710,7 @@ Frontend-ul calculează impozitele și afișează tabele/grafice
 
 ---
 
-## 13. Versiunea portabilă
+## 14. Versiunea portabilă
 
 Versiunea portabilă este un folder independent care rulează pe orice Windows 10/11 (64-bit) fără a instala nimic.
 
@@ -583,7 +787,7 @@ Versiunea portabilă:
 
 ---
 
-## 14. Depanare
+## 15. Depanare
 
 ### Aplicația nu pornește
 
@@ -621,24 +825,34 @@ Versiunea portabilă:
 
 ---
 
-## 15. Istoric versiuni aplicație
+## 16. Istoric versiuni aplicație
 
 Vezi istoricul complet făcând click pe numărul versiunii din footer-ul aplicației, sau consultă:
 - [CHANGELOG.en.md](CHANGELOG.en.md) (Engleză)
 - [CHANGELOG.ro.md](CHANGELOG.ro.md) (Română)
 
-### Versiunea curentă: v1.4.1 (14.04.2026)
+### Versiunea curentă: v1.6.0 (12.06.2026)
 
-**Modificări majore:**
-- Tooltip-uri detaliate pe toate rândurile de venituri (rețineri, credite, deduceri)
-- Input manual impozit dobânzi plătit
-- Grafice ascunse fără date
-- Notă de subsol cu exemplu deducere 40% pe chirii/drepturi IP
-- 4 tipuri noi de venituri, corecturi conformitate ANAF, refacere panou principal
+**Schimbări majore aduse de develop branch peste cut-ul inițial v1.6.0 (12.05.2026):**
+- **🗂️ Navigare refactorizată** — 6 tab-uri plate → 5 tab-uri grupate (Panou Principal · Date · Calcul · Depunere · Avansat) cu sub-tab-uri
+- **🧾 Ghid Depunere D212** — parcurgere oficială a fluxului DUF cu capturi anonimizate
+- **🔬 Validează & Pregătește D212** — import DUF XML, diff side-by-side ANAF vs. local, selector ANAF/Local per rând, cross-check D205
+- **📤 Export D212 XML** — emite XML aliniat 100% cu structura DUF (cap11Rows, cap14, oblig_realizat, CASS)
+- **📥 Tab Date în două moduri** — Adaugă/Editează + Importă cu panou „Documente deja importate”
+- **🆕 Brokeri noi** — BT Capital Partners (bt-trade.ro) și Revolut Securities Europe (consolidated statement)
+- **💼 Suport PFA** — activități independente, scara CASS 6/12/24/60 SM, opt-in art. 180(2)
+- **⚖️ Pagina Reguli & Referințe** — catalog căutabil cu citări Cod fiscal + Instr. D212
+- **📦 ANAF Audit Pack** — export ZIP determinist (CRC + timestamp-uri stabile) pentru audit
+- **🔢 Refactor calcul** — source-resolver: fiecare valoare știe de unde provine (DUF/Local/Manual/D205)
+- **💱 Multi-valută prin broker RO** — EUR și USD prin XTB și BT cu cursuri BNR 2019-2025
+- **🐛 Fix-uri parser 1042-S** — suport PDF-uri multi-formular, deduplicare per ID unic
+- **🧪 Teste** — suită extinsă cu peste 100 de teste node:test (zero dep)
+- **🛡️ CI/Igienă** — matrice Node 18/20/22 pe ubuntu-latest + job `pr-cleanliness`
+- **🛠️ Module interne noi** — `lib/source-resolver.js`, `lib/rules-catalog.js`, `lib/d205-matcher.js`, `lib/d212-xml-builder.js`, `lib/audit-pack-builder.js`, `lib/minizip.js`
 
-### Versiunea anterioară: v1.4.0 (14.04.2026)
+### Versiunea anterioară: v1.5.3 (19.04.2026)
 
-4 tipuri noi de venituri (chirii, drepturi IP, jocuri noroc, alte surse), câmpuri impozit dividende SUA/RO, cote corectate 2019-2022, conformitate CASS, 5 căsuțe panou, grafic salariu minim, pornire asincronă.
+Tooltip-uri detaliate pe toate rândurile de venituri (rețineri, credite, deduceri), input manual impozit dobânzi plătit, grafice ascunse fără date, notă de subsol cu exemplu deducere 40% pe chirii/drepturi IP, 4 tipuri noi de venituri, corecturi conformitate ANAF, refacere panou principal.
 
 ---
 
