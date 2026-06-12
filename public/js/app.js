@@ -152,6 +152,9 @@ const App = (() => {
     navToggle.addEventListener('click', () => navMenu.classList.toggle('open'));
     document.querySelectorAll('.nav-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        // Skip nav-btn-styled buttons that aren't actual top-level tabs (e.g. the
+        // Add Data sub-tab switcher uses .nav-btn for visual parity but no data-tab).
+        if (!btn.dataset.tab) return;
         navMenu.classList.remove('open');
         switchTab(btn.dataset.tab);
       });
@@ -176,6 +179,7 @@ const App = (() => {
     const yearSelect = document.getElementById('year-select');
     yearSelect.addEventListener('change', (e) => {
       selectedYear = parseInt(e.target.value, 10);
+      clearInlineEditState();
       render();
     });
 
@@ -184,6 +188,14 @@ const App = (() => {
     document.getElementById('upload-form').addEventListener('submit', handleUpload);
     document.getElementById('rates-form').addEventListener('submit', handleRatesSubmit);
     document.getElementById('tax-rates-form').addEventListener('submit', handleTaxRatesSubmit);
+
+    // D-7 — export D212 XML skeleton from current year's computed data
+    const xmlBtn = document.getElementById('btn-export-d212-xml');
+    if (xmlBtn) xmlBtn.addEventListener('click', () => exportD212Xml(selectedYear));
+
+    // P3 — export ANAF audit pack (ZIP with all supporting documents)
+    const auditBtn = document.getElementById('btn-export-audit-pack');
+    if (auditBtn) auditBtn.addEventListener('click', () => exportAuditPack(selectedYear));
 
     // Fetch OCR engine status
     fetchOcrStatus();
@@ -437,6 +449,9 @@ const App = (() => {
     // Populate year selector
     populateYears();
 
+    // Wire Add Data sub-tab switcher + advanced toggle (one-time)
+    setupAddDataModeSwitcher();
+
     // Render (await to ensure _cachedStockAwards is populated before computeYearData)
     await render();
   }
@@ -494,14 +509,1103 @@ const App = (() => {
     yearSelect.value = selectedYear;
   }
 
-  function switchTab(tabName) {
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.querySelector(`.nav-btn[data-tab="${tabName}"]`)?.classList.add('active');
-    document.getElementById(`tab-${tabName}`)?.classList.add('active');
+  // ============ Tab navigation (Phase: consolidated 5-tab layout) ============
+  //
+  // The top-level nav was reduced from 8 to 5 buttons (Dashboard / Date /
+  // Calcul / Depunere / Avansat). The 7 functional sections still exist in
+  // the DOM under their original IDs (`tab-input`, `tab-import`, `tab-income`,
+  // `tab-taxes`, `tab-validate`, `tab-submit`, `tab-raw`); they are now grouped
+  // under the 4 multi-subtab groups below. A second-row "sub-tab bar" appears
+  // between the header and the active section whenever the active group has
+  // more than one subtab.
+  //
+  // Legacy callers that pass a subtab name (e.g. `switchTab('validate')`) and
+  // anchor links like `#tab-income` continue to work: the resolver below
+  // detects whether `tabName` is a group key or a subtab key and activates
+  // BOTH the parent group AND the right subtab.
+  const TAB_GROUPS = {
+    data: [
+      { id: 'input',  i18n: 'nav.subInput',  fallback: '✏️ Adaugă/editează date' },
+      { id: 'import', i18n: 'nav.subImport', fallback: '📁 Importă document' },
+    ],
+    calc: [
+      { id: 'income', i18n: 'nav.subIncome', fallback: '📊 Detalii venituri' },
+      { id: 'taxes',  i18n: 'nav.subTaxes',  fallback: '💰 Impozit & CASS' },
+    ],
+    depunere: [
+      { id: 'validate', i18n: 'nav.subValidate', fallback: '🔬 Validează & pregătește' },
+      { id: 'submit',   i18n: 'nav.subSubmit',   fallback: '🧭 Ghid depunere ANAF' },
+    ],
+    advanced: [
+      { id: 'raw',   i18n: 'nav.subRaw',   fallback: '📜 Raw Data' },
+      { id: 'rules', i18n: 'nav.subRules', fallback: '⚖️ Reguli & Referințe' },
+    ],
+  };
+  // Reverse map for routing legacy subtab names through their parent group.
+  const SUBTAB_PARENT = {};
+  for (const [g, subs] of Object.entries(TAB_GROUPS)) {
+    for (const s of subs) SUBTAB_PARENT[s.id] = g;
+  }
+  // Per-group memory so users land on the last-visited subtab when they
+  // re-enter a group during the same session. Persisted across reloads via
+  // localStorage so the experience survives a refresh.
+  const _LAST_SUBTAB_KEY = 'd212.lastSubtab';
+  function _loadLastSubtabs() {
+    try { return JSON.parse(localStorage.getItem(_LAST_SUBTAB_KEY) || '{}') || {}; } catch { return {}; }
+  }
+  function _saveLastSubtab(group, sub) {
+    try {
+      const m = _loadLastSubtabs();
+      m[group] = sub;
+      localStorage.setItem(_LAST_SUBTAB_KEY, JSON.stringify(m));
+    } catch { /* localStorage disabled — ignore */ }
+  }
 
-    if (tabName === 'raw') loadRawFiles();
-    if (tabName === 'input') populateForm();
+  /** Render the second-row sub-tab bar for a given group + active subtab. */
+  function _renderSubtabBar(group, activeSub) {
+    const bar = document.getElementById('subtab-bar');
+    if (!bar) return;
+    const subs = TAB_GROUPS[group] || [];
+    if (subs.length <= 1) {
+      bar.style.display = 'none';
+      bar.innerHTML = '';
+      return;
+    }
+    bar.style.display = '';
+    bar.innerHTML = subs.map(s => {
+      const label = (I18n && I18n.t && I18n.t(s.i18n)) || s.fallback;
+      const isActive = s.id === activeSub ? ' active' : '';
+      const ariaSel = s.id === activeSub ? 'true' : 'false';
+      return `<button type="button" role="tab" aria-selected="${ariaSel}" class="subtab-btn${isActive}" data-subtab="${s.id}">${label}</button>`;
+    }).join('');
+    bar.querySelectorAll('.subtab-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.subtab));
+    });
+  }
+
+  function switchTab(tabName) {
+    // Resolve the target group + subtab. `tabName` may be either:
+    //   - a top-level group key (e.g. "data", "calc") — pick the remembered
+    //     or first subtab; OR
+    //   - a subtab key (e.g. "income", "validate") — activate its parent
+    //     group automatically. Standalone tabs (dashboard) have no group.
+    let group, subtab;
+    if (TAB_GROUPS[tabName]) {
+      group = tabName;
+      const remembered = _loadLastSubtabs()[group];
+      const subs = TAB_GROUPS[group];
+      subtab = (remembered && subs.some(s => s.id === remembered)) ? remembered : subs[0].id;
+    } else if (SUBTAB_PARENT[tabName]) {
+      group = SUBTAB_PARENT[tabName];
+      subtab = tabName;
+    } else {
+      // Standalone tab (Dashboard). Hide the subtab bar.
+      group = null;
+      subtab = tabName;
+    }
+
+    // Clear active state on real top-level tabs (those with a data-tab attr).
+    // Sub-tab buttons (e.g. Add Data mode switcher) share the .nav-btn class
+    // for styling and manage their own .active state via applyAddDataMode().
+    document.querySelectorAll('.nav-btn[data-tab]').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+
+    // Activate the top-level group button (or the standalone Dashboard).
+    const topName = group || subtab;
+    document.querySelector(`.nav-btn[data-tab="${topName}"]`)?.classList.add('active');
+    document.getElementById(`tab-${subtab}`)?.classList.add('active');
+
+    if (group) {
+      _saveLastSubtab(group, subtab);
+      _renderSubtabBar(group, subtab);
+    } else {
+      // Hide subtab bar for standalone tabs (Dashboard).
+      const bar = document.getElementById('subtab-bar');
+      if (bar) { bar.style.display = 'none'; bar.innerHTML = ''; }
+    }
+
+    // Section-specific render hooks — keep behavior parity with the old flow.
+    if (subtab === 'raw') loadRawFiles();
+    if (subtab === 'rules') renderRulesPage();
+    if (subtab === 'input') populateForm();
+    if (subtab === 'import') renderImportExistingPanel();
+    if (subtab === 'submit') wireSubmitTabLinks();
+    if (subtab === 'validate') renderSubmissionGuide();
+  }
+
+  /** Wire the "Go to Validate & Prepare" link inside Submission Guide. */
+  function wireSubmitTabLinks() {
+    const link = document.getElementById('submit-goto-validate');
+    if (link && !link.dataset.wired) {
+      link.dataset.wired = '1';
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchTab('validate');
+      });
+    }
+  }
+
+  // ============ D212 SUBMISSION GUIDE TAB ============
+  /**
+   * Render the "Valorile de introdus în DUF" table on the submission guide tab.
+   * Maps our computed numbers to the DUF web form's field labels so the user
+   * has a one-screen reference while filling the form online.
+   *
+   * Per the official ANAF guide (Ghid_Precompletare_D212_2026 v1, May 2026),
+   * the DUF portal does NOT accept external XML upload — values are typed
+   * into the web form. This panel is the bridge between our calculations
+   * and the user's keyboard.
+   */
+  function renderSubmissionGuide() {
+    const container = document.getElementById('validate-duf-values');
+    if (!container) return;
+    const data = computeYearData(selectedYear);
+    const fmtRON = (n) => Math.round(n || 0).toLocaleString('ro-RO') + ' RON';
+
+    const sections = [];
+
+    const dufEntry = _dufImports.get(selectedYear);
+    const compare = dufEntry && dufEntry.compare;
+    const picks = _getPicksForYear(selectedYear);
+    // Build a quick lookup: rowKey -> { effectivePick, anaf, local } so per-field
+    // resolution below is O(1). When no DUF XML has been imported, this stays empty
+    // and every value falls back to local (current behavior).
+    const pickIndex = new Map();
+    if (compare) {
+      for (const row of compare.rows) {
+        pickIndex.set(row.rowKey, {
+          pick: _effectivePick(row, picks),
+          anaf: row.anaf,
+          local: row.local,
+        });
+      }
+    }
+    /**
+     * Resolve a single (label, localValue, rowKey) tuple to the final value the
+     * user should type into DUF, picking ANAF when the user (or default policy)
+     * decided so. Returns `{val, source}` — source is 'anaf' / 'local' / null.
+     */
+    const resolve = (localValue, rowKey) => {
+      if (!rowKey) return { val: localValue, source: null };
+      const idx = pickIndex.get(rowKey);
+      if (!idx) return { val: localValue, source: null };
+      if (idx.pick === 'anaf' && idx.anaf != null) return { val: idx.anaf, source: 'anaf' };
+      if (idx.pick === 'local') return { val: idx.local, source: 'local' };
+      if (idx.pick == null && idx.anaf != null && idx.local == null) return { val: idx.anaf, source: 'anaf' };
+      return { val: localValue, source: idx.pick };
+    };
+    const fmtR = (v) => ({ val: fmtRON(v.val), source: v.source });
+
+    // cap14 — Foreign-source income (Venituri din străinătate, secțiunea cap14)
+    if ((data.cap14Rows || []).length > 0) {
+      const rows = [];
+      for (const r of data.cap14Rows) {
+        const isDividends = r.str_categ_venit === '2018';
+        const catLabel = isDividends
+          ? (I18n.t('submit.catDividends') || 'Dividende (cod 2018)')
+          : (I18n.t('submit.catCapGains') || 'Câștiguri din transferul titlurilor de valoare (cod 2012)');
+        const country = r.str_stat_realiz_v;
+        const code = r.str_categ_venit;
+        const kVN = `cap14.${country}.${code}.str_venit_net_anual`;
+        const kCF = `cap14.${country}.${code}.str_credit_fiscal`;
+        rows.push({ section: `🌍 cap14 — ${country} · ${catLabel}`, items: [
+          { duf: 'Țara realizării venitului', val: country },
+          { duf: 'Categoria de venit', val: `${code} — ${isDividends ? 'Dividende' : 'Câștiguri titluri'}` },
+          { duf: 'Metoda dublei impuneri', val: r.dubla_impunere === '1' ? 'Credit fiscal (1)' : 'Scutire (2)' },
+          { duf: 'Rd.1 Venit brut (RON)', ...fmtR(resolve(r.str_venit_brut, null)) },
+          { duf: 'Rd.2 Cheltuieli deductibile (RON)', ...fmtR(resolve(r.str_chelt_deduc, null)) },
+          { duf: 'Rd.3 Venit net anual (RON)', ...fmtR(resolve(r.str_venit_net_anual, kVN)) },
+          { duf: 'Rd.7 Venit recalculat (RON)', ...fmtR(resolve(r.str_venit_recalculat, null)) },
+          { duf: 'Rd.8 Impozit datorat în RO (RON)', ...fmtR(resolve(r.str_impozit_datorat_Ro, null)) },
+          { duf: 'Rd.9 Impozit plătit în străinătate (RON)', ...fmtR(resolve(r.str_impozit_platit, null)) },
+          { duf: 'Rd.10 Credit fiscal recunoscut (RON)', ...fmtR(resolve(r.str_credit_fiscal, kCF)) },
+          { duf: 'Rd.11 Diferență impozit datorat (RON)', ...fmtR(resolve(r.str_dif_impozit_datorat, null)) },
+        ]});
+      }
+      sections.push(...rows);
+    }
+
+    // cap11 — Romanian-source investment income
+    if ((data.cap11Rows || []).length > 0) {
+      const r = data.cap11Rows[0];
+      const code = r.categ_venit;
+      const kVN = `cap11.${code}.venit_net_anual`;
+      const kIR = `cap11.${code}.impozit_retinut`;
+      sections.push({ section: '🇷🇴 cap11 — Câștiguri RO (titluri de valoare, cod 1012)', items: [
+        { duf: 'Categoria de venit', val: '1012 — Câștiguri din transferul titlurilor de valoare' },
+        { duf: 'Rd.1 Venit brut (RON)', ...fmtR(resolve(r.venit_brut, null)) },
+        { duf: 'Rd.3 Venit net anual (RON)', ...fmtR(resolve(r.venit_net_anual, kVN)) },
+        { duf: 'Rd.5 Pierdere precedentă (RON)', ...fmtR(resolve(r.pierdere_precedenta, null)) },
+        { duf: 'Rd.6 Pierdere compensată (RON)', ...fmtR(resolve(r.pierdere_compensata, null)) },
+        { duf: 'Rd.7 Venit recalculat (RON)', ...fmtR(resolve(r.venit_recalculat, null)) },
+        { duf: 'Rd.8 Impozit anual (RON)', ...fmtR(resolve(r.impozit11, null)) },
+        { duf: 'Rd.9 Impozit reținut la sursă (RON)', ...fmtR(resolve(r.impozit_retinut, kIR)) },
+      ]});
+    }
+
+    // CASS investments (Capitolul II)
+    if (data.obligRealizat && data.obligRealizat.cass_ven_inv > 0) {
+      const o = data.obligRealizat;
+      sections.push({ section: '💊 CASS pe venituri din investiții (Capitolul II)', items: [
+        { duf: 'Total venituri din investiții (RON)', ...fmtR(resolve(o.cass_ven_inv, 'oblig.cass_ven_inv')) },
+        { duf: 'Bază anuală de calcul CASS (RON)', ...(function(){
+            const r = resolve(o.cass_baza, 'oblig.cass_baza');
+            const baseStr = fmtRON(r.val);
+            const suffix = r.val > 0 ? ' (' + (r.val / 4050).toFixed(0) + ' × salariu minim)' : '';
+            return { val: baseStr + suffix, source: r.source };
+          })() },
+        { duf: 'CASS anuală 10% (RON)', ...fmtR(resolve(o.cass_anuala, null)) },
+        { duf: 'CASS datorat (RON)', ...fmtR(resolve(o.cass_datorat, 'oblig.cass_datorat')) },
+        { duf: 'CASS reținut la sursă (RON)', ...fmtR(resolve(o.cass_retinut, null)) },
+        { duf: 'CASS de plată (RON)', ...fmtR(resolve(o.cass_dif_plus, null)) },
+        { duf: 'Bifa "sistem real, plafon 24 SM"', val: 'Da (cod 3)' },
+      ]});
+    }
+
+    if (sections.length === 0) {
+      container.innerHTML = `<p style="color:var(--text-muted);font-style:italic;">${esc(I18n.t('submit.noValues') || 'Nu există valori de introdus în DUF pentru acest an — adaugă mai întâi date sau importă documente.')}</p>`;
+      return;
+    }
+
+    let html = '';
+    if (compare) {
+      // Optional header: tell the user we've baked DUF picks into the values.
+      const anafCount = sections.reduce((s, sec) => s + sec.items.filter((i) => i.source === 'anaf').length, 0);
+      html += `<p style="background:rgba(88,166,255,0.06);border-left:3px solid var(--accent);padding:0.5rem 0.75rem;font-size:0.85rem;margin:0 0 0.75rem;border-radius:var(--radius);">
+        ${esc(I18n.t('submit.valuesWithPicks') || 'Valorile reflectă XML-ul DUF importat')} ${anafCount > 0 ? ` — <strong>${anafCount}</strong> ${esc(I18n.t('submit.valuesFromAnaf') || 'preluate din ANAF')}` : ''}
+      </p>`;
+    }
+    for (const s of sections) {
+      html += `<div style="margin:1rem 0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+        <header style="background:var(--bg-secondary);padding:0.6rem 1rem;font-weight:600;font-size:0.95rem;">${esc(s.section)}</header>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="border-bottom:1px solid var(--border);font-size:0.8rem;color:var(--text-muted);">
+            <th style="padding:0.5rem 1rem;text-align:left;">${esc(I18n.t('submit.dufField') || 'Câmpul din DUF')}</th>
+            <th style="padding:0.5rem 1rem;text-align:right;">${esc(I18n.t('submit.dufValue') || 'Valoare')}</th>
+            <th style="padding:0.5rem 1rem;text-align:center;">${esc(I18n.t('submit.dufSource') || 'Sursă')}</th>
+          </tr></thead>
+          <tbody>`;
+      for (const it of s.items) {
+        const sourceBadge = it.source === 'anaf'
+          ? `<span title="${esc(I18n.t('submit.sourceAnafTip') || 'Preluat din XML-ul DUF (decizia ta)')}" style="font-size:0.7rem;padding:0.1rem 0.4rem;background:var(--accent);color:#fff;border-radius:var(--radius);">🅰 ANAF</span>`
+          : it.source === 'local'
+            ? `<span title="${esc(I18n.t('submit.sourceLocalTip') || 'Calculat local din PDF-urile broker')}" style="font-size:0.7rem;padding:0.1rem 0.4rem;background:var(--success);color:#fff;border-radius:var(--radius);">🟢 Local</span>`
+            : '';
+        html += `<tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:0.45rem 1rem;font-size:0.9rem;">${esc(it.duf)}</td>
+          <td style="padding:0.45rem 1rem;text-align:right;font-variant-numeric:tabular-nums;font-weight:500;">${esc(it.val)}</td>
+          <td style="padding:0.45rem 1rem;text-align:center;">${sourceBadge}</td>
+        </tr>`;
+      }
+      html += `</tbody></table></div>`;
+    }
+    container.innerHTML = html;
+
+    // Wire the DUF XML drop-zone (idempotent — replaces handlers each render)
+    setupDufImportZone();
+    setupD205Editor();
+  }
+
+  // ============ D205 PER-PAYER MANUAL ENTRY + MATCHING ============
+  /**
+   * Per-year list of D205 entries the user manually transcribed from the
+   * portal's "Sursa informațiilor în detaliu → Toate sursele" dialog.
+   * Map<year, Array<{id, payerName, payerCif, category, grossRON, taxRON, regNumber?}>>.
+   * In-memory only — cleared on reload, by design (PII safety).
+   */
+  const _d205Entries = new Map();
+  function _getD205EntriesForYear(year) {
+    if (!_d205Entries.has(year)) _d205Entries.set(year, []);
+    return _d205Entries.get(year);
+  }
+
+  function setupD205Editor() {
+    const addBtn = document.getElementById('validate-d205-add');
+    const pasteBtn = document.getElementById('validate-d205-paste');
+    const clearBtn = document.getElementById('validate-d205-clear');
+    if (!addBtn || !pasteBtn || !clearBtn) return;
+    if (addBtn.dataset.wired === '1') {
+      _renderD205Table();
+      return;
+    }
+    addBtn.dataset.wired = '1';
+    addBtn.addEventListener('click', () => {
+      const list = _getD205EntriesForYear(selectedYear);
+      list.push({ id: 'd205-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6), payerName: '', payerCif: '', category: '', grossRON: 0, taxRON: 0, regNumber: '' });
+      _renderD205Table();
+    });
+    pasteBtn.addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        const added = _ingestD205Paste(text, selectedYear);
+        showToast(`${added} ${I18n.t('validate.d205PasteOk') || 'rânduri adăugate din clipboard'}`, added > 0 ? 'success' : 'error');
+        _renderD205Table();
+      } catch (err) {
+        showToast(err.message || (I18n.t('validate.d205PasteErr') || 'Eroare lipire clipboard'), 'error');
+      }
+    });
+    clearBtn.addEventListener('click', () => {
+      if (!confirm(I18n.t('validate.d205ClearConfirm') || 'Ștergi toate rândurile D205 pentru anul curent?')) return;
+      _d205Entries.set(selectedYear, []);
+      _renderD205Table();
+    });
+    _renderD205Table();
+  }
+
+  /**
+   * Ingest a tab-separated paste (typical when copying from a web table) and
+   * try to map columns by header keywords. Returns how many rows were added.
+   *
+   * Expected columns (any order, case-insensitive):
+   *   cod fiscal / cif / payer  → payerCif
+   *   nume / payer name         → payerName
+   *   categoria / cat            → category
+   *   venit brut / brut / suma   → grossRON
+   *   impozit                    → taxRON
+   *   numar inregistrare / nr    → regNumber
+   *
+   * If no header row is detected, falls back to a positional guess:
+   *   [regNumber?, date?, cif, name, category, ..., gross, tax, ...]
+   */
+  function _ingestD205Paste(text, year) {
+    if (!text || !text.trim()) return 0;
+    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) return 0;
+    const list = _getD205EntriesForYear(year);
+    let added = 0;
+    // Detect a header row by looking for known keywords.
+    const headerRe = /\b(cod fiscal|cif|categori|venit brut|brut|impozit|platit|baza)/i;
+    let hasHeader = headerRe.test(lines[0]);
+    let cols = null;
+    if (hasHeader) {
+      const header = lines[0].split(/\t|\s{2,}|;|,/).map((c) => c.trim().toLowerCase());
+      // ANAF's D205 export prints BOTH "Venit brut" and "Baza" columns
+      // because different income categories use different ones:
+      //   - 07 Dividends → value in "Venit brut" (and base equals it)
+      //   - 09 Interest, 26/27 Capital gains → value in "Baza", Venit brut is "-"
+      // Detect both columns separately so the parser can fall back from
+      // one to the other on a row-by-row basis.
+      cols = {
+        cif: header.findIndex((h) => /cod fiscal|^cif$/.test(h)),
+        name: header.findIndex((h) => /nume firm|nume|denumire|payer/.test(h)),
+        cat: header.findIndex((h) => /categori|^cat$/.test(h)),
+        gross: header.findIndex((h) => /venit brut|^brut$|^suma$/.test(h)),
+        base: header.findIndex((h) => /^baza$|baza\s*impozit/.test(h)),
+        tax: header.findIndex((h) => /impozit/.test(h)),
+        reg: header.findIndex((h) => /num.?r ?inreg|registratur|^nr$/.test(h)),
+      };
+    }
+    for (let i = hasHeader ? 1 : 0; i < lines.length; i++) {
+      const parts = lines[i].split(/\t|\s{2,}|;/).map((p) => p.trim());
+      if (parts.length < 3) continue;
+      let payerName, payerCif, category, grossRON, taxRON, regNumber;
+      if (cols) {
+        payerCif = cols.cif >= 0 ? (parts[cols.cif] || '') : '';
+        payerName = cols.name >= 0 ? (parts[cols.name] || '') : '';
+        category = cols.cat >= 0 ? (parts[cols.cat] || '').replace(/[^\d]/g, '') : '';
+        // Prefer "Venit brut" when it carries a value; fall back to "Baza"
+        // for the categories where ANAF leaves Venit brut as a dash.
+        const grossFromVB = cols.gross >= 0 ? _parsePasteNumber(parts[cols.gross]) : 0;
+        const grossFromBaza = cols.base >= 0 ? _parsePasteNumber(parts[cols.base]) : 0;
+        grossRON = grossFromVB > 0 ? grossFromVB : grossFromBaza;
+        taxRON = cols.tax >= 0 ? _parsePasteNumber(parts[cols.tax]) : 0;
+        regNumber = cols.reg >= 0 ? (parts[cols.reg] || '') : '';
+      } else {
+        // Positional fallback: heuristic detect cif (long digits) + name (longest token).
+        const cifIdx = parts.findIndex((p) => /^\d{7,10}$/.test(p));
+        payerCif = cifIdx >= 0 ? parts[cifIdx] : '';
+        // Name = the longest non-numeric token after cif.
+        let nameCandidate = '';
+        for (let j = cifIdx + 1; j < parts.length; j++) {
+          if (/^\d/.test(parts[j])) continue;
+          if (parts[j].length > nameCandidate.length) nameCandidate = parts[j];
+        }
+        payerName = nameCandidate;
+        // Category = a 2-digit number near the name.
+        const catIdx = parts.findIndex((p) => /^\d{1,2}$/.test(p) && Number(p) > 0 && Number(p) < 60);
+        category = catIdx >= 0 ? parts[catIdx].padStart(2, '0') : '';
+        // Gross + tax: try to find the two largest numbers.
+        const nums = parts.map(_parsePasteNumber).filter((n) => n > 0).sort((a, b) => b - a);
+        grossRON = nums[0] || 0;
+        taxRON = nums[1] || 0;
+        regNumber = '';
+      }
+      if (!payerName && !payerCif && !grossRON) continue;
+      list.push({
+        id: 'd205-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6) + '-' + i,
+        payerName, payerCif, category, grossRON, taxRON, regNumber,
+      });
+      added++;
+    }
+    return added;
+  }
+
+  function _parsePasteNumber(s) {
+    if (!s) return 0;
+    const cleaned = String(s).replace(/[^\d,.\-]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.');
+    const n = parseFloat(cleaned);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function _renderD205Table() {
+    const tableEl = document.getElementById('validate-d205-table');
+    const summaryEl = document.getElementById('validate-d205-match-summary');
+    if (!tableEl || !summaryEl) return;
+    const list = _getD205EntriesForYear(selectedYear);
+    if (list.length === 0) {
+      tableEl.innerHTML = `<p style="color:var(--text-muted);font-style:italic;font-size:0.9rem;">${esc(I18n.t('validate.d205Empty') || 'Niciun rând D205 introdus. Folosește butoanele de mai sus.')}</p>`;
+      summaryEl.innerHTML = '';
+      return;
+    }
+    let html = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+      <thead><tr style="border-bottom:1px solid var(--border);color:var(--text-muted);">
+        <th style="padding:0.4rem;text-align:left;">${esc(I18n.t('validate.d205Payer') || 'Plătitor')}</th>
+        <th style="padding:0.4rem;text-align:left;">${esc(I18n.t('validate.d205Cif') || 'CIF')}</th>
+        <th style="padding:0.4rem;text-align:left;">${esc(I18n.t('validate.d205Category') || 'Cod')}</th>
+        <th style="padding:0.4rem;text-align:right;">${esc(I18n.t('validate.d205Gross') || 'Venit brut (RON)')}</th>
+        <th style="padding:0.4rem;text-align:right;">${esc(I18n.t('validate.d205Tax') || 'Impozit (RON)')}</th>
+        <th style="padding:0.4rem;"></th>
+      </tr></thead><tbody>`;
+    for (const r of list) {
+      html += `<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:0.3rem;"><input type="text" data-id="${esc(r.id)}" data-field="payerName" value="${esc(r.payerName)}" style="width:100%;background:var(--bg-input);border:1px solid var(--border);color:var(--text);padding:0.25rem;border-radius:var(--radius);font-size:0.85rem;" placeholder="ex: XTB SA"></td>
+        <td style="padding:0.3rem;"><input type="text" data-id="${esc(r.id)}" data-field="payerCif" value="${esc(r.payerCif)}" style="width:100%;background:var(--bg-input);border:1px solid var(--border);color:var(--text);padding:0.25rem;border-radius:var(--radius);font-size:0.85rem;" placeholder="ex: 24270192"></td>
+        <td style="padding:0.3rem;"><input type="text" data-id="${esc(r.id)}" data-field="category" value="${esc(r.category)}" style="width:60px;background:var(--bg-input);border:1px solid var(--border);color:var(--text);padding:0.25rem;border-radius:var(--radius);font-size:0.85rem;" placeholder="09"></td>
+        <td style="padding:0.3rem;text-align:right;"><input type="number" step="any" data-id="${esc(r.id)}" data-field="grossRON" value="${esc(String(r.grossRON))}" style="width:120px;text-align:right;background:var(--bg-input);border:1px solid var(--border);color:var(--text);padding:0.25rem;border-radius:var(--radius);font-variant-numeric:tabular-nums;font-size:0.85rem;"></td>
+        <td style="padding:0.3rem;text-align:right;"><input type="number" step="any" data-id="${esc(r.id)}" data-field="taxRON" value="${esc(String(r.taxRON || 0))}" style="width:100px;text-align:right;background:var(--bg-input);border:1px solid var(--border);color:var(--text);padding:0.25rem;border-radius:var(--radius);font-variant-numeric:tabular-nums;font-size:0.85rem;"></td>
+        <td style="padding:0.3rem;text-align:center;"><button type="button" data-id="${esc(r.id)}" class="d205-row-delete" style="background:transparent;border:0;color:var(--danger,#c53030);cursor:pointer;font-size:1rem;">🗑</button></td>
+      </tr>`;
+    }
+    html += `</tbody></table></div>`;
+    tableEl.innerHTML = html;
+
+    // Wire inputs
+    tableEl.querySelectorAll('input').forEach((inp) => {
+      inp.addEventListener('input', () => {
+        const row = list.find((x) => x.id === inp.dataset.id);
+        if (!row) return;
+        const f = inp.dataset.field;
+        if (f === 'grossRON' || f === 'taxRON') row[f] = parseFloat(inp.value) || 0;
+        else row[f] = inp.value;
+        _renderD205MatchSummary();
+      });
+    });
+    tableEl.querySelectorAll('.d205-row-delete').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = list.findIndex((x) => x.id === btn.dataset.id);
+        if (idx >= 0) list.splice(idx, 1);
+        _renderD205Table();
+      });
+    });
+    _renderD205MatchSummary();
+  }
+
+  /** Render the match table below the editor — calls the inline matcher. */
+  function _renderD205MatchSummary() {
+    const summaryEl = document.getElementById('validate-d205-match-summary');
+    if (!summaryEl) return;
+    const list = _getD205EntriesForYear(selectedYear);
+    if (list.length === 0) {
+      summaryEl.innerHTML = '';
+      return;
+    }
+    const yd = appData.years?.[selectedYear] || {};
+    const result = _d205MatchInline(list, yd);
+    const fmt = (n) => Math.round(n || 0).toLocaleString('ro-RO') + ' RON';
+    const badge = (status) => {
+      const cfg = {
+        'matched-exact':   { c: 'var(--success)',                t: '✓ Match exact' },
+        'matched-amount':  { c: 'var(--warning,#b35900)',         t: '≈ Match (≈)' },
+        'possible':        { c: 'var(--accent)',                  t: '❓ Posibil' },
+        'unmatched-anaf':  { c: 'var(--danger,#c53030)',          t: '🆕 Doar ANAF' },
+        'unmatched-local': { c: 'var(--text-muted)',              t: '⚠ Doar local' },
+      }[status] || { c: 'var(--text-muted)', t: status };
+      return `<span style="background:${cfg.c};color:#fff;font-size:0.7rem;padding:0.15rem 0.5rem;border-radius:var(--radius);white-space:nowrap;">${esc(cfg.t)}</span>`;
+    };
+
+    let html = `<div style="background:var(--bg-secondary);padding:0.5rem 1rem;border-radius:var(--radius);font-size:0.85rem;margin-bottom:0.5rem;">
+      <strong>${esc(I18n.t('validate.d205MatchSummary') || 'Rezumat potrivire:')}</strong>
+      ${result.totals.exactCount} ${esc(I18n.t('validate.d205Exact') || 'exact')} · ${result.totals.nearCount} ${esc(I18n.t('validate.d205Near') || 'aproape')} · ${result.totals.possibleCount} ${esc(I18n.t('validate.d205Possible') || 'posibil')} · ${result.totals.unmatchedAnafCount} ${esc(I18n.t('validate.d205OnlyAnaf') || 'doar ANAF')} · ${result.totals.unmatchedLocalCount} ${esc(I18n.t('validate.d205OnlyLocal') || 'doar local')}
+    </div>`;
+    if (result.matches.length > 0) {
+      html += `<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:0.5rem;"><table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+        <thead><tr style="border-bottom:1px solid var(--border);background:var(--bg-secondary);color:var(--text-muted);">
+          <th style="padding:0.35rem;text-align:left;">ANAF</th>
+          <th style="padding:0.35rem;text-align:right;">${esc(fmt(0).replace('0', I18n.t('validate.d205AnafGross') || 'Sumă ANAF'))}</th>
+          <th style="padding:0.35rem;text-align:left;">Local</th>
+          <th style="padding:0.35rem;text-align:right;">${esc(I18n.t('validate.d205LocalGross') || 'Sumă local')}</th>
+          <th style="padding:0.35rem;text-align:center;">${esc(I18n.t('submit.colStatus') || 'Stare')}</th>
+        </tr></thead><tbody>`;
+      for (const m of result.matches) {
+        html += `<tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:0.35rem;"><strong>${esc(m.anaf.payerName || '?')}</strong> · cat ${esc(m.anaf.category || '?')}${m.anaf.broker ? ` · <small>(${esc(m.anaf.broker)})</small>` : ''}${m.hint ? `<br><small style="color:var(--text-muted);">${esc(m.hint)}</small>` : ''}</td>
+          <td style="padding:0.35rem;text-align:right;font-variant-numeric:tabular-nums;">${esc(fmt(m.anaf.grossRON))}</td>
+          <td style="padding:0.35rem;">${m.local ? `<strong>${esc(m.local.broker)}</strong> · ${esc(m.local.label)} <small style="color:var(--text-muted);">(${esc(m.local.source)})</small>` : '—'}</td>
+          <td style="padding:0.35rem;text-align:right;font-variant-numeric:tabular-nums;">${m.local ? esc(fmt(m.local.grossRON)) : '—'}</td>
+          <td style="padding:0.35rem;text-align:center;">${badge(m.status)}</td>
+        </tr>`;
+      }
+      html += `</tbody></table></div>`;
+    }
+    // Split unmatched-local rows by status so the UI distinguishes
+    // "real" mismatches (problem) from foreign-source dividends that
+    // are EXPECTED to not appear in D205 (informational).
+    const realUnmatched = result.unmatchedLocal.filter((u) => u.status === 'unmatched-local');
+    const expectedNotInD205 = result.unmatchedLocal.filter((u) => u.status === 'expected-not-in-d205');
+
+    if (realUnmatched.length > 0) {
+      html += `<details style="border:1px solid var(--border);border-radius:var(--radius);padding:0.5rem 0.75rem;background:rgba(255,193,7,0.04);">
+        <summary style="cursor:pointer;font-size:0.85rem;font-weight:500;">⚠ ${realUnmatched.length} ${esc(I18n.t('validate.d205UnmatchedLocalSummary') || 'surse locale fără potrivire ANAF')}</summary>
+        <ul style="margin:0.5rem 0 0;padding-left:1.2rem;font-size:0.8rem;">`;
+      for (const u of realUnmatched) {
+        html += `<li><strong>${esc(u.broker)}</strong> · ${esc(u.label)} · ${esc(fmt(u.grossRON))} — <small style="color:var(--text-muted);">${esc(u.hint || '')}</small></li>`;
+      }
+      html += `</ul></details>`;
+    }
+    if (expectedNotInD205.length > 0) {
+      html += `<details style="border:1px solid var(--border);border-radius:var(--radius);padding:0.5rem 0.75rem;background:rgba(88,166,255,0.05);margin-top:0.5rem;">
+        <summary style="cursor:pointer;font-size:0.85rem;font-weight:500;">ℹ ${expectedNotInD205.length} ${esc(I18n.t('validate.d205ExpectedNotInD205Summary') || 'surse externe — așteptat să NU apară în D205')}</summary>
+        <ul style="margin:0.5rem 0 0;padding-left:1.2rem;font-size:0.8rem;">`;
+      for (const u of expectedNotInD205) {
+        html += `<li><strong>${esc(u.broker)}</strong> · ${esc(u.label)} · ${esc(fmt(u.grossRON))} — <small style="color:var(--text-muted);">${esc(u.hint || '')}</small></li>`;
+      }
+      html += `</ul></details>`;
+    }
+    summaryEl.innerHTML = html;
+  }
+
+  /**
+   * Inline mirror of lib/d205-matcher.js — see that file for full docs.
+   * Kept in sync; lib is canonical and tested.
+   */
+  function _d205MatchInline(d205Entries, yd) {
+    const MATCH_EPS = 1, NEAR_ABS = 50, NEAR_REL = 0.005;
+    const norm = (s) => !s ? '' : String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      .replace(/\b(s\.?\s?a\.?|s\.?\s?r\.?\s?l\.?|n\.?\s?v\.?)\b/g, ' ')
+      .replace(/\b(sa|srl|nv|sucursala|bucuresti|romania|amsterdam|warsaw|varsovia|partners|trust|group)\b/g, ' ')
+      .replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const fps = [
+      [/^xtb\b|xtrade brokers/, 'XTB'], [/^bt capital|bt securities/, 'BT Capital Partners'],
+      [/tradeville/, 'Tradeville'], [/goldring/, 'Goldring'],
+      [/^ing\b/, 'ING Bank'], [/^salt\b/, 'SALT Bank'], [/^bcr\b/, 'BCR'],
+      [/^bt\b|banca transilvania/, 'Banca Transilvania'],
+      [/raiffeisen/, 'Raiffeisen'], [/unicredit/, 'UniCredit'],
+    ];
+    const identifyBroker = (name) => {
+      const n = norm(name); if (!n) return null;
+      for (const [re, label] of fps) if (re.test(n)) return label;
+      return null;
+    };
+    const local = [];
+    // D-9: split dividends by source country. RO ISIN buckets expect D205
+    // cat 20; non-RO buckets are expected-not-in-d205 (foreign issuer).
+    const splitDiv = (broker, src, byCountry, totalGross, totalTax) => {
+      if (!byCountry || byCountry.length === 0) {
+        if (totalGross > 0 || totalTax > 0) {
+          local.push({ broker, category: '20', label: 'Dividende', grossRON: totalGross, taxRON: totalTax || 0, source: src, foreignSource: true });
+        }
+        return;
+      }
+      let localGross = 0, localTax = 0, foreignGross = 0, foreignTax = 0;
+      for (const c of byCountry) {
+        if (c.country === 'RO' || c.isRomanian) {
+          localGross += c.grossRON || 0;
+          localTax += c.taxRON || 0;
+        } else {
+          foreignGross += c.grossRON || 0;
+          foreignTax += c.taxRON || 0;
+        }
+      }
+      if (localGross > 0 || localTax > 0) {
+        local.push({ broker, category: '20', label: 'Dividende RO', grossRON: localGross, taxRON: localTax, source: `${src} (RO)`, foreignSource: false });
+      }
+      if (foreignGross > 0 || foreignTax > 0) {
+        local.push({ broker, category: '20', label: 'Dividende externe', grossRON: foreignGross, taxRON: foreignTax, source: `${src} (foreign)`, foreignSource: true });
+      }
+    };
+    if (yd && yd.xtbDividendsReport) {
+      const d = yd.xtbDividendsReport;
+      if (d.dividends && d.dividends.grossRON > 0) splitDiv('XTB', 'xtbDividendsReport.dividends', d.dividendsByCountry, d.dividends.grossRON, d.dividends.taxWithheldRON || 0);
+      if (d.interest && d.interest.grossRON > 0) local.push({ broker: 'XTB', category: '09', label: 'Dobânzi', grossRON: d.interest.grossRON, taxRON: d.interest.taxWithheldRON || 0, source: 'xtbDividendsReport.interest' });
+    }
+    if (yd && yd.btDividendsReport) {
+      const d = yd.btDividendsReport;
+      if (d.dividends && d.dividends.grossRON > 0) splitDiv('BT Capital Partners', 'btDividendsReport.dividends', d.dividendsByCountry, d.dividends.grossRON, d.dividends.taxWithheldRON || 0);
+    }
+    // Portfolio capital gains: D205 reports GROSS gain (gains only, no
+    // loss offset). Sum across countries but DO NOT subtract losses — the
+    // net (gain - loss) is what enters the D212 calculation, not D205.
+    for (const [src, key] of [['XTB', 'xtbPortfolio'], ['Tradeville', 'tradevillePortfolio'], ['BT Capital Partners', 'btPortfolio']]) {
+      const p = yd && yd[key]; if (!p || !Array.isArray(p.countries)) continue;
+      let lg = 0, lt = 0, sg = 0, st = 0, ll = 0, sl = 0;
+      for (const c of p.countries) {
+        lg += (c.longGainRON || c.longGain || 0);
+        ll += (c.longLossRON || c.longLoss || 0);
+        lt += c.longTaxRON || c.longTax || 0;
+        sg += (c.shortGainRON || c.shortGain || 0);
+        sl += (c.shortLossRON || c.shortLoss || 0);
+        st += c.shortTaxRON || c.shortTax || 0;
+      }
+      if (lg > 0 || lt > 0) local.push({ broker: src, category: '26', label: 'Capgains ≥1y', grossRON: lg, lossRON: ll, taxRON: lt, source: `${key}.long` });
+      if (sg > 0 || st > 0) local.push({ broker: src, category: '27', label: 'Capgains <1y', grossRON: sg, lossRON: sl, taxRON: st, source: `${key}.short` });
+    }
+    const pool = local.map((l) => ({ ...l, _matched: false }));
+    const matches = [];
+    for (const a of d205Entries) {
+      const aGross = Number(a.grossRON) || 0;
+      const aBroker = identifyBroker(a.payerName);
+      const aCat = String(a.category || '');
+      let best = null, status = null, delta = null;
+      for (const l of pool) {
+        if (l._matched || l.broker !== aBroker || l.category !== aCat) continue;
+        const d = Math.abs((l.grossRON || 0) - aGross);
+        if (d <= MATCH_EPS) { best = l; status = 'matched-exact'; delta = d; break; }
+      }
+      if (!best) for (const l of pool) {
+        if (l._matched || l.broker !== aBroker || l.category !== aCat) continue;
+        const d = Math.abs((l.grossRON || 0) - aGross);
+        const denom = Math.max(Math.abs(l.grossRON || 0), Math.abs(aGross), 1);
+        if (d <= NEAR_ABS || d / denom <= NEAR_REL) { best = l; status = 'matched-amount'; delta = d; break; }
+      }
+      if (!best) for (const l of pool) {
+        if (l._matched || l.category !== aCat) continue;
+        const d = Math.abs((l.grossRON || 0) - aGross);
+        const denom = Math.max(Math.abs(l.grossRON || 0), Math.abs(aGross), 1);
+        if (d <= NEAR_ABS || d / denom <= NEAR_REL) { best = l; status = 'possible'; delta = d; break; }
+      }
+      if (best) {
+        best._matched = true;
+        matches.push({
+          anaf: { ...a, broker: aBroker },
+          local: best,
+          status, delta,
+          hint: status === 'matched-exact' ? null
+              : status === 'matched-amount' ? `Diferență mică (~${Math.round(delta)} RON) — probabil rotunjire.`
+              : `Posibil match prin categorie + sumă, dar plătitorul nu a putut fi identificat sigur.`,
+        });
+      } else {
+        matches.push({
+          anaf: { ...a, broker: aBroker }, local: null, status: 'unmatched-anaf', delta: null,
+          hint: `ANAF a primit D205 de la "${a.payerName}" pentru categoria ${aCat} (${aGross.toLocaleString('ro-RO')} RON), dar nu avem date locale care să acopere această sumă. Importă PDF-ul broker/banca corespunzător sau adaugă-l în „Adaugă date".`,
+        });
+      }
+    }
+    const unmatchedLocal = pool.filter((l) => !l._matched).map(({ _matched, ...rest }) => {
+      if (rest.foreignSource) {
+        return {
+          ...rest, status: 'expected-not-in-d205',
+          hint: `Venit din surse externe via broker român (${rest.broker} · ${rest.label} · ${Math.round(rest.grossRON || 0).toLocaleString('ro-RO')} RON). NU apare la ANAF în D205 — plătitorul real e emitentul străin, nu intermediarul român. Se declară separat ca venit din străinătate (D212 cap14).`,
+        };
+      }
+      return {
+        ...rest, status: 'unmatched-local',
+        hint: `Avem date locale (${rest.broker} · ${rest.label} · ${Math.round(rest.grossRON || 0).toLocaleString('ro-RO')} RON) dar nu apare D205 corespunzător la ANAF.`,
+      };
+    });
+    const totals = {
+      exactCount: matches.filter((m) => m.status === 'matched-exact').length,
+      nearCount: matches.filter((m) => m.status === 'matched-amount').length,
+      possibleCount: matches.filter((m) => m.status === 'possible').length,
+      unmatchedAnafCount: matches.filter((m) => m.status === 'unmatched-anaf').length,
+      unmatchedLocalCount: unmatchedLocal.filter((l) => l.status === 'unmatched-local').length,
+      expectedNotInD205Count: unmatchedLocal.filter((l) => l.status === 'expected-not-in-d205').length,
+    };
+    return { matches, unmatchedLocal, totals };
+  }
+
+  // ============ DUF XML IMPORT + VALIDATION ============
+  /**
+   * In-memory cache of the most recently parsed DUF XML, keyed by year so a
+   * user can flip the year selector and we still remember what they uploaded.
+   * Never persisted; cleared on page reload.
+   */
+  const _dufImports = new Map();
+
+  /**
+   * Per-year, per-row decision overrides. Map<year, Map<rowKey, 'anaf'|'local'|null>>.
+   * `null` means "explicit reset to default". A missing key means "use default".
+   * Never persisted; cleared on page reload.
+   */
+  const _dufPicks = new Map();
+  function _getPicksForYear(year) {
+    if (!_dufPicks.has(year)) _dufPicks.set(year, new Map());
+    return _dufPicks.get(year);
+  }
+  /** The effective pick: explicit override if set, otherwise the row's default. */
+  function _effectivePick(row, picks) {
+    if (picks && picks.has(row.rowKey)) {
+      const v = picks.get(row.rowKey);
+      if (v === 'anaf' || v === 'local') return v;
+    }
+    return row.defaultPick;
+  }
+  /** The effective numeric value implied by the pick for a single compare row. */
+  function _effectiveValue(row, picks) {
+    const pick = _effectivePick(row, picks);
+    if (pick === 'anaf') return row.anaf;
+    if (pick === 'local') return row.local;
+    return null;
+  }
+
+  function setupDufImportZone() {
+    const dz = document.getElementById('validate-duf-dropzone');
+    const input = document.getElementById('validate-duf-file-input');
+    if (!dz || !input) return;
+
+    // Avoid double-binding when renderSubmissionGuide is called again
+    if (dz.dataset.wired === '1') {
+      _renderDufCompare();
+      return;
+    }
+    dz.dataset.wired = '1';
+
+    const onPick = () => input.click();
+    dz.addEventListener('click', onPick);
+    dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.style.background = 'rgba(88,166,255,0.08)'; });
+    dz.addEventListener('dragleave', () => { dz.style.background = ''; });
+    dz.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dz.style.background = '';
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) handleDufFile(f);
+    });
+    input.addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (f) handleDufFile(f);
+      input.value = '';
+    });
+
+    // If we already have an import cached for the current year, re-render
+    _renderDufCompare();
+  }
+
+  async function handleDufFile(file) {
+    if (!file.name.toLowerCase().endsWith('.xml')) {
+      showToast(I18n.t('submit.errorNotXml') || 'Fișierul trebuie să fie .xml', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast(I18n.t('submit.errorTooBig') || 'Fișierul depășește 5 MB', 'error');
+      return;
+    }
+    const xml = await file.text();
+    try {
+      const resp = await fetch('/api/duf-parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/xml' },
+        body: xml,
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        throw new Error(data.error || 'Parse failed');
+      }
+      const parsed = data.parsed;
+      // Pick the year from the XML if present, else fall back to selectedYear.
+      // an_r is the *submission* year; the fiscal year is an_r - 1.
+      const fiscalYear = parsed.root && parsed.root.an_r ? Number(parsed.root.an_r) - 1 : selectedYear;
+      _dufImports.set(fiscalYear, { parsed, fileName: file.name, importedAt: new Date().toISOString() });
+      // Auto-pivot the year selector if the XML's fiscal year differs
+      if (fiscalYear !== selectedYear) {
+        const sel = document.getElementById('year-select');
+        if (sel && Array.from(sel.options).some((o) => Number(o.value) === fiscalYear)) {
+          sel.value = String(fiscalYear);
+          selectedYear = fiscalYear;
+          await render();
+        }
+      }
+      _renderDufCompare();
+      showToast(I18n.t('submit.parseOk') || `XML încărcat: ${file.name}`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  /** Render the comparison table below the dropzone for the current year. */
+  function _renderDufCompare() {
+    const out = document.getElementById('validate-duf-compare-result');
+    if (!out) return;
+    const entry = _dufImports.get(selectedYear);
+    if (!entry) {
+      out.innerHTML = '';
+      return;
+    }
+    const local = computeYearData(selectedYear);
+    let compare;
+    try {
+      // The comparator lives server-side as lib/d212-duf-compare.js. The
+      // browser bundle doesn't load lib/ modules, so we ship a tiny inline
+      // mirror below. The lib version is the canonical one and tested.
+      compare = _dufCompareInline(entry.parsed, local);
+    } catch (err) {
+      out.innerHTML = `<p style="color:var(--danger);">${esc(err.message)}</p>`;
+      return;
+    }
+    const picks = _getPicksForYear(selectedYear);
+    // Cache compare result on the entry so renderSubmissionGuide can read
+    // the picked values to render the "Valori de introdus" table.
+    entry.compare = compare;
+
+    const unresolvedMismatches = compare.rows.filter((r) => r.status === 'mismatch' && _effectivePick(r, picks) == null).length;
+
+    const badge = (status) => {
+      const cfg = {
+        match:      { c: 'var(--success)', t: '✓ Match' },
+        near:       { c: 'var(--warning,#b35900)', t: '⚠ ≈' },
+        mismatch:   { c: 'var(--danger,#c53030)', t: '✗ Diferit' },
+        'only-anaf': { c: 'var(--text-muted)', t: '🆕 Doar ANAF' },
+        'only-local': { c: 'var(--accent)', t: '❓ Doar local' },
+      }[status] || { c: 'var(--text-muted)', t: status };
+      return `<span style="background:${cfg.c};color:#fff;font-size:0.7rem;padding:0.15rem 0.5rem;border-radius:var(--radius);white-space:nowrap;">${esc(cfg.t)}</span>`;
+    };
+    const fmt = (n) => (n == null ? '—' : Math.round(n).toLocaleString('ro-RO') + ' RON');
+
+    const headlineCfg = {
+      match: { c: 'var(--success)', t: I18n.t('submit.headlineMatch') || '✓ Toate datele se potrivesc cu ANAF' },
+      partial: { c: 'var(--warning,#b35900)', t: I18n.t('submit.headlinePartial') || '⚠ Diferențe sau date lipsă' },
+      mismatch: { c: 'var(--danger,#c53030)', t: I18n.t('submit.headlineMismatch') || '✗ Diferențe semnificative — verifică!' },
+    }[compare.headline] || { c: 'var(--text-muted)', t: compare.headline };
+
+    let html = `<div style="background:${headlineCfg.c};color:#fff;padding:0.6rem 1rem;border-radius:var(--radius);font-weight:600;margin-bottom:0.75rem;">${esc(headlineCfg.t)} <small style="opacity:0.85;font-weight:normal;">— ${compare.totals.matchCount} match · ${compare.totals.nearCount} aproape · ${compare.totals.mismatchCount} diferit · ${compare.totals.onlyAnafCount} doar ANAF · ${compare.totals.onlyLocalCount} doar local</small></div>`;
+
+    html += `<p style="font-size:0.8rem;color:var(--text-muted);">${esc(I18n.t('submit.compareImported') || 'Importat')}: <strong>${esc(entry.fileName)}</strong> · ${esc(entry.parsed.raw.version || '')} · <a href="#" id="submit-duf-clear" style="color:var(--accent);">${esc(I18n.t('submit.compareClear') || 'Șterge')}</a></p>`;
+
+    // Quick actions for bulk picks — visible only when there's something to do
+    if (unresolvedMismatches > 0 || compare.totals.onlyAnafCount > 0 || compare.totals.nearCount > 0) {
+      html += `<div style="margin:0.5rem 0;display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;">
+        <span style="font-size:0.8rem;color:var(--text-muted);">${esc(I18n.t('submit.quickActions') || 'Acțiuni rapide:')}</span>
+        ${unresolvedMismatches > 0 ? `<button type="button" id="duf-pick-mismatch-anaf" class="btn-secondary" style="font-size:0.75rem;padding:0.25rem 0.6rem;">${esc(I18n.t('submit.pickAllMismatchAnaf') || 'Diferențe → ANAF')}</button>` : ''}
+        ${unresolvedMismatches > 0 ? `<button type="button" id="duf-pick-mismatch-local" class="btn-secondary" style="font-size:0.75rem;padding:0.25rem 0.6rem;">${esc(I18n.t('submit.pickAllMismatchLocal') || 'Diferențe → Local')}</button>` : ''}
+        <button type="button" id="duf-pick-reset-all" class="btn-secondary" style="font-size:0.75rem;padding:0.25rem 0.6rem;">${esc(I18n.t('submit.pickResetAll') || '↺ Reset toate la default')}</button>
+      </div>`;
+      if (unresolvedMismatches > 0) {
+        html += `<p style="font-size:0.75rem;color:var(--danger,#c53030);margin:0 0 0.5rem;">⚠ ${unresolvedMismatches} ${esc(I18n.t('submit.unresolvedHint') || 'diferențe necesită alegere explicită (rândurile evidențiate cu roșu mai jos)')}</p>`;
+      }
+    }
+
+    const groups = { oblig: [], cap11: [], cap14: [] };
+    for (const row of compare.rows) {
+      (groups[row.section] || (groups[row.section] = [])).push(row);
+    }
+    const sectionTitle = {
+      oblig: I18n.t('submit.sectionOblig') || '💊 oblig_realizat — CASS + totaluri',
+      cap11: I18n.t('submit.sectionCap11') || '🇷🇴 cap11 — Venituri România',
+      cap14: I18n.t('submit.sectionCap14') || '🌍 cap14 — Venituri din străinătate',
+    };
+    for (const sec of ['oblig', 'cap11', 'cap14']) {
+      const rows = groups[sec];
+      if (!rows || rows.length === 0) continue;
+      html += `<div style="margin:0.75rem 0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+        <header style="background:var(--bg-secondary);padding:0.5rem 1rem;font-weight:600;font-size:0.9rem;">${esc(sectionTitle[sec])}</header>
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+          <thead><tr style="border-bottom:1px solid var(--border);color:var(--text-muted);">
+            <th style="padding:0.4rem 1rem;text-align:left;">${esc(I18n.t('submit.colField') || 'Câmp')}</th>
+            <th style="padding:0.4rem 1rem;text-align:right;">${esc(I18n.t('submit.colAnaf') || 'ANAF')}</th>
+            <th style="padding:0.4rem 1rem;text-align:right;">${esc(I18n.t('submit.colLocal') || 'Calculat local')}</th>
+            <th style="padding:0.4rem 1rem;text-align:right;">${esc(I18n.t('submit.colDelta') || 'Δ')}</th>
+            <th style="padding:0.4rem 1rem;text-align:center;">${esc(I18n.t('submit.colStatus') || 'Stare')}</th>
+            <th style="padding:0.4rem 1rem;text-align:center;">${esc(I18n.t('submit.colPick') || 'Folosesc')}</th>
+          </tr></thead>
+          <tbody>`;
+      for (const r of rows) {
+        const deltaStr = r.delta == null ? '—' : (r.delta > 0 ? '+' : '') + r.delta.toLocaleString('ro-RO');
+        const deltaColor = r.delta == null ? 'var(--text-muted)' : (r.status === 'match' ? 'var(--text-muted)' : (r.delta > 0 ? 'var(--danger,#c53030)' : 'var(--accent)'));
+        const pick = _effectivePick(r, picks);
+        const explicit = picks.has(r.rowKey) && (picks.get(r.rowKey) === 'anaf' || picks.get(r.rowKey) === 'local');
+        const isMismatchUnset = r.status === 'mismatch' && pick == null;
+        // Pick segmented control: only meaningful when both ANAF and local values exist.
+        // For only-anaf / only-local, the single available source is shown as a static badge.
+        let pickCtl;
+        if (r.anaf != null && r.local != null) {
+          const btnStyle = (active) => `padding:0.2rem 0.5rem;font-size:0.75rem;border:1px solid var(--border);background:${active ? 'var(--accent)' : 'transparent'};color:${active ? '#fff' : 'var(--text)'};cursor:pointer;`;
+          pickCtl = `<div style="display:inline-flex;border-radius:var(--radius);overflow:hidden;${isMismatchUnset ? 'box-shadow:0 0 0 2px var(--danger,#c53030);' : ''}">
+            <button type="button" class="duf-pick-btn" data-key="${esc(r.rowKey)}" data-pick="anaf" style="${btnStyle(pick === 'anaf')}border-right:0;">🅰 ANAF</button>
+            <button type="button" class="duf-pick-btn" data-key="${esc(r.rowKey)}" data-pick="local" style="${btnStyle(pick === 'local')}">🟢 Local</button>
+          </div>${explicit ? `<a href="#" class="duf-pick-reset" data-key="${esc(r.rowKey)}" style="margin-left:0.4rem;font-size:0.7rem;color:var(--text-muted);">↺</a>` : ''}`;
+        } else if (r.anaf != null) {
+          pickCtl = `<span style="font-size:0.72rem;color:var(--text-muted);">🅰 ANAF</span>`;
+        } else {
+          pickCtl = `<span style="font-size:0.72rem;color:var(--text-muted);">🟢 Local</span>`;
+        }
+        html += `<tr style="border-bottom:1px solid var(--border);${isMismatchUnset ? 'background:rgba(197,48,48,0.05);' : ''}">
+          <td style="padding:0.4rem 1rem;">${esc(r.label)}${r.hint ? `<br><small style="color:var(--text-muted);">${esc(r.hint)}</small>` : ''}</td>
+          <td style="padding:0.4rem 1rem;text-align:right;font-variant-numeric:tabular-nums;${pick === 'anaf' ? 'font-weight:600;' : ''}">${esc(fmt(r.anaf))}</td>
+          <td style="padding:0.4rem 1rem;text-align:right;font-variant-numeric:tabular-nums;${pick === 'local' ? 'font-weight:600;' : ''}">${esc(fmt(r.local))}</td>
+          <td style="padding:0.4rem 1rem;text-align:right;font-variant-numeric:tabular-nums;color:${deltaColor};">${esc(deltaStr)}</td>
+          <td style="padding:0.4rem 1rem;text-align:center;">${badge(r.status)}</td>
+          <td style="padding:0.4rem 1rem;text-align:center;white-space:nowrap;">${pickCtl}</td>
+        </tr>`;
+      }
+      html += `</tbody></table></div>`;
+    }
+    out.innerHTML = html;
+
+    const clearBtn = document.getElementById('submit-duf-clear');
+    if (clearBtn) clearBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      _dufImports.delete(selectedYear);
+      _dufPicks.delete(selectedYear);
+      _renderDufCompare();
+      renderSubmissionGuide();
+    });
+
+    // Per-row pick buttons
+    out.querySelectorAll('.duf-pick-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const k = btn.dataset.key;
+        const v = btn.dataset.pick;
+        picks.set(k, v);
+        _renderDufCompare();
+        renderSubmissionGuide();
+      });
+    });
+    out.querySelectorAll('.duf-pick-reset').forEach((a) => {
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        picks.delete(a.dataset.key);
+        _renderDufCompare();
+        renderSubmissionGuide();
+      });
+    });
+
+    // Quick actions
+    const qaAnaf = document.getElementById('duf-pick-mismatch-anaf');
+    if (qaAnaf) qaAnaf.addEventListener('click', () => {
+      for (const r of compare.rows) {
+        if (r.status === 'mismatch' && _effectivePick(r, picks) == null) picks.set(r.rowKey, 'anaf');
+      }
+      _renderDufCompare();
+      renderSubmissionGuide();
+    });
+    const qaLocal = document.getElementById('duf-pick-mismatch-local');
+    if (qaLocal) qaLocal.addEventListener('click', () => {
+      for (const r of compare.rows) {
+        if (r.status === 'mismatch' && _effectivePick(r, picks) == null) picks.set(r.rowKey, 'local');
+      }
+      _renderDufCompare();
+      renderSubmissionGuide();
+    });
+    const qaReset = document.getElementById('duf-pick-reset-all');
+    if (qaReset) qaReset.addEventListener('click', () => {
+      picks.clear();
+      _renderDufCompare();
+      renderSubmissionGuide();
+    });
+  }
+
+  /**
+   * Inline mirror of lib/d212-duf-compare.js compareDufVsLocal — see that
+   * file for full docs. Kept in sync by the test suite; the lib is canonical.
+   */
+  function _dufCompareInline(anaf, local) {
+    const MATCH_EPS = 1, NEAR_ABS = 100, NEAR_REL = 0.01;
+    const num = (v) => {
+      if (v == null) return null;
+      if (typeof v === 'number') return v;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+    const classify = (a, l) => {
+      if (a == null && l == null) return 'match';
+      if (a == null) return 'only-local';
+      if (l == null) return 'only-anaf';
+      const d = Math.abs(a - l);
+      if (d <= MATCH_EPS) return 'match';
+      const denom = Math.max(Math.abs(a), Math.abs(l), 1);
+      if (d <= NEAR_ABS || d / denom <= NEAR_REL) return 'near';
+      return 'mismatch';
+    };
+    const hintFor = (status, isPfa, anaf, local) => {
+      if (status === 'match') return null;
+      if (status === 'only-anaf') return isPfa
+        ? 'ANAF are aceste date din declarațiile PFA / D205 anterioare. Aplicația noastră nu calculează PFA — folosește valorile ANAF în DUF.'
+        : 'ANAF a primit suma asta prin D205 de la un plătitor (broker / bancă). Verifică dacă ai documentul corespunzător; dacă nu, importă-l în „Adaugă date".';
+      if (status === 'only-local') return 'Tu ai calculat această sumă local (de obicei din PDF-uri broker pentru venituri din străinătate). ANAF nu o are — trebuie adăugată manual în DUF.';
+      const d = Math.round((local || 0) - (anaf || 0));
+      if (status === 'near') return `Diferență mică (~${Math.abs(d)} RON). Probabil rotunjire.`;
+      return `Diferență ${d > 0 ? '+' : ''}${d} RON între local și ANAF. Verifică PDF-ul broker.`;
+    };
+    const rowKeyFor = (section, opts) => {
+      const o = opts || {};
+      if (section === 'oblig') return `oblig.${o.field}`;
+      if (section === 'cap11') return `cap11.${o.code || '?'}.${o.field}`;
+      if (section === 'cap14') return `cap14.${o.country || '?'}.${o.code || '?'}.${o.field}`;
+      return `${section}.${o.field || '?'}`;
+    };
+    const defaultPickFor = (status) => {
+      if (status === 'only-anaf') return 'anaf';
+      if (status === 'mismatch') return null;
+      return 'local';
+    };
+    const rows = [];
+    const push = (section, label, anaf, local, opts) => {
+      const a = num(anaf), l = num(local);
+      if (a == null && l == null) return;
+      const status = classify(a, l);
+      rows.push({
+        section, label,
+        rowKey: rowKeyFor(section, opts || {}),
+        anaf: a, local: l,
+        delta: a != null && l != null ? Math.round((a || 0) - (l || 0)) : null,
+        status, hint: hintFor(status, opts && opts.isPfa, a, l),
+        defaultPick: defaultPickFor(status),
+      });
+    };
+    const ao = (anaf && anaf.obligRealizat) || {}, lo = (local && local.obligRealizat) || {};
+    push('oblig', 'Total venit din investiții (cass_ven_inv)', ao.cass_ven_inv, lo.cass_ven_inv, { field: 'cass_ven_inv' });
+    push('oblig', 'Bază CASS (cass_baza)', ao.cass_baza, lo.cass_baza, { field: 'cass_baza' });
+    push('oblig', 'CASS datorat (cass_datorat)', ao.cass_datorat, lo.cass_datorat, { field: 'cass_datorat' });
+    push('oblig', 'Impozit pe venit de plată (impozit_venit_plus)', ao.impozit_venit_plus, lo.impozit_venit_plus, { field: 'impozit_venit_plus' });
+    push('oblig', 'Impozit pe venit de restituit (impozit_venit_minus)', ao.impozit_venit_minus, lo.impozit_venit_minus, { field: 'impozit_venit_minus' });
+    const a11 = (anaf && Array.isArray(anaf.cap11)) ? anaf.cap11 : [];
+    const l11 = (local && Array.isArray(local.cap11Rows)) ? local.cap11Rows : [];
+    const seenCodes = new Set();
+    for (const r of a11) {
+      const code = String(r.categ_venit || '');
+      seenCodes.add(code);
+      const lRow = l11.find((x) => String(x.categ_venit || '') === code);
+      const isPfa = code.startsWith('10') && code !== '1012';
+      const label = isPfa ? `Cap11 PFA / activități independente (cod ${code})` : `Câștiguri RO din titluri (cod ${code})`;
+      push('cap11', label, r.venit_net_anual, lRow ? lRow.venit_net_anual : null, { isPfa, code, field: 'venit_net_anual' });
+      if (r.impozit_retinut != null || (lRow && lRow.impozit_retinut != null)) {
+        push('cap11', `Impozit reținut RO (cod ${code})`, r.impozit_retinut, lRow ? lRow.impozit_retinut : null, { isPfa, code, field: 'impozit_retinut' });
+      }
+    }
+    for (const r of l11) {
+      const code = String(r.categ_venit || '');
+      if (seenCodes.has(code)) continue;
+      push('cap11', `Câștiguri RO din titluri (cod ${code})`, null, r.venit_net_anual, { code, field: 'venit_net_anual' });
+    }
+    const a14 = (anaf && Array.isArray(anaf.cap14)) ? anaf.cap14 : [];
+    const l14 = (local && Array.isArray(local.cap14Rows)) ? local.cap14Rows : [];
+    const keyOf = (r) => `${r.str_stat_realiz_v || '?'}:${r.str_categ_venit || '?'}`;
+    const seenKeys = new Set();
+    for (const r of a14) {
+      const k = keyOf(r);
+      seenKeys.add(k);
+      const lRow = l14.find((x) => keyOf(x) === k);
+      const country = String(r.str_stat_realiz_v || '?'), code = String(r.str_categ_venit || '?');
+      const label = `Venit străinătate ${country} — cod ${code}`;
+      push('cap14', label, r.str_venit_net_anual, lRow ? lRow.str_venit_net_anual : null, { country, code, field: 'str_venit_net_anual' });
+      push('cap14', `${label} — credit fiscal`, r.str_credit_fiscal, lRow ? lRow.str_credit_fiscal : null, { country, code, field: 'str_credit_fiscal' });
+    }
+    for (const r of l14) {
+      const k = keyOf(r);
+      if (seenKeys.has(k)) continue;
+      const country = String(r.str_stat_realiz_v || '?'), code = String(r.str_categ_venit || '?');
+      push('cap14', `Venit străinătate ${country} — cod ${code}`, null, r.str_venit_net_anual, { country, code, field: 'str_venit_net_anual' });
+    }
+    const totals = { matchCount: 0, nearCount: 0, mismatchCount: 0, onlyAnafCount: 0, onlyLocalCount: 0 };
+    for (const r of rows) {
+      if (r.status === 'match') totals.matchCount++;
+      else if (r.status === 'near') totals.nearCount++;
+      else if (r.status === 'mismatch') totals.mismatchCount++;
+      else if (r.status === 'only-anaf') totals.onlyAnafCount++;
+      else if (r.status === 'only-local') totals.onlyLocalCount++;
+    }
+    let headline = 'match';
+    if (totals.mismatchCount > 0) headline = 'mismatch';
+    else if (totals.onlyAnafCount > 0 || totals.onlyLocalCount > 0 || totals.nearCount > 0) headline = 'partial';
+    return { rows, totals, headline };
   }
 
   async function render() {
@@ -527,6 +1631,10 @@ const App = (() => {
     sortDocTypeDropdown();
     // Update Add Data form (always, so save buttons show year)
     populateForm();
+    // Refresh the "already imported" panel on the Import subtab. Cheap when
+    // no imports exist (panel just hides) so we run it unconditionally
+    // rather than gating on the current subtab.
+    try { renderImportExistingPanel(); } catch (e) { console.error('renderImportExistingPanel error:', e); }
     // Sync Import Document year picker with global year
     if (window._syncYearPicker) {
       window._syncYearPicker(selectedYear);
@@ -537,19 +1645,20 @@ const App = (() => {
   function sortDocTypeDropdown() {
     const sel = document.getElementById('upload-type');
     if (!sel) return;
-    const opts = Array.from(sel.options);
-    const placeholder = opts.find(o => o.value === '');
-    const sortable = opts.filter(o => o.value !== '');
-    sortable.sort((a, b) => a.textContent.localeCompare(b.textContent));
-    sel.innerHTML = '';
-    if (placeholder) sel.appendChild(placeholder);
-    sortable.forEach(o => sel.appendChild(o));
+    // Sort each <optgroup>'s options alphabetically while preserving the
+    // grouping. The placeholder <option value=""> stays at the top.
+    sel.querySelectorAll('optgroup').forEach(group => {
+      const opts = Array.from(group.querySelectorAll('option'));
+      opts.sort((a, b) => a.textContent.localeCompare(b.textContent));
+      group.innerHTML = '';
+      opts.forEach(o => group.appendChild(o));
+    });
 
     // Show OCR hint when a type that typically needs OCR is selected (bind only once)
     if (_docTypeHintBound) return;
     _docTypeHintBound = true;
     const OCR_TYPES = new Set(['declaratie', 'tradeville_portfolio', 'fidelity_statement', 'ms_statement']);
-    const TEXT_PDF_TYPES = new Set(['investment', 'trade_confirmation', 'form_1042s', 'adeverinta', 'stock_award', 'xtb_dividends', 'xtb_portfolio']);
+    const TEXT_PDF_TYPES = new Set(['investment', 'trade_confirmation', 'form_1042s', 'adeverinta', 'stock_award', 'xtb_dividends', 'xtb_portfolio', 'bt_dividends', 'bt_portfolio', 'revolut_statement']);
     const hintEl = document.getElementById('ocr-type-hint');
     if (hintEl) {
       const updateHint = () => {
@@ -590,13 +1699,23 @@ const App = (() => {
     const fd = yd.fidelityData || {};
     const xtbDiv = yd.xtbDividendsReport || {};
     const xtbPort = yd.xtbPortfolio || {};
-    // Form 1042-S: aggregate dividend forms (income code 06)
-    const form1042s = (yd.form1042s || []).filter(f => f.incomeCode === '06');
+    // Form 1042-S: aggregate by income code so each code feeds the right
+    // line item. Code 06 = dividends, code 01 = interest (typically subject
+    // to the US "portfolio interest exemption" so withholding is 0; the
+    // gross is still taxable in RO as worldwide income for a fiscal resident).
+    const form1042sAll = (yd.form1042s || []);
+    const form1042s = form1042sAll.filter(f => f.incomeCode === '06');
     const f1042sDivUSD = form1042s.reduce((s, f) => s + (f.grossIncomeUSD || 0), 0);
     const f1042sTaxUSD = form1042s.reduce((s, f) => s + (f.federalTaxWithheldUSD || 0), 0);
+    const form1042sInt = form1042sAll.filter(f => f.incomeCode === '01');
+    const f1042sIntUSD = form1042sInt.reduce((s, f) => s + (f.grossIncomeUSD || 0), 0);
+    const f1042sIntTaxUSD = form1042sInt.reduce((s, f) => s + (f.federalTaxWithheldUSD || 0), 0);
     const savedRate = yd.exchangeRate ? parseFloat(yd.exchangeRate) : null;
     const defaultRate = exchangeRates[year]?.usdRon || 4.57;
     const rate = savedRate || decl.exchangeRate || defaultRate;
+    const savedEurRate = yd.eurRate ? parseFloat(yd.eurRate) : null;
+    const defaultEurRate = exchangeRates[year]?.eurRon || 4.97;
+    const eurRate = savedEurRate || defaultEurRate;
 
     // Dividend tax rate: 16% from 2026, 10% for 2025, 8% for 2023-2024, 5% for 2019-2022
     const divTaxRate = year >= 2026 ? 0.16 : year >= 2025 ? 0.10 : year >= 2023 ? 0.08 : 0.05;
@@ -604,28 +1723,100 @@ const App = (() => {
     // Capital gains tax rate: 16% from 2026, 10% for 2025 and earlier
     const capGainsTaxRate = year >= 2026 ? 0.16 : 0.10;
 
-    // From US broker data > declaratie > fidelity statement YTD > 1042-S > investment report
-    let dividendsUSD = fd.dividends?.grossUSD || decl.dividends?.grossUSD || yd.fidelityDividendsYTD || f1042sDivUSD || inv.totalDividends || 0;
-    let usDivTaxPaidUSD = fd.dividends?.foreignTaxUSD || yd.fidelityTaxWithheldYTD || f1042sTaxUSD || inv.taxWithheld || 0;
-    let dividendsRON = fd.dividends?.grossRON || decl.dividends?.grossRON || 0;
-    // Auto-compute dividendsRON from USD if no RON value available (e.g. 1042-S only)
-    if (!dividendsRON && dividendsUSD > 0) dividendsRON = dividendsUSD * rate;
-    let capitalGainsTaxableRON = fd.capitalGains?.taxableRON || decl.capitalGains?.taxableRON || 0;
-    let capitalGainsSaleUSD = fd.capitalGains?.saleUSD || decl.capitalGains?.saleUSD || 0;
-    let capitalGainsCostUSD = fd.capitalGains?.costUSD || decl.capitalGains?.costUSD || 0;
-    let salaryDeduction = fd.capitalGains?.salaryDeductionRON || decl.capitalGains?.salaryDeductionRON || 0;
-    let interestIncomeRON = adv.interestIncome || 0;
-    let interestTaxRON = adv.interestTax || 0;
+    // ---- Trade aggregation + yearly stock-award filtering (used as inputs to the resolvers below) ----
+    const yearAlloc = ledgerAllocations[year] || {};
+    const allAwardsForCalc = (window._cachedStockAwards || []);
+    const yearAwards = allAwardsForCalc.filter(r => r._assignedYear === year);
+    const tradeProceedsUSD = (yd.fidelityTrades && yd.fidelityTrades.totalNet) || 0;
+    const tvPort = yd.tradevillePortfolio || {};
+
+    // ---- Phase 3 calc-engine refactor (2026-05-19) ----
+    // The inline `||` priority chains that used to live here are now driven
+    // by per-category resolvers in lib/income-resolvers.js. The resolvers
+    // implement the tier model documented in lib/source-resolver.js and
+    // produce a sourceMap that the UI consumes for 📄 / ✋ / 🛠️ badges.
+    //
+    // Resolvers are loaded via <script src="/lib/income-resolvers.js"> in
+    // index.html; the same module is require()d by the server-side tests
+    // (test/income-resolvers.test.js + test/source-resolver.test.js) so the
+    // browser and the test runner exercise identical code.
+    const _Resolvers = (typeof window !== 'undefined' ? window.IncomeResolvers : null);
+    if (!_Resolvers) {
+      throw new Error('IncomeResolvers global missing — was /lib/income-resolvers.js loaded?');
+    }
+    const _ctx = {
+      year, usdRate: rate, eurRate,
+      yearAlloc, yearAwards,
+      trades: yd.fidelityTrades || {},
+    };
+    const _resUsDiv = _Resolvers.resolveUsDividends(yd, _ctx);
+    const _resRoDiv = _Resolvers.resolveRoBrokerDividends(yd, _ctx);
+    const _resInt = _Resolvers.resolveInterest(yd, _ctx);
+    const _resUsCG = _Resolvers.resolveUsCapitalGains(yd, _ctx);
+    const _resRoCG = _Resolvers.resolveRoBrokerGains(yd, _ctx);
+    const _resBIK = _Resolvers.resolveSalaryBIK(yd, _ctx);
+
+    let dividendsUSD = _resUsDiv.grossUSD;
+    let usDivTaxPaidUSD = _resUsDiv.foreignTaxUSD;
+    let dividendsRON = _resUsDiv.grossRON;
+    let capitalGainsSaleUSD = _resUsCG.saleUSD;
+    let capitalGainsCostUSD = _resUsCG.costUSD;
+    let capitalGainsTaxableRON = _resUsCG.taxableRON;
+    let salaryDeduction = _resUsCG.salaryDeductionRON;
+    let interestIncomeRON = _resInt.incomeRON;
+    let interestTaxRON = _resInt.taxWithheldRON;
+    // Foreign-only portion exposed for the legacy renderer that displays
+    // bank + foreign as distinct rows in the income breakdown.
+    let roInterestRON = _resInt.foreignIncomeRON;
+    let dividendsRON_ro = _resRoDiv.grossRON;
+    let roDivTaxWithheld = _resRoDiv.taxWithheldRON;
+    // Source split for cap14 emission (Step 4 of D-9 refactor).
+    // localGrossRON / localTaxWithheldRON     — Romanian-source (ISIN[0..2]=RO),
+    //                                            broker withheld 8% at source.
+    // foreignByCountry[]                        — per-country aggregates
+    //                                            (XTB + BT merged) for cap14
+    //                                            categ_venit=2018 emission.
+    // foreignTaxWithheldRON                     — sum of foreignByCountry tax
+    //                                            (treated as foreign tax credit).
+    // unknownCountryRON / unknownCountryTaxRON  — manual EUR/USD Add-Data entries
+    //                                            or XTB rows without "din X"
+    //                                            suffix — taxed at 8% RO with
+    //                                            credit, NOT emitted to XML.
+    let roDivLocalRON = _resRoDiv.localGrossRON || 0;
+    let roDivLocalTaxWithheldRON = _resRoDiv.localTaxWithheldRON || 0;
+    let roDivForeignByCountry = _resRoDiv.foreignByCountry || [];
+    let roDivForeignTaxWithheldRON = _resRoDiv.foreignTaxWithheldRON || 0;
+    let roDivUnknownCountryRON = _resRoDiv.unknownCountryRON || 0;
+    let roDivUnknownCountryTaxRON = _resRoDiv.unknownCountryTaxRON || 0;
+    let roLongTermGainRON = _resRoCG.longGainRON;
+    let roShortTermGainRON = _resRoCG.shortGainRON;
+    let capitalGainsRON_ro = _resRoCG.totalGainRON;
+    let currentYearLossRON = _resRoCG.currentYearLossRON;
+    let roPortTaxWithheld = _resRoCG.taxWithheldRON;
+    let salaryTaxedRON = _resBIK.taxedRON;
+    let withholding = _resBIK.withholdingRON;
+
     let usCassTax = fd.cass?.cassRON || 0;
     let usTotalPaid = fd.totalPaid || 0;
 
-    // From trade confirmations (US sold activity)
-    let tradeProceedsUSD = trades.totalNet || 0;
+    // Romania-broker EUR/USD income & tax components are still surfaced in the
+    // result object because several downstream renderers display them as
+    // distinct rows (Income Details "EUR" / "USD" lines, manual-country
+    // breakdown, etc.). The resolver already sums them into the totals; these
+    // standalone constants are display-only.
+    const roEurDiv = parseFloat(yd.roEurDividends) || 0;
+    const roEurDivTax = parseFloat(yd.roEurDivTaxPaid) || 0;
+    const roUsdDiv = parseFloat(yd.roUsdDividends) || 0;
+    const roUsdDivTax = parseFloat(yd.roUsdDivTaxPaid) || 0;
+    const roEurInt = parseFloat(yd.roEurInterest) || 0;
+    const roEurIntTax = parseFloat(yd.roEurInterestTaxPaid) || 0;
+    const roUsdInt = parseFloat(yd.roUsdInterest) || 0;
+    const roUsdIntTax = parseFloat(yd.roUsdInterestTaxPaid) || 0;
 
     // Determine US broker sources from trades
     const tradeSources = new Set();
-    if (Array.isArray(trades.trades)) {
-      for (const t of trades.trades) {
+    if (Array.isArray(yd.fidelityTrades && yd.fidelityTrades.trades)) {
+      for (const t of yd.fidelityTrades.trades) {
         if (t.source === 'ms_statement') tradeSources.add('Morgan Stanley');
         else if (t.source === 'fidelity_statement') tradeSources.add('Fidelity');
         else tradeSources.add('Fidelity');
@@ -651,93 +1842,30 @@ const App = (() => {
     const roSources = new Set();
     if (yd.xtbDividendsReport || yd.xtbPortfolio) roSources.add('XTB');
     if (yd.tradevillePortfolio) roSources.add('Tradeville');
+    if (yd.btDividendsReport || yd.btPortfolio) roSources.add('BT Capital Partners');
+    // Note: Revolut is intentionally NOT added to roSources because it is a
+    // non-resident foreign broker (Revolut Securities Europe UAB, Lithuania)
+    // whose gains belong on D212 cap14 (foreign-source), not cap11 (RO source).
+    // The Revolut totals are surfaced separately via revolutNetGainsRON and
+    // are emitted as their own cap14 rows per country code in the block above.
     if (yd.roBroker) roSources.add(yd.roBroker);
     const roBrokerLabel = roSources.size > 0 ? ' (' + [...roSources].join(' & ') + ')' : '';
-    // Use ledger allocations for ESPP cost basis (FIFO-computed server-side)
-    const yearAlloc = ledgerAllocations[year] || {};
-    // ANAF: only ESPP contributions (actual money paid) are deductible as cost basis
-    // Fidelity cost basis (vest FMV) is NOT deductible — RSU shares are taxed on full sale proceeds
-    if (!capitalGainsCostUSD && yearAlloc.esppCostUSD > 0) {
-      capitalGainsCostUSD = yearAlloc.esppCostUSD;
-    }
-    if (!capitalGainsSaleUSD && tradeProceedsUSD > 0) {
-      capitalGainsSaleUSD = trades.totalProceeds || 0;
-    }
-    if (!capitalGainsTaxableRON && tradeProceedsUSD > 0) {
-      const costUSD = capitalGainsCostUSD || 0;
-      capitalGainsTaxableRON = (tradeProceedsUSD - costUSD) * rate;
-    }
 
-    // Romania broker data from imported reports (XTB + Tradeville)
-    const tvPort = yd.tradevillePortfolio || {};
-    let dividendsRON_ro = xtbDiv.dividends?.grossRON || 0;
-    let roLongTermGainRON = (xtbPort.longTerm?.gainRON || 0) + (tvPort.longTerm?.gainRON || 0);
-    let roShortTermGainRON = (xtbPort.shortTerm?.gainRON || 0) + (tvPort.shortTerm?.gainRON || 0);
-    let capitalGainsRON_ro = roLongTermGainRON + roShortTermGainRON;
-    let roDivTaxWithheld = xtbDiv.dividends?.taxWithheldRON || 0;
-    let roInterestRON = xtbDiv.interest?.grossRON || 0;
-    let roPortTaxWithheld = (xtbPort.totalTaxWithheldRON || 0) + (tvPort.totalTaxWithheldRON || 0);
-    // Stock withholding: sum only from entries assigned to this year
-    const allAwardsForCalc = (window._cachedStockAwards || []);
-    const yearAwards = allAwardsForCalc.filter(r => r._assignedYear === year);
-    let withholding = yearAwards.reduce((s, r) => s + (parseFloat(r.stock_withholding) || 0), 0);
+    // Surface 1042-S US-source interest separately so cap14 can emit a
+    // categ_venit=2010 row without re-deriving it. Resolver path. The
+    // per-year-rate tax due/credit/toPay values are computed later, once
+    // `interestTaxRate` is in scope.
+    const usForeignInterestRON = _resInt.usForeignInterestRON;
+    const usForeignInterestTaxRON = _resInt.usForeignInterestTaxRON;
 
-    // BIK (stock_award_bik + espp_gain_bik) = income already taxed as salary in Romania
-    // This is the COST BASIS deducted from capital gains (D212 Rd.2 "Cheltuieli deductibile")
-    // stock_withholding = TAX paid on BIK through payroll (shown as "already paid", NOT deducted from base)
-    let salaryTaxedRON = yearAwards.reduce((s, r) => s + (parseFloat(r.stock_award_bik) || 0) + (parseFloat(r.espp_gain_bik) || 0), 0);
-
-    // Manual overrides
-    if (yd.salaryTaxedIncome !== undefined && yd.salaryTaxedIncome !== '') {
-      salaryTaxedRON = parseFloat(yd.salaryTaxedIncome) || 0;
-    }
-    if (yd.fidelityCost !== undefined && yd.fidelityCost !== '') {
-      capitalGainsCostUSD = parseFloat(yd.fidelityCost) || 0;
-    }
-    if (yd.fidelityDividends !== undefined && yd.fidelityDividends !== '') {
-      dividendsUSD = parseFloat(yd.fidelityDividends) || 0;
-      dividendsRON = dividendsUSD * rate;
-    }
-    if (yd.xtbDividends !== undefined && yd.xtbDividends !== '') dividendsRON_ro = parseFloat(yd.xtbDividends) || 0;
-    if (yd.roDivTaxPaid !== undefined && yd.roDivTaxPaid !== '') roDivTaxWithheld = parseFloat(yd.roDivTaxPaid) || 0;
-    if (yd.fidelityGains !== undefined && yd.fidelityGains !== '') {
-      const gainsUSD = parseFloat(yd.fidelityGains) || 0;
-      capitalGainsSaleUSD = gainsUSD;
-      capitalGainsTaxableRON = (gainsUSD - capitalGainsCostUSD) * rate;
-    }
-    // Manual override: RO gains from country rows
-    if (yd.roGainsCountries && yd.roGainsCountries.length > 0) {
-      let manualLong = 0, manualShort = 0, manualTax = 0;
-      for (const c of yd.roGainsCountries) {
-        manualLong += c.longGain || 0;
-        manualShort += c.shortGain || 0;
-        manualTax += c.taxWithheld || 0;
-      }
-      roLongTermGainRON = manualLong;
-      roShortTermGainRON = manualShort;
-      capitalGainsRON_ro = manualLong + manualShort;
-      roPortTaxWithheld = manualTax;
-    }
-    // Legacy single-field overrides (backward compat)
-    if (yd.roGainsLong !== undefined && yd.roGainsLong !== '') roLongTermGainRON = parseFloat(yd.roGainsLong) || 0;
-    if (yd.roGainsShort !== undefined && yd.roGainsShort !== '') roShortTermGainRON = parseFloat(yd.roGainsShort) || 0;
-    if (yd.roGainsLong !== undefined || yd.roGainsShort !== undefined) capitalGainsRON_ro = roLongTermGainRON + roShortTermGainRON;
-    if (yd.roGainsTaxWithheld !== undefined && yd.roGainsTaxWithheld !== '') roPortTaxWithheld = parseFloat(yd.roGainsTaxWithheld) || 0;
-    if (yd.interestIncome !== undefined && yd.interestIncome !== '') interestIncomeRON = parseFloat(yd.interestIncome) || 0;
-    if (yd.exchangeRate !== undefined && yd.exchangeRate !== '') {
-      // recalc with new rate if manually entered
-    }
-    if (yd.stockWithholdingPaid !== undefined && yd.stockWithholdingPaid !== '') withholding = parseFloat(yd.stockWithholdingPaid) || 0;
-
-    // Add Romania broker interest to total interest
-    interestIncomeRON += roInterestRON;
 
     // Tax from declaration or US broker data (source of truth)
     // US dividends: US withholds 10% at source per RO-US treaty.
     // Romania taxes at divTaxRate. Credit fiscal = min(RO tax, US tax paid).
     // Difference to pay = max(0, RO tax - US credit).
-    const usForeignTaxUSD = (yd.usDivTaxPaid !== undefined && yd.usDivTaxPaid !== '' ? parseFloat(yd.usDivTaxPaid) : null) ?? fd.dividends?.foreignTaxUSD ?? usDivTaxPaidUSD ?? 0;
-    const usForeignTaxRON = fd.dividends?.foreignTaxRON || decl.dividends?.foreignTaxRON || (usForeignTaxUSD * rate);
+    // Resolver path: `_resUsDiv` already prioritizes override > ANAF > parsed > manual.
+    const usForeignTaxUSD = _resUsDiv.foreignTaxUSD;
+    const usForeignTaxRON = _resUsDiv.foreignTaxRON;
     // US dividends: RO tax due minus credit for US tax already paid
     // If D-212 has been imported (ANAF-validated), use its values directly
     const usDivTaxDueRON = dividendsRON * divTaxRate;
@@ -746,11 +1874,49 @@ const App = (() => {
     const usDivTax = hasAnafDecl
       ? (decl.dividends?.difImpozitRON || 0)
       : (fd.dividends?.toPayRON ?? Math.max(0, usDivTaxDueRON - usDivCreditRON));
-    // Romania dividends: rate due but Romania broker withholds tax at source (credit fiscal covers it)
-    const roDivTaxDue = dividendsRON_ro * divTaxRate;
-    const roDivTaxNet = Math.max(0, roDivTaxDue - (roDivTaxWithheld || 0));
+    // Romania broker dividends (XTB / BT Capital Partners / manual EUR/USD).
+    //
+    // D-9 split: the OLD code applied a flat 8% to ALL Romanian-broker
+    // dividends, which is correct only for RO-source dividends (BVB issuers
+    // — where the broker withheld 8% RO at source). For foreign-source
+    // dividends paid via the same RO broker (e.g. US/DE/IE stocks via XTB
+    // or BT), the correct treatment is cap14 categ_venit=2018 with credit
+    // fiscal on the foreign withholding (Cod fiscal art. 130 + treaty).
+    //
+    // We split the calc into three buckets:
+    //   - RO-source dividends + unknown-country (manual EUR/USD entries
+    //     where we don't have an ISIN to derive the country): simple 8%
+    //     flow with credit for any withheld tax.
+    //   - Foreign-source dividends per country: emitted via cap14 per-
+    //     country buckets below (in the cap14Rows block). The 8% RO is
+    //     applied per bucket with foreign-tax credit capped at 8%.
+    const roDivLocalTaxBaseRON = roDivLocalRON + roDivUnknownCountryRON;
+    const roDivLocalTaxDue = roDivLocalTaxBaseRON * divTaxRate;
+    const roDivLocalTaxWithheldEffective = roDivLocalTaxWithheldRON + roDivUnknownCountryTaxRON;
+    const roDivLocalTaxNet = Math.max(0, roDivLocalTaxDue - roDivLocalTaxWithheldEffective);
+    let roDivForeignTaxNet = 0;
+    let roDivForeignTaxCredit = 0;
+    let roDivForeignTaxDue = 0;
+    for (const c of roDivForeignByCountry) {
+      const Rd8 = (c.grossRON || 0) * divTaxRate;
+      const Rd10 = Math.min(Rd8, c.taxRON || 0);
+      roDivForeignTaxDue += Rd8;
+      roDivForeignTaxCredit += Rd10;
+      roDivForeignTaxNet += Math.max(0, Rd8 - Rd10);
+    }
+    // Aliases preserved for backward compatibility with downstream renderers
+    // that consume the legacy single-bucket totals (Calcul tab, Declaration
+    // recap, audit export). The semantics are unchanged when there are no
+    // foreign dividends; when there are, `roDivTaxNet` is the per-country
+    // residual after foreign-tax credit instead of the naive 8%×total.
+    const roDivTaxDue = roDivLocalTaxDue + roDivForeignTaxDue;
+    const roDivTaxNet = roDivLocalTaxNet + roDivForeignTaxNet;
     const dividendTaxRON = usDivTax + roDivTaxNet;
     // US capital gains at capGainsTaxRate, Romania domestic rates:
+    // 2019-2022: flat 10% (no long/short distinction)
+    // 2023-2025: 1% long (>=1yr), 3% short (<1yr)
+    // 2026+: 3% long, 6% short
+    // Romania capital gains tax rates per year:
     // 2019-2022: flat 10% (no long/short distinction)
     // 2023-2025: 1% long (>=1yr), 3% short (<1yr)
     // 2026+: 3% long, 6% short
@@ -759,8 +1925,29 @@ const App = (() => {
     const defaultRoShort = year >= 2026 ? 6 : year >= 2023 ? 3 : 10;
     const roLongRate = (tr.roCapGainsLongRate != null ? tr.roCapGainsLongRate : defaultRoLong) / 100;
     const roShortRate = (tr.roCapGainsShortRate != null ? tr.roCapGainsShortRate : defaultRoShort) / 100;
-    const roCapitalGainsTax = (roLongTermGainRON * roLongRate) + (roShortTermGainRON * roShortRate);
-    // Romania capital gains: tax already withheld by XTB
+
+    // Apply prior-year capital losses (D212 Rd.5-6) using the formula from
+    // Instructiuni_D212_2736_2025, Section 7.3.3:
+    //   Rd.6 (pierdere fiscala compensata in anul de raportare) =
+    //        min( Rd.5 (priorLosses available), 0.70 * Rd.3 (current year net gain) )
+    // Per Cod Fiscal art. 119, losses can only offset gains "of the same nature".
+    // Our priorLosses input represents Romanian-source carryforward losses (the
+    // most common case from XTB/Tradeville/BT Trade past activity), so we apply
+    // them to RO capital gains only. Within RO, we consume the highest-tax-rate
+    // bucket first (short 3% before long 1%) to minimize the user's tax liability.
+    const priorLossesAvailable = parseFloat(yd.priorLosses) || 0;
+    const totalRoCapGains = roLongTermGainRON + roShortTermGainRON;
+    const maxLossOffset = 0.70 * totalRoCapGains;
+    const priorLossesApplied = Math.min(priorLossesAvailable, maxLossOffset);
+    const priorLossesRemaining = priorLossesAvailable - priorLossesApplied;
+    // Distribute the applied loss: short bucket first (higher rate = bigger tax saving)
+    let consumeFromShort = Math.min(priorLossesApplied, roShortTermGainRON);
+    let roShortAfterLoss = roShortTermGainRON - consumeFromShort;
+    let consumeFromLong = priorLossesApplied - consumeFromShort;
+    let roLongAfterLoss = roLongTermGainRON - consumeFromLong;
+
+    const roCapitalGainsTax = (roLongAfterLoss * roLongRate) + (roShortAfterLoss * roShortRate);
+    // Romania capital gains: tax already withheld by XTB / Tradeville / BT Trade
     const roGainsTaxNet = Math.max(0, roCapitalGainsTax - (roPortTaxWithheld || 0));
 
     // US income: deduct salary-taxed BIK from US capital gains as cost basis
@@ -771,6 +1958,22 @@ const App = (() => {
     const usNetIncomeRON = usNetGainsRON + dividendsRON;
 
     let capitalGainsTaxRON;
+    // Revolut foreign-broker capital gains (per-country aggregates from the
+    // parsed statement). Per net bucket, then summed across countries.
+    // Revolut never withholds tax at source → no credit fiscal offsets.
+    let revolutNetGainsRON = 0;
+    {
+      const revolut = yd.revolutStatement || {};
+      if (Array.isArray(revolut.countries)) {
+        for (const c of revolut.countries) {
+          const longNet = (c.longGainRON || 0) - (c.longLossRON || 0);
+          const shortNet = (c.shortGainRON || 0) - (c.shortLossRON || 0);
+          revolutNetGainsRON += Math.max(0, longNet) + Math.max(0, shortNet);
+        }
+      }
+    }
+    const revolutGainsTaxRON = revolutNetGainsRON * capGainsTaxRate;
+
     if (fd.capitalGains?.taxPaidRON) {
       capitalGainsTaxRON = fd.capitalGains.taxPaidRON;
     } else if (hasAnafDecl && decl.capitalGains?.difImpozitRON != null) {
@@ -778,12 +1981,22 @@ const App = (() => {
     } else if (decl.capitalGains?.taxDueRON) {
       capitalGainsTaxRON = decl.capitalGains.taxDueRON;
     } else {
-      capitalGainsTaxRON = usNetGainsRON * capGainsTaxRate + roGainsTaxNet;
+      capitalGainsTaxRON = usNetGainsRON * capGainsTaxRate + roGainsTaxNet + revolutGainsTaxRON;
     }
     const interestTaxRate = (tr.roInterestRate != null ? tr.roInterestRate / 100 : (year >= 2026 ? 0.16 : 0.10));
     const interestTaxGross = interestIncomeRON * interestTaxRate;
-    const interestTaxPaid = (yd.interestTaxPaid !== undefined && yd.interestTaxPaid !== '' ? parseFloat(yd.interestTaxPaid) : null) ?? adv.interestTax ?? 0;
+    // Resolver-path: _resInt.taxWithheldRON already combines bank-style tax
+    // (override yd.interestTaxPaid OR adv.interestTax) with foreign tax (EUR
+    // + USD broker + 1042-S code 01). Preserves the pre-refactor formula.
+    const interestTaxPaid = _resInt.taxWithheldRON;
     const interestTax = Math.max(0, interestTaxGross - interestTaxPaid);
+
+    // Foreign-source interest (US) split out so D212 cap14 can emit a separate
+    // categ_venit=2010 row. Recompute using the proper interestTaxRate (the
+    // raw values above were a placeholder before we knew the per-year rate).
+    const usForeignInterestTaxDueRON = _resInt.usForeignInterestRON * interestTaxRate;
+    const usForeignInterestCreditRON = Math.min(usForeignInterestTaxDueRON, _resInt.usForeignInterestTaxRON);
+    const usForeignInterestTaxToPayRON = Math.max(0, usForeignInterestTaxDueRON - usForeignInterestCreditRON);
 
     // ---- Additional income types ----
     // Rental income: 10% on net income (40% flat rate deduction per Cod Fiscal art. 84)
@@ -825,12 +2038,16 @@ const App = (() => {
     const roDivNetRON = dividendsRON_ro - (roDivTaxWithheld || 0);
     const totalDividendsRON_cass = Math.max(0, usDivNetRON) + Math.max(0, roDivNetRON);
     const totalDividendsRON = dividendsRON + dividendsRON_ro;
-    const totalCapitalGainsRON = capitalGainsTaxableRON + capitalGainsRON_ro;
+    const totalCapitalGainsRON = capitalGainsTaxableRON + capitalGainsRON_ro + revolutNetGainsRON;
     const interestNetRON = Math.max(0, interestIncomeRON - interestTaxPaid);
     const totalAlreadyPaid = usForeignTaxRON + withholding + (roPortTaxWithheld || 0) + (roDivTaxWithheld || 0) + interestTaxPaid + rentalTaxPaid + royaltyTaxPaid + gamblingTaxTotal + otherTaxPaid;
     // Capital gains for CASS: use net gain (gross - cost basis), do NOT subtract broker tax withheld
     const usNetCapGainsRON_cass = Math.max(0, capitalGainsTaxableRON - salaryTaxedRON);
     const roNetCapGainsRON_cass = Math.max(0, capitalGainsRON_ro);
+    // Revolut net capital gains contribute to CASS base on the same footing
+    // as US net gains (no salary-tax deduction applies since Revolut sales
+    // are not BIK-related vest income).
+    const revolutNetCapGainsRON_cass = Math.max(0, revolutNetGainsRON);
     // Include income types for CASS per D212 pct. 50.1 and pct. 51:
     // - investiții: dividends (net of tax), capital gains (net gain), interest (net of tax) ✓
     // - cedarea folosinței bunurilor (rental): net income (after 40% deduction) ✓
@@ -839,7 +2056,7 @@ const App = (() => {
     // NOT included: gambling (Art. 110 - impozit final reținut la sursă)
     const rentalNetCass = rentalNet;
     const royaltyNetCass = royaltyNet;
-    const totalInvestmentIncome_cass = Math.max(0, totalDividendsRON_cass + usNetCapGainsRON_cass + roNetCapGainsRON_cass + interestNetRON + rentalNetCass + royaltyNetCass + otherGross);
+    const totalInvestmentIncome_cass = Math.max(0, totalDividendsRON_cass + usNetCapGainsRON_cass + roNetCapGainsRON_cass + revolutNetCapGainsRON_cass + interestNetRON + rentalNetCass + royaltyNetCass + otherGross);
     const totalInvestmentIncome = totalDividendsRON + totalCapitalGainsRON + interestIncomeRON + gamblingIncomeTotal + rentalGross + royaltyGross + otherGross;
     const savedMinSalary = (yd.minSalary !== undefined && yd.minSalary !== '') ? parseFloat(yd.minSalary) : null;
     const cassResult = calculateCASS(totalInvestmentIncome_cass, year, savedMinSalary, 'investment');
@@ -847,9 +2064,354 @@ const App = (() => {
     let cassApplies = cassResult.applies;
     const cassInfo = cassResult;
 
-    const incomeTaxGross = decl.totalTax || (dividendTaxRON + capitalGainsTaxRON + interestTax + rentalTaxToPay + royaltyTaxToPay + otherTaxToPay);
+    // PFA (activități independente) CASS — Cod fiscal art. 155(1)b + art. 170.
+    // CASS for PFA is owed SEPARATELY from CASS for investment income — each
+    // category has its own threshold ladder (6/12/24 SM) and its own base.
+    // A user with BOTH PFA and investment income owes the SUM, not the cap.
+    // Reference: D212 cap I §3 subsec 2.1 (PFA) vs subsec 2.2 (investments).
+    //
+    // Opt-in branch (Cod fiscal art. 180 alin. (2)): even if the PFA net
+    // income is below the 6 SM threshold, the user MAY elect to pay CASS
+    // at the minimum base of 6 SM. The election is exercised by filing
+    // D212 with the opt-in marked. We mirror that semantics here: if
+    // `pfaOptInCASS` is truthy AND the natural calc says applies=false,
+    // we force base = 6 SM and amount = 10% × 6 SM.
+    const pfaNetIncome = parseFloat(yd.pfaNetIncome) || 0;
+    const pfaOptInCASS = !!yd.pfaOptInCASS;
+    let pfaCassResult = pfaNetIncome > 0
+      ? calculateCASS(pfaNetIncome, year, savedMinSalary, 'investment')
+      : { applies: false, base: 0, amount: 0, tier: '<6SM' };
+    if (!pfaCassResult.applies && pfaOptInCASS) {
+      const _sm = savedMinSalary || (cassThresholds[year] || cassThresholds[2025]).minSalary;
+      const _t6 = 6 * _sm;
+      pfaCassResult = { applies: true, base: _t6, amount: _t6 * 0.10, tier: '6-12SM-opt-in', optedIn: true };
+    }
+    const pfaCassTax = pfaCassResult.amount || 0;
+
+    // PFA income tax — Cod fiscal art. 84 + art. 118 (CAS + CASS deductible
+    // for income tax basis). Formula per D212 cap I §4:
+    //   chelt_CASS_deductibilă = min(CASS_datorat, venit_net × 10%)
+    //                          (D212 cap I §4.2 rd.6 — "CASS calculată
+    //                          asupra veniturilor nete realizate")
+    //   venit_impozabil        = max(0, venit_net − CAS_deductibilă − chelt_CASS_deductibilă)
+    //   impozit_PFA            = venit_impozabil × 10%
+    //
+    // CAS deductible currently 0 (we don't yet model CAS pension — that's a
+    // separate enhancement; the bulk of small PFAs don't owe CAS because
+    // they have employee CAS retention from another job).
+    //
+    // GAP (acknowledged): a higher-income PFA (venit > 12 SM) DOES owe CAS
+    // 25% × baza_aleasa per art. 148. When that lands, this block needs:
+    //   const pfaCasDeductible = (pondere × cas_datorat);
+    //   const pfaTaxableIncome = max(0, pfaNetIncome − pfaCasDeductible − pfaCassDeductible);
+    // For now, users with high PFA CAS would over-state their PFA income tax
+    // by the CAS amount. Documented in lib/rules-catalog.js (pfa-income-tax).
+    const pfaCassActualRate = (pfaNetIncome > 0) ? Math.min(pfaCassTax, pfaNetIncome * 0.10) : 0;
+    const pfaCassDeductible = pfaCassActualRate;
+    const pfaTaxableIncome = Math.max(0, pfaNetIncome - pfaCassDeductible);
+    // Per OUG 156/2024 we keep the PFA income tax rate at 10% — the law text
+    // changes dividend (8→10%) and interest (10→16%) but does NOT touch PFA
+    // (Cod fiscal art. 64). Update if a later ordinance modifies art. 64.
+    const pfaIncomeTaxRate = 0.10;
+    const pfaIncomeTax = Math.round(pfaTaxableIncome * pfaIncomeTaxRate);
+
+    const totalCassTax = cassTax + pfaCassTax;
+
+    const incomeTaxGross = decl.totalTax || (dividendTaxRON + capitalGainsTaxRON + interestTax + rentalTaxToPay + royaltyTaxToPay + otherTaxToPay + pfaIncomeTax);
     const incomeTaxOnly = incomeTaxGross;
-    const totalTax = incomeTaxOnly + cassTax;
+    const totalTax = incomeTaxOnly + totalCassTax;
+
+    // Refund detection: when a Romanian payer has withheld more tax than what
+    // the D212 calculation actually requires (typically broker capital-gains
+    // withholding before applying same-year or carried-forward losses), the
+    // difference can be claimed back on the declaration. We surface this
+    // separately so the UI can show "X RON de restituit" instead of hiding
+    // over-withholding behind a Math.max(0, ...) clamp.
+    //
+    // Foreign withholding (US 1042-S etc.) is NOT included here — per the
+    // double-taxation treaty it is only creditable up to the RO tax due
+    // (`min(usForeignTaxRON, usDivTaxDueRON)`); the excess is recovered, if
+    // at all, through the foreign jurisdiction, not via D212.
+    const roCapGainsOverwithheld = Math.max(0, (roPortTaxWithheld || 0) - roCapitalGainsTax);
+    // D-9 refund correction: only Romanian-source over-withholding is
+    // refundable via D212. Foreign tax credit on cap14 dividend buckets is
+    // capped at the Romanian tax due (min(8%, foreign_tax)) — the excess is
+    // not refundable through ANAF. Manual EUR/USD entries are treated as
+    // RO-source for refund purposes (they're typically RO 8% withholding
+    // anyway when the user enters them via Add Data).
+    const roDivOverwithheld = Math.max(0, roDivLocalTaxWithheldEffective - roDivLocalTaxDue);
+    const interestOverwithheld = Math.max(0, interestTaxPaid - interestTaxGross);
+    const refundOwedRON = roCapGainsOverwithheld + roDivOverwithheld + interestOverwithheld;
+    // Net cash flow on D212: positive = pay, negative = refund.
+    const d212NetCashFlowRON = incomeTaxOnly - refundOwedRON;
+
+    // D212 Cap. I §1.1 — cap11 rows (Romanian-source capital gains, real system).
+    // Mirror of lib/d212-cap11.js: buildCap11Rows. Kept inline because the browser
+    // bundle does not load lib/ modules; the lib version is the canonical one and
+    // covered by test/d212-cap11.test.js. Update both sides if the shape changes.
+    // See docs/d212-mapping.md § 3 for field semantics.
+    const cap11Rows = [];
+    {
+      const _totalGain = roLongTermGainRON + roShortTermGainRON;
+      const _emit = (_totalGain > 0 || currentYearLossRON > 0 || (roPortTaxWithheld || 0) > 0 || priorLossesAvailable > 0);
+      if (_emit) {
+        const Rd1 = _totalGain;
+        const Rd3 = Rd1;
+        const Rd6 = priorLossesApplied;
+        cap11Rows.push({
+          categ_venit: '1012',
+          den_venit: 'Câștiguri din transferul titlurilor de valoare',
+          venit_brut: Math.round(Rd1),
+          chelt_deduc: 0,
+          venit_net_anual: Math.round(Rd3),
+          pierdere: Math.round(currentYearLossRON || 0),
+          pierdere_precedenta: Math.round(priorLossesAvailable),
+          pierdere_compensata: Math.round(Rd6),
+          venit_recalculat: Math.round(Math.max(0, Rd3 - Rd6)),
+          impozit11: Math.round(roCapitalGainsTax),
+          impozit_retinut: Math.round(roPortTaxWithheld || 0),
+        });
+      }
+    }
+
+    // D212 Cap. I §2.1 — cap14 rows (foreign-source income, gap D-7 prep).
+    // Mirror of lib/d212-cap14.js: buildCap14Rows. Inline because the browser
+    // bundle cannot require() lib/ modules; the lib version is canonical and
+    // covered by test/d212-cap14.test.js. Keep both sides aligned.
+    const cap14Rows = [];
+    const cap14Warnings = [];
+    // Country-code → Romanian denumire mapping used to populate `den_stat`
+    // for the Schematron-validated cap14 rows. Extended as new foreign
+    // brokers add countries (Revolut currently emits IE, DE, FR, US, GB,
+    // NL most often). Mirror of COUNTRY_CODE_TO_RO in lib/rates.js.
+    const COUNTRY_NAME_RO = {
+      AT: 'Austria', AU: 'Australia', BE: 'Belgia', BG: 'Bulgaria', BR: 'Brazilia',
+      CA: 'Canada', CH: 'Elveția', CN: 'China', CY: 'Cipru', CZ: 'Cehia',
+      DE: 'Germania', DK: 'Danemarca', EE: 'Estonia', ES: 'Spania', FI: 'Finlanda',
+      FR: 'Franța', GB: 'Marea Britanie', GR: 'Grecia', HK: 'Hong Kong', HR: 'Croația',
+      HU: 'Ungaria', IE: 'Irlanda', IL: 'Israel', IN: 'India', IT: 'Italia',
+      JP: 'Japonia', KR: 'Coreea de Sud', LT: 'Lituania', LU: 'Luxemburg', LV: 'Letonia',
+      MX: 'Mexic', NL: 'Olanda', NO: 'Norvegia', NZ: 'Noua Zeelandă', PL: 'Polonia',
+      PT: 'Portugalia', RO: 'România', SE: 'Suedia', SG: 'Singapore', SI: 'Slovenia',
+      SK: 'Slovacia', TR: 'Turcia', US: 'Statele Unite ale Americii', ZA: 'Africa de Sud',
+    };
+    // ISO 3166-1 Alpha-2 codes accepted by ANAF Schematron CD-D212-011.
+    // Mirror of D212_ALLOWED_COUNTRY_CODES in lib/rates.js. Codes outside
+    // this set MUST NOT be emitted to cap14 (e.g. XS Eurobonds, XX placeholder).
+    const ALLOWED_COUNTRY_CODES = new Set([
+      'AD','AE','AF','AG','AI','AL','AM','AO','AQ','AR','AS','AT','AU','AW','AX','AZ',
+      'BA','BB','BD','BE','BF','BG','BH','BI','BJ','BL','BM','BN','BO','BQ','BR','BS','BT','BV','BW','BY','BZ',
+      'CA','CC','CD','CF','CG','CH','CI','CK','CL','CM','CN','CO','CR','CU','CV','CW','CX','CY','CZ',
+      'DE','DJ','DK','DM','DO','DZ',
+      'EC','EE','EG','EH','ER','ES','ET',
+      'FI','FJ','FK','FM','FO','FR',
+      'GA','GB','GD','GE','GF','GG','GH','GI','GL','GM','GN','GP','GQ','GR','GS','GT','GU','GW','GY',
+      'HK','HM','HN','HR','HT','HU',
+      'ID','IE','IL','IM','IN','IO','IQ','IR','IS','IT',
+      'JE','JM','JO','JP',
+      'KE','KG','KH','KI','KM','KN','KP','KR','KW','KY','KZ',
+      'LA','LB','LC','LI','LK','LR','LS','LT','LU','LV','LY',
+      'MA','MC','MD','ME','MF','MG','MH','MK','ML','MM','MN','MO','MP','MQ','MR','MS','MT','MU','MV','MW','MX','MY','MZ',
+      'NA','NC','NE','NF','NG','NI','NL','NO','NP','NR','NU','NZ',
+      'OM',
+      'PA','PE','PF','PG','PH','PK','PL','PM','PN','PR','PS','PT','PW','PY',
+      'QA',
+      'RE','RO','RS','RU','RW',
+      'SA','SB','SC','SD','SE','SG','SH','SI','SJ','SK','SL','SM','SN','SO','SR','SS','ST','SV','SX','SY','SZ',
+      'TC','TD','TF','TG','TH','TJ','TK','TL','TM','TN','TO','TR','TT','TV','TW','TZ',
+      'UA','UG','UM','US','UY','UZ',
+      'VA','VC','VE','VG','VI','VN','VU',
+      'WF','WS',
+      'XI','XK',
+      'YE','YT',
+      'ZA','ZM','ZW',
+    ]);
+    {
+      const capGainsSaleRON = (capitalGainsSaleUSD || 0) * rate;
+      const capGainsCostRON = (capitalGainsCostUSD || 0) * rate;
+
+      // D-9: Foreign dividends merged per-country (str_categ_venit=2018).
+      // Combines US 1042-S + RO-broker foreign dividends (XTB / BT) into a
+      // single cap14 row per country. Per docs/d212-mapping.md § 4 the
+      // cap14 element repeats once per (country × category) tuple.
+      const foreignDivBuckets = new Map();
+      const addFDivBucket = (country, grossRON, foreignTaxRON, source) => {
+        if (!grossRON && !foreignTaxRON) return;
+        if (!country) return;
+        const b = foreignDivBuckets.get(country) || { country, grossRON: 0, foreignTaxRON: 0, sources: [] };
+        b.grossRON += grossRON;
+        b.foreignTaxRON += foreignTaxRON;
+        b.sources.push(source);
+        foreignDivBuckets.set(country, b);
+      };
+      if (dividendsRON > 0 || usForeignTaxRON > 0) {
+        addFDivBucket('US', dividendsRON, usForeignTaxRON, '1042-S');
+      }
+      for (const c of roDivForeignByCountry) {
+        addFDivBucket(c.country, c.grossRON || 0, c.taxRON || 0,
+          (c.sources || []).map(s => s.broker).join('+') || 'RO broker');
+      }
+      for (const b of foreignDivBuckets.values()) {
+        if (!ALLOWED_COUNTRY_CODES.has(b.country)) {
+          cap14Warnings.push({
+            kind: 'invalid_country',
+            country: b.country,
+            grossRON: b.grossRON,
+            message: `Dividende cu cod de țară "${b.country}" omise din cap14 (cod ISO Alpha-2 invalid pentru ANAF).`,
+          });
+          continue;
+        }
+        const Rd1 = b.grossRON;
+        const Rd3 = Rd1;
+        const Rd7 = Rd3;
+        const Rd8 = Rd7 * divTaxRate;
+        const Rd9 = b.foreignTaxRON;
+        const Rd10 = Math.min(Rd8, Rd9);
+        const Rd11 = Math.max(0, Rd8 - Rd10);
+        cap14Rows.push({
+          str_stat_realiz_v: b.country,
+          den_stat: COUNTRY_NAME_RO[b.country] || b.country,
+          str_categ_venit: '2018',
+          den_categ_venit: 'Dividende',
+          dubla_impunere: '1',
+          str_venit_brut: Math.round(Rd1),
+          str_chelt_deduc: 0,
+          str_venit_net_anual: Math.round(Rd3),
+          str_pierdere_anuala: 0,
+          str_pierdere_precedenta: 0,
+          str_pierdere_compensata: 0,
+          str_venit_recalculat: Math.round(Rd7),
+          str_impozit_datorat_Ro: Math.round(Rd8),
+          str_impozit_platit: Math.round(Rd9),
+          str_credit_fiscal: Math.round(Rd10),
+          str_dif_impozit_datorat: Math.round(Rd11),
+        });
+      }
+      if (roDivUnknownCountryRON > 0) {
+        cap14Warnings.push({
+          kind: 'unknown_country',
+          grossRON: roDivUnknownCountryRON,
+          message: 'Există dividende fără țară identificată (intrări manuale EUR/USD sau XTB fără sufixul "din ..."). Re-introdu-le cu țara emitentului pentru a apărea în XML cap14.',
+        });
+      }
+      if (capGainsSaleRON > 0 || usNetGainsRON > 0) {
+        const Rd1 = capGainsSaleRON;
+        const Rd2 = capGainsCostRON + salaryTaxedRON;
+        const Rd3 = Math.max(0, Rd1 - Rd2);
+        const Rd9 = 0;
+        const Rd7 = Rd3;
+        const Rd8 = Rd7 * capGainsTaxRate;
+        const Rd10 = Math.min(Rd8, Rd9);
+        const Rd11 = Math.max(0, Rd8 - Rd10);
+        cap14Rows.push({
+          str_stat_realiz_v: 'US',
+          den_stat: 'Statele Unite ale Americii',
+          str_categ_venit: '2012',
+          den_categ_venit: 'Câștiguri din transferul titlurilor de valoare',
+          dubla_impunere: '1',
+          str_venit_brut: Math.round(Rd1),
+          str_chelt_deduc: Math.round(Rd2),
+          str_venit_net_anual: Math.round(Rd3),
+          str_pierdere_anuala: 0,
+          str_pierdere_precedenta: 0,
+          str_pierdere_compensata: 0,
+          str_venit_recalculat: Math.round(Rd7),
+          str_impozit_datorat_Ro: Math.round(Rd8),
+          str_impozit_platit: Math.round(Rd9),
+          str_credit_fiscal: Math.round(Rd10),
+          str_dif_impozit_datorat: Math.round(Rd11),
+        });
+      }
+
+      // Revolut foreign-broker capital gains. One cap14 row per country
+      // (str_categ_venit=2012, dubla_impunere=1, str_impozit_platit=0).
+      // Net per bucket within a country is gain − loss; we sum the long
+      // and short buckets for a single str_venit_brut. ANAF accepts gross
+      // gain here; the per-bucket distinction lives in cap11 for RO source
+      // gains, not cap14.
+      const revolut = yd.revolutStatement || {};
+      if (Array.isArray(revolut.countries) && revolut.countries.length > 0) {
+        for (const c of revolut.countries) {
+          const longNet = (c.longGainRON || 0) - (c.longLossRON || 0);
+          const shortNet = (c.shortGainRON || 0) - (c.shortLossRON || 0);
+          const totalNet = Math.max(0, longNet) + Math.max(0, shortNet);
+          const totalLoss = Math.max(0, -longNet) + Math.max(0, -shortNet);
+          if (totalNet === 0 && totalLoss === 0) continue;
+          const Rd1 = totalNet;
+          const Rd3 = Rd1;
+          const Rd7 = Rd3;
+          const Rd8 = Rd7 * capGainsTaxRate;
+          // Revolut never withholds at source on capital gains.
+          const Rd9 = 0;
+          const Rd10 = 0;
+          const Rd11 = Math.max(0, Rd8 - Rd10);
+          cap14Rows.push({
+            str_stat_realiz_v: c.country || 'XX',
+            den_stat: COUNTRY_NAME_RO[c.country] || c.country || 'Necunoscut',
+            str_categ_venit: '2012',
+            den_categ_venit: 'Câștiguri din transferul titlurilor de valoare',
+            dubla_impunere: '1',
+            str_venit_brut: Math.round(Rd1),
+            str_chelt_deduc: 0,
+            str_venit_net_anual: Math.round(Rd3),
+            str_pierdere_anuala: Math.round(totalLoss),
+            str_pierdere_precedenta: 0,
+            str_pierdere_compensata: 0,
+            str_venit_recalculat: Math.round(Rd7),
+            str_impozit_datorat_Ro: Math.round(Rd8),
+            str_impozit_platit: Math.round(Rd9),
+            str_credit_fiscal: Math.round(Rd10),
+            str_dif_impozit_datorat: Math.round(Rd11),
+            // Internal hint for the UI — not in the official XML schema.
+            _source: 'Revolut',
+          });
+        }
+      }
+    }
+
+    // D212 <oblig_realizat> (etapa 2 of the DUF integration plan).
+    // Mirror of lib/d212-oblig-realizat.js: buildObligRealizat. Inline so the
+    // browser bundle is self-contained; the lib version is canonical and
+    // tested. Keep both sides aligned — see docs/d212-mapping.md.
+    let obligRealizat = null;
+    {
+      const cassVenInv = Math.max(0, totalInvestmentIncome_cass || 0);
+      const _ci = cassInfo || {};
+      const _cassApplies = !!_ci.applies;
+      const cassBase = _cassApplies ? (_ci.base || 0) : 0;
+      const cassAmount = _cassApplies ? (_ci.amount || 0) : 0;
+      const _incomeTax = Math.max(0, incomeTaxOnly || 0);
+      const _refund = Math.max(0, refundOwedRON || 0);
+      if (cassVenInv > 0 || cassAmount > 0 || _incomeTax > 0 || _refund > 0) {
+        const _difPlata = _incomeTax + cassAmount;
+        const _difRest = _refund;
+        obligRealizat = {
+          cass_ven_dpi: 0,
+          cass_ven_asc: 0,
+          cass_ven_cfb: 0,
+          cass_ven_inv: Math.round(cassVenInv),
+          cass_ven_asp: 0,
+          cass_ven_alt: 0,
+          cass_total_ven: Math.round(cassVenInv),
+          cass_baza: Math.round(cassBase),
+          cass_anuala: Math.round(cassAmount),
+          cass_datorat_art180: 0,
+          cass_datorat: Math.round(cassAmount),
+          cass_retinut: 0,
+          cass_dif_plus: Math.round(cassAmount),
+          cass_dif_minus: 0,
+          bifa_cass_real: '3',
+          impozit_venit_plus: Math.round(_incomeTax),
+          impozit_venit_minus: Math.round(_refund),
+          cas_plus: 0,
+          cass_plus: Math.round(cassAmount),
+          cass_minus: 0,
+          dif_de_plata: Math.round(_difPlata),
+          dif_de_restituit: Math.round(_difRest),
+          venit_ret_inv: Math.round(cassVenInv),
+        };
+      }
+    }
 
     return {
       dividendsUSD,
@@ -859,11 +2421,19 @@ const App = (() => {
       capitalGainsCostUSD,
       capitalGainsTaxableRON,
       capitalGainsRON_ro,
+      // Revolut foreign-broker capital gains (per-country net) — surfaced
+      // separately so the Income Details renderer can show them as their
+      // own row(s) with the right country flag instead of folding into the
+      // RO bucket. Empty when no Revolut statement is uploaded.
+      revolutNetGainsRON,
+      revolutGainsTaxRON,
       roLongTermGainRON,
       roShortTermGainRON,
+      currentYearLossRON,
       salaryDeduction,
       interestIncomeRON,
       exchangeRate: rate,
+      eurRate,
       divTaxRate,
       divTaxRateLabel,
       capGainsTaxRate,
@@ -876,10 +2446,27 @@ const App = (() => {
       capitalGainsTaxRON,
       interestTax,
       interestTaxPaid,
+      // Foreign-source interest (US 1042-S code 01) — surfaced separately so
+      // D212 cap14 can emit a categ_venit=2010 row without re-deriving it.
+      usForeignInterestRON,
+      usForeignInterestTaxRON,
+      usForeignInterestTaxDueRON,
+      usForeignInterestCreditRON,
+      usForeignInterestTaxToPayRON,
       salaryTaxedRON,
       cassTax,
       cassApplies,
       cassInfo,
+      // PFA (activități independente) CASS + income tax — separate from investment CASS.
+      pfaNetIncome,
+      pfaOptInCASS,
+      pfaCassTax,
+      pfaCassInfo: pfaCassResult,
+      pfaCassDeductible,
+      pfaTaxableIncome,
+      pfaIncomeTax,
+      pfaIncomeTaxRate,
+      totalCassTax,
       totalIncome: totalInvestmentIncome,
       totalIncome_cass: totalInvestmentIncome_cass,
       incomeTaxOnly,
@@ -900,6 +2487,11 @@ const App = (() => {
       roDivTaxWithheld,
       roPortTaxWithheld,
       roInterestRON,
+      // Romania broker EUR/USD breakdown (manual entries on Add Data)
+      roEurDiv, roEurDivTax,
+      roUsdDiv, roUsdDivTax,
+      roEurInt, roEurIntTax,
+      roUsdInt, roUsdIntTax,
       // From investment report
       accountValue: inv.accountValue || 0,
       unrealizedGainLoss: inv.netGains || 0,
@@ -936,7 +2528,46 @@ const App = (() => {
       usNetIncomeRON,
       usNetGainsRON,
       incomeTaxGross,
-      totalAlreadyPaid
+      totalAlreadyPaid,
+      // Refund detection (over-withholding by Romanian payers)
+      refundOwedRON,
+      roCapGainsOverwithheld,
+      roDivOverwithheld,
+      interestOverwithheld,
+      d212NetCashFlowRON,
+      // Prior-year loss carryforward (D212 Rd.5-6)
+      priorLossesAvailable,
+      priorLossesApplied,
+      priorLossesRemaining,
+      maxLossOffset,
+      // D212 Cap. I §1.1 — Romanian-source income block (gap D-6)
+      cap11Rows,
+      // D212 Cap. I §2.1 — Foreign-source income block (gap D-7 prep)
+      cap14Rows,
+      cap14Warnings,
+      // D-9: foreign-dividend split exposed for UI (Calcul tab cap14 view
+      // and the source-of-foreign-dividends warning banner).
+      roDivLocalRON,
+      roDivLocalTaxWithheldRON,
+      roDivForeignByCountry,
+      roDivForeignTaxWithheldRON,
+      roDivForeignTaxDue,
+      roDivForeignTaxCredit,
+      roDivForeignTaxNet,
+      roDivUnknownCountryRON,
+      roDivUnknownCountryTaxRON,
+      // D212 oblig_realizat — CASS investments + global summary (etapa 2)
+      obligRealizat,
+      // Phase 3 source map: per-field tier + label so the UI can render
+      // 📄 / ✋ / 🛠️ / 🏛️ badges and the Phase 4 conflict-detection banner.
+      sourceMap: {
+        usDividends: _resUsDiv.sources,
+        roBrokerDividends: _resRoDiv.sources,
+        interest: _resInt.sources,
+        usCapitalGains: _resUsCG.sources,
+        roBrokerGains: _resRoCG.sources,
+        salaryBIK: _resBIK.sources,
+      }
     };
   }
 
@@ -949,10 +2580,24 @@ const App = (() => {
     document.getElementById('cass-value').textContent = fmt(data.cassTax);
     document.getElementById('total-tax-value').textContent = fmt(data.incomeTaxOnly);
 
+    // Show refund card only when there's a refund owed (Romanian broker over-withholding)
+    const refundCard = document.getElementById('card-refund');
+    const refundValue = document.getElementById('refund-value');
+    if (refundCard && refundValue) {
+      if ((data.refundOwedRON || 0) > 0) {
+        refundCard.style.display = '';
+        refundValue.textContent = fmt(data.refundOwedRON);
+      } else {
+        refundCard.style.display = 'none';
+      }
+    }
+
     // Charts - only show if there's actual financial data
     const allYears = Object.keys(appData.years || {}).map(Number).sort((a, b) => a - b);
-    const manualKeys = new Set(['year','exchangeRate','minSalary','d212Deadline','usBroker','roBroker','taxRates',
+    const manualKeys = new Set(['year','exchangeRate','eurRate','minSalary','d212Deadline','usBroker','roBroker','taxRates',
       'fidelityDividends','usDivTaxPaid','xtbDividends','roDivTaxPaid','fidelityGains','fidelityCost',
+      'roEurDividends','roEurDivTaxPaid','roUsdDividends','roUsdDivTaxPaid',
+      'roEurInterest','roEurInterestTaxPaid','roUsdInterest','roUsdInterestTaxPaid',
       'interestIncome','interestTaxPaid','rentalIncome','rentalTaxPaid','royaltyIncome','royaltyTaxPaid',
       'gamblingIncome','gamblingTaxPaid','otherIncome','otherTaxPaid','stockWithholdingPaid','salaryTaxedIncome',
       'roGainsCountries','roGainsLong','roGainsShort','roGainsTaxWithheld']);
@@ -1050,6 +2695,7 @@ const App = (() => {
   // ============ INCOME TABLE ============
   function renderIncomeTable() {
     const data = computeYearData(selectedYear);
+    const yd = appData.years?.[selectedYear] || {};
     const tbody = document.getElementById('income-tbody');
     const tfoot = document.getElementById('income-tfoot');
 
@@ -1069,14 +2715,39 @@ const App = (() => {
         cat: I18n.t('income.roDividends') + data.roBrokerLabel + (data.roDivTaxWithheld ? ' ' + I18n.t('misc.creditFiscal') : ''),
         usd: '-',
         rate: '-',
-        ron: data.dividendsRON_ro,
+        ron: data.dividendsRON_ro - (data.roEurDiv * data.eurRate) - (data.roUsdDiv * data.exchangeRate),
         usTaxRate: '-',
         usTaxPaid: 0,
         taxRate: data.divTaxRateLabel,
-        paid: data.roDivTaxWithheld || 0,
-        tax: Math.max(0, data.dividendsRON_ro * data.divTaxRate - (data.roDivTaxWithheld || 0)),
+        paid: (data.roDivTaxWithheld || 0) - (data.roEurDivTax * data.eurRate) - (data.roUsdDivTax * data.exchangeRate),
+        tax: Math.max(0, (data.dividendsRON_ro - (data.roEurDiv * data.eurRate) - (data.roUsdDiv * data.exchangeRate)) * data.divTaxRate - ((data.roDivTaxWithheld || 0) - (data.roEurDivTax * data.eurRate) - (data.roUsdDivTax * data.exchangeRate))),
         tooltip: data.roDivTaxWithheld ? I18n.t('misc.creditFiscalTooltip') : undefined
       },
+      ...((data.roEurDiv || 0) > 0 ? [{
+        cat: I18n.t('income.roDividends') + data.roBrokerLabel + ' (EUR)' + (data.roEurDivTax ? ' ' + I18n.t('misc.creditFiscal') : ''),
+        usd: data.roEurDiv,
+        rate: data.eurRate,
+        ron: data.roEurDiv * data.eurRate,
+        usTaxRate: '-',
+        usTaxPaid: 0,
+        taxRate: data.divTaxRateLabel,
+        paid: (data.roEurDivTax || 0) * data.eurRate,
+        tax: Math.max(0, data.roEurDiv * data.eurRate * data.divTaxRate - (data.roEurDivTax || 0) * data.eurRate),
+        tooltip: I18n.t('misc.creditFiscalTooltip'),
+        isEur: true
+      }] : []),
+      ...((data.roUsdDiv || 0) > 0 ? [{
+        cat: I18n.t('income.roDividends') + data.roBrokerLabel + ' (USD)' + (data.roUsdDivTax ? ' ' + I18n.t('misc.creditFiscal') : ''),
+        usd: data.roUsdDiv,
+        rate: data.exchangeRate,
+        ron: data.roUsdDiv * data.exchangeRate,
+        usTaxRate: '-',
+        usTaxPaid: 0,
+        taxRate: data.divTaxRateLabel,
+        paid: (data.roUsdDivTax || 0) * data.exchangeRate,
+        tax: Math.max(0, data.roUsdDiv * data.exchangeRate * data.divTaxRate - (data.roUsdDivTax || 0) * data.exchangeRate),
+        tooltip: I18n.t('misc.creditFiscalTooltip')
+      }] : []),
       {
         cat: I18n.t('income.usGains') + data.usBrokerLabel + (data.tradeCount ? ` (${data.tradeCount} ${I18n.t('misc.sales') || 'sales'})` : ''),
         usd: data.capitalGainsSaleUSD || data.tradeProceedsUSD || 0,
@@ -1113,6 +2784,24 @@ const App = (() => {
         tax: 0,
         isDeduction: true,
         tooltip: (I18n.t('misc.bikBreakdownTooltip') || 'Stock award BIK from imported documents, allocated via FIFO to sales in this year') + '. ' + (I18n.t('misc.taxableAfterBik') || 'Taxable after BIK') + ': ' + Math.round(Math.max(0, (data.capitalGainsTaxableRON || 0) - data.salaryTaxedRON)).toLocaleString('ro-RO') + ' RON'
+      }] : []),
+      ...((data.priorLossesApplied || 0) > 0 ? [{
+        cat: '↳ ' + I18n.t('income.priorLossDeduction'),
+        usd: '-',
+        rate: '-',
+        ron: -data.priorLossesApplied,
+        usTaxRate: '-',
+        usTaxPaid: 0,
+        taxRate: '-',
+        paid: 0,
+        tax: 0,
+        isDeduction: true,
+        tooltip: I18n.t('misc.priorLossTooltip', {
+          available: Math.round(data.priorLossesAvailable).toLocaleString('ro-RO'),
+          applied: Math.round(data.priorLossesApplied).toLocaleString('ro-RO'),
+          remaining: Math.round(data.priorLossesRemaining).toLocaleString('ro-RO'),
+          cap: Math.round(data.maxLossOffset).toLocaleString('ro-RO')
+        })
       }] : []),
       ...(data.esppPurchaseCount > 0 ? [{
         cat: (I18n.t('income.esppPurchases') || 'US ESPP Stock Purchases') + data.usBrokerLabel + ` (${data.esppPurchaseCount} ${I18n.t('misc.purchases') || 'purchases'})`,
@@ -1151,18 +2840,89 @@ const App = (() => {
         tax: 0,
         tooltip: I18n.t('misc.roWithheldTooltip')
       },
+      // Revolut (foreign broker) per-country rows: one entry per country
+      // code in the parsed statement, split into long/short bucket when
+      // both exist for the same country. No withholding at source (Revolut
+      // never withholds on cap gains), so `paid` is always 0. Labelled
+      // "Vânzări Acțiuni International" to keep consistency with the
+      // existing "Vânzări Acțiuni România" / "Vânzări Acțiuni SUA" rows.
+      ...((yd.revolutStatement && Array.isArray(yd.revolutStatement.countries))
+        ? yd.revolutStatement.countries.flatMap((c) => {
+            const rows = [];
+            const country = c.country || 'XX';
+            const longNet = (c.longGainRON || 0) - (c.longLossRON || 0);
+            const shortNet = (c.shortGainRON || 0) - (c.shortLossRON || 0);
+            const baseLabel = I18n.t('income.intlGains') || 'Vânzări Acțiuni International';
+            const longSuffix = I18n.t('income.gainsLongSuffix') || '≥1an';
+            const shortSuffix = I18n.t('income.gainsShortSuffix') || '<1an';
+            const tooltip = I18n.t('misc.revolutForeignBrokerTooltip') || 'Broker extern (Revolut UAB) — nu reține impozit la sursă; datorezi integral în RO';
+            if (longNet !== 0) {
+              rows.push({
+                cat: `${baseLabel} ${longSuffix} (Revolut — ${country})`,
+                usd: '-',
+                rate: '-',
+                ron: longNet,
+                usTaxRate: '-',
+                usTaxPaid: 0,
+                taxRate: (data.capGainsTaxRate * 100) + '%',
+                paid: 0,
+                tax: Math.max(0, longNet) * data.capGainsTaxRate,
+                tooltip,
+              });
+            }
+            if (shortNet !== 0) {
+              rows.push({
+                cat: `${baseLabel} ${shortSuffix} (Revolut — ${country})`,
+                usd: '-',
+                rate: '-',
+                ron: shortNet,
+                usTaxRate: '-',
+                usTaxPaid: 0,
+                taxRate: (data.capGainsTaxRate * 100) + '%',
+                paid: 0,
+                tax: Math.max(0, shortNet) * data.capGainsTaxRate,
+                tooltip,
+              });
+            }
+            return rows;
+          })
+        : []),
       {
         cat: I18n.t('income.interestIncome') + (data.interestTax === 0 && (data.interestTaxPaid || 0) > 0 ? ' ' + I18n.t('misc.roWithheld') : ''),
         usd: '-',
         rate: '-',
-        ron: data.interestIncomeRON,
+        ron: data.interestIncomeRON - (data.roEurInt * data.eurRate) - (data.roUsdInt * data.exchangeRate),
         usTaxRate: '-',
         usTaxPaid: 0,
         taxRate: (data.interestTaxRate * 100) + '%',
-        paid: data.interestTaxPaid || 0,
+        paid: (data.interestTaxPaid || 0) - (data.roEurIntTax * data.eurRate) - (data.roUsdIntTax * data.exchangeRate),
         tax: data.interestTax,
         tooltip: (data.interestTax === 0 && (data.interestTaxPaid || 0) > 0) ? I18n.t('misc.roWithheldTooltip') : undefined
-      }
+      },
+      ...((data.roEurInt || 0) > 0 ? [{
+        cat: I18n.t('income.interestIncome') + data.roBrokerLabel + ' (EUR)' + ((data.roEurIntTax || 0) > 0 ? ' ' + I18n.t('misc.roWithheld') : ''),
+        usd: data.roEurInt,
+        rate: data.eurRate,
+        ron: data.roEurInt * data.eurRate,
+        usTaxRate: '-',
+        usTaxPaid: 0,
+        taxRate: (data.interestTaxRate * 100) + '%',
+        paid: (data.roEurIntTax || 0) * data.eurRate,
+        tax: Math.max(0, data.roEurInt * data.eurRate * data.interestTaxRate - (data.roEurIntTax || 0) * data.eurRate),
+        tooltip: (data.roEurIntTax || 0) > 0 ? I18n.t('misc.roWithheldTooltip') : undefined
+      }] : []),
+      ...((data.roUsdInt || 0) > 0 ? [{
+        cat: I18n.t('income.interestIncome') + data.roBrokerLabel + ' (USD)' + ((data.roUsdIntTax || 0) > 0 ? ' ' + I18n.t('misc.roWithheld') : ''),
+        usd: data.roUsdInt,
+        rate: data.exchangeRate,
+        ron: data.roUsdInt * data.exchangeRate,
+        usTaxRate: '-',
+        usTaxPaid: 0,
+        taxRate: (data.interestTaxRate * 100) + '%',
+        paid: (data.roUsdIntTax || 0) * data.exchangeRate,
+        tax: Math.max(0, data.roUsdInt * data.exchangeRate * data.interestTaxRate - (data.roUsdIntTax || 0) * data.exchangeRate),
+        tooltip: (data.roUsdIntTax || 0) > 0 ? I18n.t('misc.roWithheldTooltip') : undefined
+      }] : [])
     ];
 
     // Add gambling income if present
@@ -1266,6 +3026,7 @@ const App = (() => {
         <td><strong>${fmt(totalPaid)}</strong></td>
         <td><strong>${fmt(totalTax)}</strong></td>
       </tr>
+      ${(data.currentYearLossRON || 0) > 0 ? `<tr><td colspan="9" style="font-size:0.8rem;color:var(--warning,#b35900);border:none;padding-top:0.5rem;">${I18n.t('income.currentYearLossNote', { amount: fmt(data.currentYearLossRON) })}</td></tr>` : ''}
       ${hasDeduction ? `<tr><td colspan="9" style="font-size:0.75rem;color:var(--text-muted);border:none;padding-top:0.5rem;">* ${I18n.t('income.deductionNote')}</td></tr>` : ''}
     `;
   }
@@ -1441,34 +3202,66 @@ const App = (() => {
     const xtbPort = yd.xtbPortfolio || {};
     const xtbDiv = yd.xtbDividendsReport || {};
     const tvPort = yd.tradevillePortfolio || {};
+    const manualCountriesAll = yd.roGainsCountries || [];
+    const hasManualEur = (data.roEurDiv || 0) > 0 || (data.roEurInt || 0) > 0;
+    const hasManualUsd = (data.roUsdDiv || 0) > 0 || (data.roUsdInt || 0) > 0;
 
-    if (!xtbPort.longTerm && !xtbPort.shortTerm && !xtbDiv.dividends && !tvPort.longTerm && !tvPort.shortTerm) {
+    if (!xtbPort.longTerm && !xtbPort.shortTerm && !xtbDiv.dividends && !tvPort.longTerm && !tvPort.shortTerm && manualCountriesAll.length === 0 && !hasManualEur && !hasManualUsd) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">' + I18n.t('misc.noRoData') + '</td></tr>';
       tfoot.innerHTML = '';
       return;
     }
 
     const rows = [];
-    // XTB data
-    if (xtbPort.longTerm?.gainRON) {
-      rows.push({
-        cat: I18n.t('income.roGainsLong') + ' (XTB)',
-        country: xtbPort.country || 'USA',
-        gross: xtbPort.longTerm.gainRON,
-        rate: (data.roLongRate * 100) + '%',
-        withheld: xtbPort.longTerm.taxWithheldRON || 0,
-        net: Math.max(0, xtbPort.longTerm.gainRON * data.roLongRate - (xtbPort.longTerm.taxWithheldRON || 0))
-      });
-    }
-    if (xtbPort.shortTerm?.gainRON) {
-      rows.push({
-        cat: I18n.t('income.roGainsShort') + ' (XTB)',
-        country: xtbPort.country || 'USA',
-        gross: xtbPort.shortTerm.gainRON,
-        rate: (data.roShortRate * 100) + '%',
-        withheld: xtbPort.shortTerm.taxWithheldRON || 0,
-        net: Math.max(0, xtbPort.shortTerm.gainRON * data.roShortRate - (xtbPort.shortTerm.taxWithheldRON || 0))
-      });
+    // XTB data: prefer per-country breakdown when available (multi-row report).
+    if (xtbPort.countries && xtbPort.countries.length > 0) {
+      for (const c of xtbPort.countries) {
+        const curSuffix = c.currency && c.currency !== 'RON' ? ' ' + c.currency : '';
+        const longNet = (c.longGainRON || 0) - (c.longLossRON || 0);
+        const shortNet = (c.shortGainRON || 0) - (c.shortLossRON || 0);
+        if (longNet !== 0 || (c.longTaxRON || 0) > 0) {
+          rows.push({
+            cat: I18n.t('income.roGainsLong') + ' (XTB' + curSuffix + ')',
+            country: c.country || 'USA',
+            gross: longNet,
+            rate: (data.roLongRate * 100) + '%',
+            withheld: c.longTaxRON || 0,
+            net: Math.max(0, longNet * data.roLongRate - (c.longTaxRON || 0))
+          });
+        }
+        if (shortNet !== 0 || (c.shortTaxRON || 0) > 0) {
+          rows.push({
+            cat: I18n.t('income.roGainsShort') + ' (XTB' + curSuffix + ')',
+            country: c.country || 'USA',
+            gross: shortNet,
+            rate: (data.roShortRate * 100) + '%',
+            withheld: c.shortTaxRON || 0,
+            net: Math.max(0, shortNet * data.roShortRate - (c.shortTaxRON || 0))
+          });
+        }
+      }
+    } else {
+      // Fallback for legacy single-country XTB data
+      if (xtbPort.longTerm?.gainRON) {
+        rows.push({
+          cat: I18n.t('income.roGainsLong') + ' (XTB)',
+          country: xtbPort.country || 'USA',
+          gross: xtbPort.longTerm.gainRON,
+          rate: (data.roLongRate * 100) + '%',
+          withheld: xtbPort.longTerm.taxWithheldRON || 0,
+          net: Math.max(0, xtbPort.longTerm.gainRON * data.roLongRate - (xtbPort.longTerm.taxWithheldRON || 0))
+        });
+      }
+      if (xtbPort.shortTerm?.gainRON) {
+        rows.push({
+          cat: I18n.t('income.roGainsShort') + ' (XTB)',
+          country: xtbPort.country || 'USA',
+          gross: xtbPort.shortTerm.gainRON,
+          rate: (data.roShortRate * 100) + '%',
+          withheld: xtbPort.shortTerm.taxWithheldRON || 0,
+          net: Math.max(0, xtbPort.shortTerm.gainRON * data.roShortRate - (xtbPort.shortTerm.taxWithheldRON || 0))
+        });
+      }
     }
     // Tradeville data (per country)
     if (tvPort.countries && tvPort.countries.length > 0) {
@@ -1495,16 +3288,20 @@ const App = (() => {
         }
       }
     }
-    // Manual country rows from Add Data
+    // Manual country rows from Add Data (convert currency to RON for display).
+    // Show even when XTB/Tradeville data is also present (additive, not exclusive).
     const manualCountries = yd.roGainsCountries || [];
-    if (manualCountries.length > 0 && !tvPort.countries?.length && !xtbPort.longTerm?.gainRON) {
+    if (manualCountries.length > 0) {
       for (const c of manualCountries) {
         const broker = yd.roBroker || 'RO Broker';
+        const cur = (c.currency || 'RON').toUpperCase();
+        const fx = cur === 'EUR' ? (data.eurRate || 1) : (cur === 'USD' ? (data.exchangeRate || 1) : 1);
+        const curSuffix = cur !== 'RON' ? ' ' + cur : '';
         if (c.longGain > 0) {
           rows.push({
-            cat: I18n.t('income.roGainsLong') + ' (' + broker + ')',
+            cat: I18n.t('income.roGainsLong') + ' (' + broker + curSuffix + ')',
             country: c.country,
-            gross: c.longGain,
+            gross: (c.longGain || 0) * fx,
             rate: (data.roLongRate * 100) + '%',
             withheld: 0,
             net: 0
@@ -1512,15 +3309,40 @@ const App = (() => {
         }
         if (c.shortGain > 0) {
           rows.push({
-            cat: I18n.t('income.roGainsShort') + ' (' + broker + ')',
+            cat: I18n.t('income.roGainsShort') + ' (' + broker + curSuffix + ')',
             country: c.country,
-            gross: c.shortGain,
+            gross: (c.shortGain || 0) * fx,
             rate: (data.roShortRate * 100) + '%',
             withheld: 0,
             net: 0
           });
         }
       }
+    }
+    // Manual RO broker dividends (EUR/USD from Add Data)
+    if ((data.roEurDiv || 0) > 0) {
+      const grossRON = data.roEurDiv * data.eurRate;
+      const withheldRON = (data.roEurDivTax || 0) * data.eurRate;
+      rows.push({
+        cat: I18n.t('income.roDividends') + ' (' + (yd.roBroker || 'RO Broker') + ' EUR)',
+        country: 'EU',
+        gross: grossRON,
+        rate: data.divTaxRateLabel,
+        withheld: withheldRON,
+        net: Math.max(0, grossRON * data.divTaxRate - withheldRON)
+      });
+    }
+    if ((data.roUsdDiv || 0) > 0) {
+      const grossRON = data.roUsdDiv * data.exchangeRate;
+      const withheldRON = (data.roUsdDivTax || 0) * data.exchangeRate;
+      rows.push({
+        cat: I18n.t('income.roDividends') + ' (' + (yd.roBroker || 'RO Broker') + ' USD)',
+        country: 'US',
+        gross: grossRON,
+        rate: data.divTaxRateLabel,
+        withheld: withheldRON,
+        net: Math.max(0, grossRON * data.divTaxRate - withheldRON)
+      });
     }
     if (xtbDiv.dividends?.grossRON) {
       rows.push({
@@ -1540,6 +3362,31 @@ const App = (() => {
         rate: (data.interestTaxRate * 100) + '%',
         withheld: xtbDiv.interest.taxWithheldRON || 0,
         net: xtbDiv.interest.grossRON * data.interestTaxRate - (xtbDiv.interest.taxWithheldRON || 0)
+      });
+    }
+    // Manual RO broker interest (EUR/USD from Add Data)
+    if ((data.roEurInt || 0) > 0) {
+      const grossRON = data.roEurInt * data.eurRate;
+      const withheldRON = (data.roEurIntTax || 0) * data.eurRate;
+      rows.push({
+        cat: I18n.t('income.interestIncome') + ' (' + (yd.roBroker || 'RO Broker') + ' EUR)',
+        country: 'EU',
+        gross: grossRON,
+        rate: (data.interestTaxRate * 100) + '%',
+        withheld: withheldRON,
+        net: Math.max(0, grossRON * data.interestTaxRate - withheldRON)
+      });
+    }
+    if ((data.roUsdInt || 0) > 0) {
+      const grossRON = data.roUsdInt * data.exchangeRate;
+      const withheldRON = (data.roUsdIntTax || 0) * data.exchangeRate;
+      rows.push({
+        cat: I18n.t('income.interestIncome') + ' (' + (yd.roBroker || 'RO Broker') + ' USD)',
+        country: 'US',
+        gross: grossRON,
+        rate: (data.interestTaxRate * 100) + '%',
+        withheld: withheldRON,
+        net: Math.max(0, grossRON * data.interestTaxRate - withheldRON)
       });
     }
 
@@ -1706,13 +3553,159 @@ const App = (() => {
 
     let html = '';
 
+    // P4 — Source badges + conflict detector.
+    // ----------------------------------------
+    // Tier emoji conventions:
+    //   🏛  ANAF official import (anaf-doc)
+    //   📄  Parsed broker document (document)
+    //   🛠  Manual override (override) — user said "I know better"
+    //   ✋  Manual Add-Data entry (manual) — no doc but typed in
+    //   🔁  Derived from another tier (derived) — e.g. USD × BNR
+    const TIER_BADGE = {
+      'anaf-doc': '🏛',
+      'document': '📄',
+      'override':  '🛠',
+      'manual':    '✋',
+      'derived':   '🔁',
+    };
+    const tierLabel = {
+      'anaf-doc': 'ANAF import',
+      'document': 'Document parsat',
+      'override': 'Override manual',
+      'manual':   'Intrare manuală',
+      'derived':  'Derivat (calcul)',
+    };
+    const renderBadge = (srcInfo) => {
+      if (!srcInfo || !srcInfo.present) return '';
+      const e = TIER_BADGE[srcInfo.tier] || '?';
+      const titleParts = [`${tierLabel[srcInfo.tier] || srcInfo.tier}: ${srcInfo.label || ''}`];
+      if (Array.isArray(srcInfo.alternates) && srcInfo.alternates.length > 0) {
+        for (const alt of srcInfo.alternates) {
+          titleParts.push(`Alternativ (${tierLabel[alt.tier] || alt.tier}): ${alt.label || ''} = ${alt.value}`);
+        }
+      }
+      const title = titleParts.join('\n').replace(/"/g, '&quot;');
+      return ` <span title="${title}" style="font-size:0.85em;opacity:0.85;cursor:help;">${e}</span>`;
+    };
+
+    // P4 — Conflict detector. Inspects every field in data.sourceMap and
+    // surfaces materially different alternates (e.g. Fidelity statement
+    // says 1350 but the Add Data form says 1200). The banner shows up
+    // only if at least one conflict exists.
+    const SR = window.SourceResolver;
+    const conflicts = [];
+    if (SR && SR.detectConflicts && data.sourceMap) {
+      const detect = SR.detectConflicts;
+      const checkField = (catLabel, fieldLabel, srcInfo) => {
+        const flags = detect(srcInfo, { absEps: 1, relEps: 0.01 });
+        for (const f of flags) {
+          conflicts.push({ cat: catLabel, field: fieldLabel, chosen: f.chosen, alternative: f.alternative, delta: f.delta });
+        }
+      };
+      const sm = data.sourceMap;
+      if (sm.usDividends) {
+        checkField('Dividende US', 'gross USD', sm.usDividends.grossUSD);
+        checkField('Dividende US', 'foreign tax USD', sm.usDividends.foreignTaxUSD);
+      }
+      if (sm.roBrokerDividends) {
+        checkField('Dividende RO broker', 'gross RON', sm.roBrokerDividends.grossRON);
+        checkField('Dividende RO broker', 'impozit reținut RON', sm.roBrokerDividends.taxWithheldRON);
+      }
+      if (sm.interest) {
+        checkField('Dobânzi', 'income RON', sm.interest.incomeRON);
+        checkField('Dobânzi', 'impozit RON', sm.interest.taxWithheldRON);
+      }
+      if (sm.usCapitalGains) {
+        checkField('Capgains US', 'taxable RON', sm.usCapitalGains.taxableRON);
+      }
+      if (sm.roBrokerGains) {
+        checkField('Capgains RO', 'long gain RON', sm.roBrokerGains.longGainRON);
+        checkField('Capgains RO', 'short gain RON', sm.roBrokerGains.shortGainRON);
+        checkField('Capgains RO', 'impozit reținut RON', sm.roBrokerGains.taxWithheldRON);
+      }
+      if (sm.salaryBIK) {
+        checkField('Salariu BIK', 'taxed RON', sm.salaryBIK.taxedRON);
+      }
+    }
+    if (conflicts.length > 0) {
+      html += '<tr><td colspan="2" style="background:rgba(255,193,7,0.10);border-left:3px solid var(--warning);padding:0.75rem 1rem;font-size:0.9rem;line-height:1.5;">';
+      html += `<strong>⚠ ${conflicts.length} conflict${conflicts.length > 1 ? 'e' : ''} între surse — doc-ul a fost folosit, manual override ignorat</strong><br/>`;
+      html += '<span style="color:var(--text-muted)">Documentul parsed a câștigat pentru fiecare câmp (tier mai înalt). Dacă vrei să folosești valoarea manuală, șterge documentul sau setează override explicit pe Add Data.</span><br/>';
+      for (const c of conflicts) {
+        const cE = TIER_BADGE[c.chosen.tier] || '?';
+        const aE = TIER_BADGE[c.alternative.tier] || '?';
+        html += `• <strong>${esc(c.cat)} — ${esc(c.field)}</strong>: folosit ${cE} ${esc(c.chosen.label || '')} = <strong>${c.chosen.value}</strong>; ignorat ${aE} ${esc(c.alternative.label || '')} = ${c.alternative.value} (Δ ${c.delta.toFixed(2)})<br/>`;
+      }
+      html += '</td></tr>';
+    }
+
+    // D-9 warning banner: explain the foreign-tax assumption + cap14 emission.
+    // Shown only when there's actually foreign dividend data (XTB/BT) so the
+    // legend doesn't pollute the screen for users with only RO income.
+    const hasForeignDiv = Array.isArray(data.roDivForeignByCountry) && data.roDivForeignByCountry.length > 0;
+    const hasCap14Warnings = Array.isArray(data.cap14Warnings) && data.cap14Warnings.length > 0;
+    if (hasForeignDiv || hasCap14Warnings) {
+      const totalForeignRon = (data.roDivForeignByCountry || []).reduce((s, c) => s + (c.grossRON || 0), 0);
+      const totalForeignTax = (data.roDivForeignByCountry || []).reduce((s, c) => s + (c.taxRON || 0), 0);
+      const totalForeignTaxDue = data.roDivForeignTaxDue || 0;
+      const totalForeignCredit = data.roDivForeignTaxCredit || 0;
+      const countries = (data.roDivForeignByCountry || []).map(c => c.country || '?').join(', ');
+      const useInfoStyle = hasForeignDiv && !hasCap14Warnings;
+      const bgColor = useInfoStyle ? 'rgba(13,110,253,0.08)' : 'rgba(255,193,7,0.10)';
+      const borderColor = useInfoStyle ? 'var(--info, #0d6efd)' : 'var(--warning)';
+      const icon = useInfoStyle ? 'ℹ' : '⚠';
+      html += `<tr><td colspan="2" style="background:${bgColor};border-left:3px solid ${borderColor};padding:0.75rem 1rem;font-size:0.9rem;line-height:1.5;">`;
+      html += `<strong>${icon} Dividende externe via broker român — declarate în D212 cap14</strong><br/>`;
+      if (hasForeignDiv) {
+        html += `• <strong>${fmtR(totalForeignRon)} RON</strong> brut din ${countries}, cu <strong>${fmtR(totalForeignTax)} RON</strong> impozit reținut la sursă în străinătate.<br/>`;
+        html += `• Calcul cap14: RO datorat <strong>${fmtR(totalForeignTaxDue)} RON</strong> (8%) − credit fiscal <strong>${fmtR(totalForeignCredit)} RON</strong> (capat la 8%) = <strong>${fmtR(Math.max(0, totalForeignTaxDue - totalForeignCredit))} RON</strong> de plată în RO.<br/>`;
+        html += `• Diferența între reținerea străină și creditul fiscal recunoscut (${fmtR(Math.max(0, totalForeignTax - totalForeignCredit))} RON) NU se recuperează prin D212 — e pierdere fiscală conform tratatului US-RO art. 10 (10% portofoliu).<br/>`;
+      }
+      if (hasCap14Warnings) {
+        for (const w of data.cap14Warnings) {
+          html += `<span style="color:var(--danger)">⚠ ${w.message}</span><br/>`;
+        }
+      }
+      html += '</td></tr>';
+    }
+
     // === SECTION A: CE AM CÂȘTIGAT ===
     html += sectionRow('\ud83d\udcb0 ' + I18n.t('taxes.sectionEarned'));
 
+    // P4 — Source legend (collapsible). Shown only on years that have
+    // multi-tier data so users with simple setups aren't distracted.
+    const hasMultiTier = Object.values(data.sourceMap || {}).some(catSources =>
+      Object.values(catSources || {}).some(s => s && Array.isArray(s.alternates) && s.alternates.length > 0)
+    );
+    if (hasMultiTier || conflicts.length > 0) {
+      html += '<tr><td colspan="2" style="padding:0;">';
+      html += '<details style="margin:0.25rem 0;padding:0.5rem 1rem;background:var(--bg-secondary);border-radius:4px;font-size:0.85rem;">';
+      html += '<summary style="cursor:pointer;font-weight:600;">📋 Surse de date — legendă badge-uri</summary>';
+      html += '<div style="margin-top:0.5rem;line-height:1.6;">';
+      html += '<span title="Override manual: explicit user override always wins">🛠 = override manual</span> &nbsp; ';
+      html += '<span title="ANAF official import">🏛 = import ANAF (D212 PDF/XML oficial)</span> &nbsp; ';
+      html += '<span title="Parsed broker document">📄 = document broker parsat</span> &nbsp; ';
+      html += '<span title="Manual Add-Data entry">✋ = intrare manuală pe Add Data</span> &nbsp; ';
+      html += '<span title="Derived from another tier">🔁 = derivat (calcul din altă sursă)</span><br/>';
+      html += '<span style="color:var(--text-muted)">Hover pe orice badge pentru a vedea sursa exactă + alternativele ignorate.</span>';
+      html += '</div>';
+      html += '</details>';
+      html += '</td></tr>';
+    }
+
+    // P4 — Source-map shortcuts for inline badges next to the headline values.
+    const _sm = data.sourceMap || {};
+    const _bUsGain = renderBadge((_sm.usCapitalGains || {}).taxableRON);
+    const _bUsDiv = renderBadge((_sm.usDividends || {}).grossRON);
+    const _bRoLong = renderBadge((_sm.roBrokerGains || {}).longGainRON);
+    const _bRoShort = renderBadge((_sm.roBrokerGains || {}).shortGainRON);
+    const _bRoDiv = renderBadge((_sm.roBrokerDividends || {}).grossRON);
+    const _bInt = renderBadge((_sm.interest || {}).incomeRON);
+
     // -- US income --
     html += dataRow('<strong>' + I18n.t('taxes.subsectionUS') + '</strong>', '', { indent: false });
-    html += dataRow(I18n.t('taxes.earnUsGains') + data.usBrokerLabel, fmtR(usGainsRON) + ' RON', { indent: true });
-    html += dataRow(I18n.t('taxes.earnUsDiv') + data.usDivBrokerLabel, fmtR(usDivRON) + ' RON', { indent: true });
+    html += dataRow(I18n.t('taxes.earnUsGains') + data.usBrokerLabel + _bUsGain, fmtR(usGainsRON) + ' RON', { indent: true });
+    html += dataRow(I18n.t('taxes.earnUsDiv') + data.usDivBrokerLabel + _bUsDiv, fmtR(usDivRON) + ' RON', { indent: true });
     if (data.salaryTaxedRON > 0) {
       html += dataRow(I18n.t('taxes.earnSalaryTaxedDeduction') || 'Income already taxed as salary', '-' + fmtR(data.salaryTaxedRON) + ' RON', { indent: true, green: true });
     }
@@ -1721,10 +3714,31 @@ const App = (() => {
 
     // -- Romania income --
     html += dataRow('<strong>' + I18n.t('taxes.subsectionRO') + '</strong>', '', { indent: false });
-    html += dataRow(I18n.t('taxes.earnRoGainsLong') + data.roBrokerLabel, fmtR(roLong) + ' RON', { indent: true });
-    html += dataRow(I18n.t('taxes.earnRoGainsShort') + data.roBrokerLabel, fmtR(roShort) + ' RON', { indent: true });
-    html += dataRow(I18n.t('taxes.earnRoDiv') + data.roBrokerLabel, fmtR(roDivGross) + ' RON', { indent: true });
-    html += dataRow(I18n.t('taxes.earnInterest'), fmtR(data.interestIncomeRON) + ' RON', { indent: true });
+    html += dataRow(I18n.t('taxes.earnRoGainsLong') + data.roBrokerLabel + _bRoLong, fmtR(roLong) + ' RON', { indent: true });
+    html += dataRow(I18n.t('taxes.earnRoGainsShort') + data.roBrokerLabel + _bRoShort, fmtR(roShort) + ' RON', { indent: true });
+    html += dataRow(I18n.t('taxes.earnRoDiv') + data.roBrokerLabel + _bRoDiv, fmtR(roDivGross) + ' RON', { indent: true });
+    // D-9: Foreign-source dividends via Romanian broker — show per-country
+    // breakdown beneath the legacy aggregate so the user can verify the
+    // cap14 emission. The legacy aggregate already includes these amounts.
+    if (Array.isArray(data.roDivForeignByCountry) && data.roDivForeignByCountry.length > 0) {
+      for (const c of data.roDivForeignByCountry) {
+        const flag = c.country ? `🌍 ${c.country}` : '⚠ Necunoscut';
+        const brokers = (c.sources || []).map(s => s.broker).join(', ');
+        html += dataRow(
+          `&nbsp;&nbsp;${flag} — Dividende externe${brokers ? ' · ' + brokers : ''}`,
+          fmtR(c.grossRON || 0) + ' RON',
+          { indent: true, muted: true }
+        );
+      }
+    }
+    if ((data.roDivUnknownCountryRON || 0) > 0) {
+      html += dataRow(
+        '&nbsp;&nbsp;⚠ Dividende fără țară identificată (manuale / XTB fără "din X")',
+        fmtR(data.roDivUnknownCountryRON) + ' RON',
+        { indent: true, muted: true }
+      );
+    }
+    html += dataRow(I18n.t('taxes.earnInterest') + _bInt, fmtR(data.interestIncomeRON) + ' RON', { indent: true });
     if (gamblingIncome > 0) {
       html += dataRow(I18n.t('taxes.earnGambling'), fmtR(gamblingIncome) + ' RON', { indent: true });
     }
@@ -1739,10 +3753,27 @@ const App = (() => {
     if (data.otherGross > 0) {
       html += dataRow(I18n.t('taxes.earnOther'), fmtR(data.otherGross) + ' RON', { indent: true });
     }
-    const roSubtotalIncome = roLong + roShort + roDivGross + data.interestIncomeRON + gamblingIncome + data.rentalGross + data.royaltyGross + data.otherGross;
+    if ((data.pfaNetIncome || 0) > 0) {
+      html += dataRow(I18n.t('taxes.earnPfa') || 'Venit net PFA (activități independente)', fmtR(data.pfaNetIncome) + ' RON', { indent: true });
+    }
+    const roSubtotalIncome = roLong + roShort + roDivGross + data.interestIncomeRON + gamblingIncome + data.rentalGross + data.royaltyGross + data.otherGross + (data.pfaNetIncome || 0);
     html += dataRow(I18n.t('taxes.subtotalRO'), fmtR(roSubtotalIncome) + ' RON', { indent: true, bold: true, topBorder: true });
 
-    html += dataRow(I18n.t('taxes.earnTotal'), fmtR(usSubtotalIncome + roSubtotalIncome) + ' RON', { bold: true, topBorder: true });
+    // -- Foreign-broker income (Revolut) --
+    // Revolut Securities Europe UAB is a non-resident broker (Lithuania).
+    // Per Cod fiscal, its capital gains belong on D212 cap14 (str_categ_venit
+    // = 2012) as foreign-source income, NOT on cap11 alongside XTB / BT.
+    // Surfaced separately so the user doesn't confuse it with RO-broker
+    // amounts.
+    let foreignSubtotalIncome = 0;
+    if ((data.revolutNetGainsRON || 0) > 0) {
+      html += dataRow('<strong>' + (I18n.t('taxes.subsectionForeign') || 'Broker extern (UE/Internațional)') + '</strong>', '', { indent: false });
+      html += dataRow((I18n.t('taxes.earnRevolutGains') || 'Câștiguri capital prin Revolut (broker extern)'), fmtR(data.revolutNetGainsRON) + ' RON', { indent: true });
+      foreignSubtotalIncome = data.revolutNetGainsRON;
+      html += dataRow((I18n.t('taxes.subtotalForeign') || 'Subtotal broker extern'), fmtR(foreignSubtotalIncome) + ' RON', { indent: true, bold: true, topBorder: true });
+    }
+
+    html += dataRow(I18n.t('taxes.earnTotal'), fmtR(usSubtotalIncome + roSubtotalIncome + foreignSubtotalIncome) + ' RON', { bold: true, topBorder: true });
 
     html += emptyRow();
 
@@ -1807,6 +3838,12 @@ const App = (() => {
     } else {
       html += dataRow(I18n.t('taxes.oweRoCapGains'), I18n.t('taxes.finalTaxDone'), { indent: true, muted: true });
     }
+    // Foreign-broker capital gains (Revolut): no source withholding → full
+    // RO rate applies (10% in 2025, 16% from 2026).
+    const revolutTaxOwed = (data.revolutGainsTaxRON || 0);
+    if (revolutTaxOwed > 0) {
+      html += dataRow((I18n.t('taxes.oweRevolutGains') || 'Impozit câștiguri capital broker extern (Revolut)'), fmtR(revolutTaxOwed) + ' RON', { indent: true });
+    }
     // Romania dividends: check if broker withheld enough
     const roDivNetOwed = Math.max(0, roDivGross * data.divTaxRate - roDivTaxWithheld);
     if (roDivNetOwed > 0) {
@@ -1833,14 +3870,46 @@ const App = (() => {
     if (data.otherGross > 0) {
       html += dataRow(I18n.t('taxes.oweOther'), fmtR(data.otherTaxToPay) + ' RON', { indent: true });
     }
+    // PFA income tax (art. 84 + 118: CASS deductible from base)
+    if ((data.pfaNetIncome || 0) > 0) {
+      html += dataRow(I18n.t('taxes.owePfa') || 'Impozit PFA (10%, art. 64-67)', fmtR(data.pfaIncomeTax || 0) + ' RON', { indent: true });
+      if ((data.pfaCassDeductible || 0) > 0) {
+        html += dataRow(I18n.t('taxes.pfaCassDed') || '&nbsp;&nbsp;− CASS deductibilă (art. 118)', '-' + fmtR(data.pfaCassDeductible) + ' RON', { indent: true, muted: true });
+        html += dataRow(I18n.t('taxes.pfaTaxable') || '&nbsp;&nbsp;= venit impozabil', fmtR(data.pfaTaxableIncome || 0) + ' RON', { indent: true, muted: true });
+      }
+    }
     // Subtotal income tax
-    const incomeTaxToPay = Math.max(0, usGainsTax) + usDivTax + roCapGainsNetOwed + roDivNetOwed + interestTaxRemaining + (data.rentalTaxToPay || 0) + (data.royaltyTaxToPay || 0) + (data.otherTaxToPay || 0);
+    const incomeTaxToPay = Math.max(0, usGainsTax) + usDivTax + roCapGainsNetOwed + revolutTaxOwed + roDivNetOwed + interestTaxRemaining + (data.rentalTaxToPay || 0) + (data.royaltyTaxToPay || 0) + (data.otherTaxToPay || 0) + (data.pfaIncomeTax || 0);
     html += dataRow(I18n.t('taxes.oweIncomeTaxSubtotal'), '<strong>' + fmtR(incomeTaxToPay) + ' RON</strong>', { topBorder: true });
-    // CASS
-    html += dataRow(I18n.t('taxes.oweCASS'), fmtR(data.cassTax) + ' RON', { indent: true });
+    // Refund: when Romanian broker withheld more than the actual tax due (after losses)
+    if ((data.refundOwedRON || 0) > 0) {
+      html += emptyRow();
+      html += `<tr><td colspan="2" style="background:rgba(0,128,0,0.05);font-size:0.85rem;color:var(--success);padding:0.5rem;"><strong>💰 ${I18n.t('taxes.refundDetected')}</strong></td></tr>`;
+      if ((data.roCapGainsOverwithheld || 0) > 0) {
+        html += dataRow(I18n.t('taxes.refundRoCapGains'), '<strong style="color:var(--success);">' + fmtR(data.roCapGainsOverwithheld) + ' RON</strong>', { indent: true });
+      }
+      if ((data.roDivOverwithheld || 0) > 0) {
+        html += dataRow(I18n.t('taxes.refundRoDiv'), '<strong style="color:var(--success);">' + fmtR(data.roDivOverwithheld) + ' RON</strong>', { indent: true });
+      }
+      if ((data.interestOverwithheld || 0) > 0) {
+        html += dataRow(I18n.t('taxes.refundInterest'), '<strong style="color:var(--success);">' + fmtR(data.interestOverwithheld) + ' RON</strong>', { indent: true });
+      }
+      html += dataRow(I18n.t('taxes.refundTotal'), '<strong style="color:var(--success);">' + fmtR(data.refundOwedRON) + ' RON</strong>', { topBorder: true });
+    }
+    // CASS (investments) + CASS (PFA) — separate per Cod fiscal art. 155 + art. 170.
+    html += dataRow(I18n.t('taxes.oweCASS') + ' (investiții)', fmtR(data.cassTax) + ' RON', { indent: true });
+    if ((data.pfaCassTax || 0) > 0) {
+      html += dataRow(I18n.t('taxes.oweCASSPfa') || 'CASS datorată (PFA art. 155(1)b)', fmtR(data.pfaCassTax) + ' RON', { indent: true });
+      html += dataRow(I18n.t('taxes.oweCASSTotal') || 'Total CASS (investiții + PFA)', '<strong>' + fmtR(data.totalCassTax) + ' RON</strong>', { indent: true, topBorder: true });
+    }
     html += emptyRow();
-    const finalToPay = incomeTaxToPay + data.cassTax;
-    html += dataRow(I18n.t('taxes.oweTotalToPay'), '<strong style="color:var(--warning);font-size:1.15rem;">' + fmtR(finalToPay) + ' RON</strong>', { bold: true, topBorder: true, highlight: true });
+    // Final amount: cash flow taking refund into account
+    const finalNet = incomeTaxToPay - (data.refundOwedRON || 0) + (data.totalCassTax || data.cassTax);
+    if (finalNet >= 0) {
+      html += dataRow(I18n.t('taxes.oweTotalToPay'), '<strong style="color:var(--warning);font-size:1.15rem;">' + fmtR(finalNet) + ' RON</strong>', { bold: true, topBorder: true, highlight: true });
+    } else {
+      html += dataRow(I18n.t('taxes.refundFinalAmount'), '<strong style="color:var(--success);font-size:1.15rem;">' + fmtR(-finalNet) + ' RON</strong>', { bold: true, topBorder: true, highlight: true });
+    }
 
     // Payment deadline
     const deadlineISO = data.paymentDeadline || d212DefaultDeadline(selectedYear);
@@ -2029,6 +4098,33 @@ const App = (() => {
       }).join('');
     }
 
+    // D212 Cap. I §1.1 — cap11 rows (gap D-6). Only shown when there's RO-source
+    // activity to declare. The user can verify the structured row that will be
+    // emitted in the future D-7 XML export here.
+    const cap11Section = document.getElementById('dcl-cap11-section');
+    const cap11Tbody = document.getElementById('dcl-cap11-tbody');
+    if (cap11Section && cap11Tbody) {
+      const rows = data.cap11Rows || [];
+      if (rows.length === 0) {
+        cap11Section.style.display = 'none';
+      } else {
+        cap11Section.style.display = '';
+        const r = rows[0];
+        cap11Tbody.innerHTML = [
+          [I18n.t('taxes.cap11CategVenit') || 'Cod categorie (categ_venit)', '<code>' + r.categ_venit + '</code> — ' + r.den_venit],
+          [I18n.t('taxes.cap11Rd1') || 'Rd.1 Venit brut (venit_brut)', fmtR(r.venit_brut) + ' RON'],
+          [I18n.t('taxes.cap11Rd2') || 'Rd.2 Cheltuieli deductibile (chelt_deduc)', fmtR(r.chelt_deduc) + ' RON'],
+          [I18n.t('taxes.cap11Rd3') || 'Rd.3 Venit net anual (venit_net_anual)', fmtR(r.venit_net_anual) + ' RON'],
+          [I18n.t('taxes.cap11Rd4') || 'Rd.4 Pierdere anuală (pierdere)', fmtR(r.pierdere) + ' RON'],
+          [I18n.t('taxes.cap11Rd5') || 'Rd.5 Pierdere precedentă (pierdere_precedenta)', fmtR(r.pierdere_precedenta) + ' RON'],
+          [I18n.t('taxes.cap11Rd6') || 'Rd.6 Pierdere compensată (pierdere_compensata)', fmtR(r.pierdere_compensata) + ' RON'],
+          [I18n.t('taxes.cap11Rd7') || 'Rd.7 Venit recalculat (venit_recalculat)', fmtR(r.venit_recalculat) + ' RON'],
+          [I18n.t('taxes.cap11Rd8') || 'Rd.8 Impozit anual (impozit11)', fmtR(r.impozit11) + ' RON'],
+          [I18n.t('taxes.cap11Rd9') || 'Rd.9 Impozit reținut la sursă (impozit_retinut)', fmtR(r.impozit_retinut) + ' RON'],
+        ].map(([f, v]) => `<tr><td style="font-size:0.85rem;">${f}</td><td style="font-variant-numeric:tabular-nums;">${v}</td></tr>`).join('');
+      }
+    }
+
     // Withholding income section (for CASS calculation)
     const whTbody = document.getElementById('dcl-withholding-tbody');
     if (whTbody) {
@@ -2180,28 +4276,828 @@ const App = (() => {
     }
   }
 
+  // ============ ADD DATA TAB — IMPORTS DETECTION & SUB-TAB MODES ============
+  /**
+   * Catalog of importable data sources. Each descriptor declares:
+   *   - id: matches the upload type from server.js (xtb_dividends, xtb_portfolio, ...)
+   *   - title: i18n key for the human-readable label
+   *   - isActive(yd): true when this import has produced data for the year
+   *   - rawFilePattern: filename produced under data/ when this import succeeds
+   *   - rows(yd): editable rows for the imports panel, each with
+   *       { label, parsedValue, manualKey, formatted, currency? }
+   *   - relatedFieldsetIds: HTML <fieldset> IDs whose inputs become redundant
+   *     when this import is active. Tab 2 hides them by default; "Mod avansat"
+   *     reveals them.
+   *
+   * Adding a new import type means adding one entry here — the imports panel
+   * and the Tab 2 filtering pick it up automatically.
+   */
+  const IMPORT_DESCRIPTORS = [
+    {
+      id: 'xtb_dividends',
+      title: 'XTB · Raport Dividende & Dobânzi',
+      icon: '📄',
+      isActive: (yd) => !!yd.xtbDividendsReport,
+      rawFilePattern: 'xtb_dividends_{year}_raw.txt',
+      relatedFieldsetIds: ['fieldset-ro-dividends', 'fieldset-interest'],
+      rows: (yd) => {
+        const d = yd.xtbDividendsReport || {};
+        const rows = [];
+        if (d.dividends?.grossRON != null) {
+          rows.push({ label: 'Dividende brute (RON)', parsedValue: d.dividends.grossRON, manualKey: 'xtbDividends', currency: 'RON' });
+        }
+        if (d.dividends?.taxWithheldRON != null) {
+          rows.push({ label: 'Impozit dividende reținut (RON)', parsedValue: d.dividends.taxWithheldRON, manualKey: 'roDivTaxPaid', currency: 'RON' });
+        }
+        if (d.interest?.grossRON != null) {
+          rows.push({ label: 'Dobânzi brute (RON)', parsedValue: d.interest.grossRON, manualKey: 'interestIncome', currency: 'RON' });
+        }
+        if (d.interest?.taxWithheldRON != null) {
+          rows.push({ label: 'Impozit dobânzi reținut (RON)', parsedValue: d.interest.taxWithheldRON, manualKey: 'interestTaxPaid', currency: 'RON' });
+        }
+        return rows;
+      }
+    },
+    {
+      id: 'xtb_portfolio',
+      title: 'XTB · Fișă de Portofoliu',
+      icon: '📄',
+      isActive: (yd) => !!yd.xtbPortfolio,
+      rawFilePattern: 'xtb_portfolio_{year}_raw.txt',
+      relatedFieldsetIds: ['fieldset-ro-gains'],
+      // Per-country editing is rendered specially in renderImportsPanel().
+      perCountry: true,
+      countriesSource: (yd) => yd.xtbPortfolio?.countries || [],
+    },
+    {
+      id: 'tradeville_portfolio',
+      title: 'Tradeville · Fișă de Portofoliu',
+      icon: '📄',
+      isActive: (yd) => !!yd.tradevillePortfolio,
+      rawFilePattern: 'tradeville_portfolio_{year}_raw.txt',
+      relatedFieldsetIds: ['fieldset-ro-gains'],
+      perCountry: true,
+      countriesSource: (yd) => yd.tradevillePortfolio?.countries || [],
+    },
+    {
+      id: 'bt_dividends',
+      title: 'BT Capital Partners · Fișă Dividende (piețe externe)',
+      icon: '📄',
+      isActive: (yd) => !!yd.btDividendsReport,
+      rawFilePattern: 'bt_dividends_{year}_raw.txt',
+      relatedFieldsetIds: ['fieldset-ro-dividends'],
+      rows: (yd) => {
+        const d = yd.btDividendsReport || {};
+        const rows = [];
+        if (d.dividends?.grossRON != null) {
+          rows.push({ label: 'Dividende brute (RON)', parsedValue: d.dividends.grossRON, manualKey: 'xtbDividends', currency: 'RON' });
+        }
+        if (d.dividends?.taxWithheldRON != null) {
+          rows.push({ label: 'Impozit dividende reținut (RON)', parsedValue: d.dividends.taxWithheldRON, manualKey: 'roDivTaxPaid', currency: 'RON' });
+        }
+        // Display per-row symbol/ISIN breakdown count so the user can spot
+        // missing payments at a glance.
+        if (Array.isArray(d.dividendRows) && d.dividendRows.length > 0) {
+          rows.push({ label: `Număr plăți individuale`, parsedValue: d.dividendRows.length, manualKey: null, currency: '' });
+        }
+        return rows;
+      }
+    },
+    {
+      id: 'bt_portfolio',
+      title: 'BT Capital Partners · Fișă de Portofoliu',
+      icon: '📄',
+      isActive: (yd) => !!yd.btPortfolio,
+      rawFilePattern: 'bt_portfolio_{year}_raw.txt',
+      relatedFieldsetIds: ['fieldset-ro-gains'],
+      perCountry: true,
+      countriesSource: (yd) => yd.btPortfolio?.countries || [],
+    },
+    {
+      id: 'revolut_statement',
+      title: 'Revolut · Consolidated Statement',
+      icon: '📄',
+      isActive: (yd) => !!yd.revolutStatement && (yd.revolutStatement.sales?.length > 0 || (yd.revolutStatement.summary?.grossProceeds || yd.revolutStatement.summary?.grossProceedsEUR) > 0),
+      rawFilePattern: 'revolut_statement_{year}_raw.txt',
+      relatedFieldsetIds: ['fieldset-ro-gains'],
+      perCountry: true,
+      countriesSource: (yd) => yd.revolutStatement?.countries || [],
+      rows: (yd) => {
+        const stmt = yd.revolutStatement || {};
+        const s = stmt.summary || {};
+        const ccy = stmt.currency || s.currency || 'EUR';
+        const rows = [];
+        // Prefer the new currency-neutral field names; fall back to the
+        // legacy *EUR aliases for statements parsed before the multi-
+        // currency refactor.
+        const gross = s.grossProceeds != null ? s.grossProceeds : s.grossProceedsEUR;
+        const cost = s.costBasis != null ? s.costBasis : s.costBasisEUR;
+        const pnl = s.realisedPnL != null ? s.realisedPnL : s.realisedPnLEUR;
+        const divs = s.dividends != null ? s.dividends : s.dividendsEUR;
+        if (gross) rows.push({ label: `Vânzări brute (${ccy})`, parsedValue: gross, manualKey: null, currency: ccy });
+        if (cost) rows.push({ label: `Cost achiziție (${ccy})`, parsedValue: cost, manualKey: null, currency: ccy });
+        if (pnl != null) rows.push({ label: `Câștig/pierdere brut (${ccy})`, parsedValue: pnl, manualKey: null, currency: ccy });
+        if (divs) rows.push({ label: `Dividende (${ccy})`, parsedValue: divs, manualKey: null, currency: ccy });
+        return rows;
+      },
+    },
+    {
+      id: 'fidelity_statement',
+      title: 'Fidelity · Stock Plan Statement',
+      icon: '📄',
+      isActive: (yd) => (yd.fidelityDividendsYTD || 0) > 0 || (yd.fidelityTaxWithheldYTD || 0) > 0 || (yd.fidelityVests || []).length > 0,
+      rawFilePattern: 'fidelity_statement_{year}_raw.txt',
+      relatedFieldsetIds: ['fieldset-dividends', 'fieldset-capital-gains'],
+      rows: (yd) => {
+        const rows = [];
+        if (yd.fidelityDividendsYTD) {
+          rows.push({ label: 'Dividende SUA YTD (USD)', parsedValue: yd.fidelityDividendsYTD, manualKey: 'fidelityDividends', currency: 'USD' });
+        }
+        if (yd.fidelityTaxWithheldYTD) {
+          rows.push({ label: 'Impozit dividende SUA reținut YTD (USD)', parsedValue: yd.fidelityTaxWithheldYTD, manualKey: 'usDivTaxPaid', currency: 'USD' });
+        }
+        if (yd.fidelityRealizedGainYTD) {
+          rows.push({ label: 'Câștiguri realizate YTD (USD)', parsedValue: yd.fidelityRealizedGainYTD, manualKey: 'fidelityGains', currency: 'USD' });
+        }
+        return rows;
+      }
+    },
+    {
+      id: 'ms_statement',
+      title: 'Morgan Stanley · Stock Plan Statement',
+      icon: '📄',
+      isActive: (yd) => !!yd.msStatement,
+      rawFilePattern: 'ms_statement_{year}_raw.txt',
+      relatedFieldsetIds: ['fieldset-dividends'],
+      rows: (yd) => {
+        const ms = yd.msStatement || {};
+        const rows = [];
+        if (ms.dividends) {
+          rows.push({ label: 'Dividende MS (USD)', parsedValue: ms.dividends, manualKey: 'fidelityDividends', currency: 'USD' });
+        }
+        if (ms.taxWithheld) {
+          rows.push({ label: 'Impozit MS reținut (USD)', parsedValue: ms.taxWithheld, manualKey: 'usDivTaxPaid', currency: 'USD' });
+        }
+        return rows;
+      }
+    },
+    {
+      id: 'form_1042s',
+      title: 'IRS Form 1042-S',
+      icon: '📄',
+      isActive: (yd) => Array.isArray(yd.form1042s) && yd.form1042s.length > 0,
+      rawFilePattern: 'form_1042s_{year}_raw.txt',
+      relatedFieldsetIds: ['fieldset-dividends'],
+      rows: (yd) => {
+        const forms = yd.form1042s || [];
+        const totalGross = forms.reduce((s, f) => s + (f.grossIncomeUSD || 0), 0);
+        const totalTax = forms.reduce((s, f) => s + (f.federalTaxWithheldUSD || 0), 0);
+        const rows = [];
+        if (totalGross) {
+          rows.push({ label: `Venit brut total (${forms.length} formulare) (USD)`, parsedValue: totalGross, manualKey: 'fidelityDividends', currency: 'USD' });
+        }
+        if (totalTax) {
+          rows.push({ label: 'Impozit federal reținut total (USD)', parsedValue: totalTax, manualKey: 'usDivTaxPaid', currency: 'USD' });
+        }
+        return rows;
+      }
+    },
+    {
+      id: 'declaratie',
+      title: 'ANAF · Declarație Unică D-212 importată',
+      icon: '📄',
+      isActive: (yd) => !!yd.declaratie,
+      rawFilePattern: 'declaratie_{year}_raw.txt',
+      relatedFieldsetIds: ['fieldset-dividends', 'fieldset-capital-gains', 'fieldset-ro-dividends', 'fieldset-ro-gains'],
+      rows: (yd) => {
+        const d = yd.declaratie || {};
+        const rows = [];
+        if (d.dividends?.grossRON) rows.push({ label: 'Dividende declarate (RON)', parsedValue: d.dividends.grossRON, manualKey: null, currency: 'RON' });
+        if (d.capitalGains?.taxableRON) rows.push({ label: 'Câștig capital taxabil (RON)', parsedValue: d.capitalGains.taxableRON, manualKey: null, currency: 'RON' });
+        if (d.totalTax) rows.push({ label: 'Total impozit declarat (RON)', parsedValue: d.totalTax, manualKey: null, currency: 'RON' });
+        return rows;
+      }
+    }
+  ];
+
+  /**
+   * Inline edit state for the imports panel. Cleared on year change.
+   * Keys for flat rows: `${imp.id}:${manualKey}` (e.g. 'xtb_dividends:xtbDividends')
+   * Keys for per-country rows: `${imp.id}:country:${idx}`
+   */
+  const inlineEditingRows = new Set();
+  const inlineEditingCountries = new Set();
+  function clearInlineEditState() {
+    inlineEditingRows.clear();
+    inlineEditingCountries.clear();
+  }
+
+  /** Returns the list of imports active for `year` based on the current yd. */
+  function detectActiveImports(year) {
+    const yd = appData.years?.[year] || {};
+    return IMPORT_DESCRIPTORS.filter(d => d.isActive(yd));
+  }
+
+  /**
+   * Render the "already imported documents" summary card on the Import
+   * subtab. The user asked for this so they don't accidentally re-upload
+   * the same document — though uploads do dedupe / overwrite as expected.
+   *
+   * Pulls active descriptors from `detectActiveImports(year)` and enriches
+   * them with the raw-file mtime from `rawFilesList` (cached at app load
+   * and refreshed after each successful upload). Each row offers two quick
+   * actions: "📃 View raw" (jumps to Avansat → Raw Data with the file
+   * pre-selected) and "🗑 Delete" (same endpoint the Add Data delete
+   * button uses, so behavior stays consistent).
+   *
+   * Re-rendered on subtab switch + after each upload.
+   */
+  function renderImportExistingPanel() {
+    const panel = document.getElementById('import-existing-panel');
+    if (!panel) return;
+    const yd = appData.years?.[selectedYear] || {};
+    const active = (IMPORT_DESCRIPTORS || []).filter(d => d.isActive(yd));
+    if (active.length === 0) {
+      panel.style.display = 'none';
+      panel.innerHTML = '';
+      return;
+    }
+    // Helper: find the raw file metadata for a descriptor + year.
+    const fileMetaFor = (imp) => {
+      if (!imp.rawFilePattern) return null;
+      const name = imp.rawFilePattern.replace('{year}', selectedYear);
+      return rawFilesList.find(f => f.name === name) || null;
+    };
+    const fmtDate = (iso) => {
+      if (!iso) return '';
+      try {
+        const d = new Date(iso);
+        return d.toLocaleDateString('ro-RO') + ' ' + d.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' });
+      } catch { return ''; }
+    };
+    const fmtSize = (b) => {
+      if (b == null) return '';
+      if (b < 1024) return `${b} B`;
+      if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+      return `${(b / (1024 * 1024)).toFixed(1)} MB`;
+    };
+    const title = (I18n.t('import.existingTitle') || 'Documente deja importate pentru {year}').replace('{year}', selectedYear);
+    const hint = I18n.t('import.existingHint') || 'Un upload nou pentru același tip suprascrie datele existente. Datele duplicate sunt deduplicate automat la importurile multi-formă (ex. 1042-S).';
+
+    const rows = active.map(imp => {
+      const meta = fileMetaFor(imp);
+      const fileName = imp.rawFilePattern ? imp.rawFilePattern.replace('{year}', selectedYear) : null;
+      const dateStr = meta ? fmtDate(meta.date) : '';
+      const sizeStr = meta ? fmtSize(meta.size) : '';
+      const metaLine = (dateStr || sizeStr) ? `<span style="color:var(--text-muted);font-size:0.75rem;">${esc(dateStr)} · ${esc(sizeStr)}</span>` : '';
+      const rawBtn = fileName ? `<button type="button" class="btn-primary import-action-raw" data-file="${esc(fileName)}" style="font-size:0.75rem;padding:0.25rem 0.6rem;">📃 ${esc(I18n.t('input.viewRaw') || 'Raw')}</button>` : '';
+      const delBtn = fileName ? `<button type="button" class="btn-primary import-action-delete" data-file="${esc(fileName)}" style="font-size:0.75rem;padding:0.25rem 0.6rem;background:var(--danger);">🗑</button>` : '';
+      const reBtn = `<button type="button" class="btn-primary import-action-reimport" data-type="${esc(imp.id)}" style="font-size:0.75rem;padding:0.25rem 0.6rem;background:var(--bg-secondary);color:var(--text-primary);" title="${esc(I18n.t('import.reimportTooltip') || 'Re-importă același tip')}">↻ ${esc(I18n.t('import.reimport') || 'Re-import')}</button>`;
+      return `<tr>
+        <td style="padding:0.4rem 0.5rem;border-bottom:1px solid var(--border);">
+          <strong>${esc(imp.icon || '📄')} ${esc(imp.title || imp.id)}</strong>
+          ${metaLine ? '<br>' + metaLine : ''}
+        </td>
+        <td style="padding:0.4rem 0.5rem;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;">
+          ${reBtn} ${rawBtn} ${delBtn}
+        </td>
+      </tr>`;
+    }).join('');
+
+    panel.style.display = '';
+    panel.innerHTML = `
+      <div class="card" style="background:var(--bg-secondary);">
+        <h3 style="margin:0 0 0.4rem;font-size:0.95rem;">📋 ${esc(title)}</h3>
+        <p style="margin:0 0 0.6rem;font-size:0.8rem;color:var(--text-muted);">${esc(hint)}</p>
+        <table style="width:100%;border-collapse:collapse;">${rows}</table>
+      </div>
+    `;
+
+    // Wire actions — same handlers as the Add Data imports panel uses.
+    panel.querySelectorAll('.import-action-raw').forEach(btn => {
+      btn.onclick = () => {
+        const file = btn.dataset.file;
+        switchTab('raw');
+        window._rawSelectFile?.(file);
+      };
+    });
+    panel.querySelectorAll('.import-action-reimport').forEach(btn => {
+      btn.onclick = () => {
+        // Already on the import subtab — just preselect the type and focus
+        // the file input so the user can pick a new PDF immediately.
+        const typeSel = document.getElementById('upload-type');
+        if (typeSel) typeSel.value = btn.dataset.type;
+        const fileInput = document.getElementById('upload-file');
+        if (fileInput) fileInput.click();
+      };
+    });
+    panel.querySelectorAll('.import-action-delete').forEach(btn => {
+      btn.onclick = async () => {
+        const file = btn.dataset.file;
+        if (!confirm((I18n.t('input.confirmDeleteImport') || 'Confirmi ștergerea importului "{file}"?').replace('{file}', file))) return;
+        try {
+          const resp = await fetch('/api/raw/' + encodeURIComponent(file), { method: 'DELETE' });
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          // Refresh app data + re-render the panel.
+          const dataResp = await fetch('/api/data');
+          if (dataResp.ok) appData = await dataResp.json();
+          const rawResp = await fetch('/api/raw');
+          if (rawResp.ok) rawFilesList = await rawResp.json();
+          invalidateComputeCache();
+          renderImportExistingPanel();
+          try { render(); } catch (_) { /* re-render the whole UI */ }
+          showToast?.((I18n.t('input.deletedImport') || 'Import șters: {file}').replace('{file}', file), 'success');
+        } catch (err) {
+          alert((I18n.t('input.deleteImportError') || 'Eroare la ștergere:') + ' ' + err.message);
+        }
+      };
+    });
+  }
+
+  /** Persisted preference for the Add Data mode + advanced toggle. */
+  function getAddDataMode() {
+    return localStorage.getItem('addDataMode') || 'auto';
+  }
+  function setAddDataMode(mode) {
+    localStorage.setItem('addDataMode', mode);
+  }
+  function isAdvancedMode() {
+    return localStorage.getItem('addDataAdvanced') === '1';
+  }
+  function setAdvancedMode(on) {
+    localStorage.setItem('addDataAdvanced', on ? '1' : '0');
+  }
+
+  /**
+   * Apply the current sub-tab mode + advanced toggle to the Add Data UI.
+   * Called from populateForm() and from the switcher click handlers.
+   *
+   *   mode === 'imports' → show #data-imports-panel, hide the flat form below
+   *   mode === 'new'     → hide #data-imports-panel, show the form. In NORMAL
+   *                        mode, fieldsets whose relatedFieldsetIds match an
+   *                        active import are hidden; ADVANCED reveals them.
+   *
+   * The brokers, rates, taxes, and unrelated income fieldsets are always shown
+   * in both modes — they don't have import equivalents.
+   */
+  function applyAddDataMode() {
+    const imports = detectActiveImports(selectedYear);
+    const hasImports = imports.length > 0;
+    let mode = getAddDataMode();
+    if (mode === 'auto') mode = hasImports ? 'imports' : 'new';
+    const advanced = isAdvancedMode();
+
+    const importsBtn = document.getElementById('data-mode-imports');
+    const newBtn = document.getElementById('data-mode-new');
+    const advancedToggle = document.getElementById('data-advanced-toggle');
+    const importsPanel = document.getElementById('data-imports-panel');
+    const dataForm = document.getElementById('data-form');
+    const modeHint = document.getElementById('data-mode-hint');
+    if (!importsBtn || !newBtn || !advancedToggle || !importsPanel || !dataForm) return;
+
+    // Disable the "imports" tab when nothing is imported yet
+    importsBtn.disabled = !hasImports;
+    importsBtn.style.opacity = hasImports ? '' : '0.5';
+    importsBtn.style.cursor = hasImports ? 'pointer' : 'not-allowed';
+    importsBtn.title = hasImports ? '' : (I18n.t('input.modeImportsDisabled') || 'Nu există documente importate pentru acest an');
+
+    // Toggle the .active class on the buttons
+    importsBtn.classList.toggle('active', mode === 'imports');
+    importsBtn.setAttribute('aria-selected', mode === 'imports' ? 'true' : 'false');
+    newBtn.classList.toggle('active', mode === 'new');
+    newBtn.setAttribute('aria-selected', mode === 'new' ? 'true' : 'false');
+
+    // Sync the advanced checkbox
+    advancedToggle.checked = advanced;
+
+    if (mode === 'imports') {
+      importsPanel.style.display = '';
+      dataForm.style.display = 'none';
+      modeHint.textContent = I18n.t('input.modeImportsHint') || 'Verifică datele extrase din documente și corectează valorile dacă parser-ul a greșit.';
+      renderImportsPanel(imports);
+    } else {
+      importsPanel.style.display = 'none';
+      dataForm.style.display = '';
+      // Hide fieldsets whose import is active (unless advanced mode)
+      const hiddenIds = new Set();
+      if (!advanced) {
+        for (const imp of imports) {
+          for (const fid of (imp.relatedFieldsetIds || [])) hiddenIds.add(fid);
+        }
+      }
+      const allFieldsetIds = ['fieldset-dividends', 'fieldset-capital-gains', 'fieldset-ro-gains', 'fieldset-interest'];
+      for (const fid of allFieldsetIds) {
+        const el = document.getElementById(fid);
+        if (!el) continue;
+        el.style.display = hiddenIds.has(fid) ? 'none' : '';
+      }
+      if (advanced) {
+        modeHint.textContent = I18n.t('input.modeAdvancedHint') || 'Toate câmpurile sunt vizibile, inclusiv cele care au valori importate.';
+      } else if (hiddenIds.size > 0) {
+        modeHint.textContent = (I18n.t('input.modeNewHint') || 'Câmpurile pentru tipurile cu import sunt ascunse. Activează „Mod avansat" pentru a le vedea.');
+      } else {
+        modeHint.textContent = I18n.t('input.modeNewHintNoImports') || 'Adaugă date pentru categoriile de venit pentru care nu ai documente importate.';
+      }
+    }
+  }
+
+  /**
+   * Render the imports verification panel: one card per active import with a
+   * table of editable rows. This is the read-only first pass; inline edit and
+   * per-country editing for portfolio imports land in follow-up commits.
+   */
+  function renderImportsPanel(imports) {
+    const panel = document.getElementById('data-imports-panel');
+    if (!panel) return;
+    const yd = appData.years?.[selectedYear] || {};
+    if (!imports || imports.length === 0) {
+      panel.innerHTML = `<div class="card"><p style="color:var(--text-muted);">${esc(I18n.t('input.noImports') || 'Nu există documente importate pentru anul curent.')}</p></div>`;
+      return;
+    }
+    const fmtVal = (v, currency) => {
+      if (v == null) return '—';
+      const n = Math.round((v + Number.EPSILON) * 100) / 100;
+      const formatted = (currency === 'RON' ? Math.round(n).toLocaleString('ro-RO') : n.toFixed(2));
+      return `${formatted}${currency ? ' ' + currency : ''}`;
+    };
+    let html = '';
+    for (const imp of imports) {
+      html += `<div class="card import-card" style="margin-bottom:1rem;">
+        <header style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
+          <span style="font-size:1.3rem;">${imp.icon || '📄'}</span>
+          <h3 style="margin:0;font-size:1.05rem;">${esc(imp.title)}</h3>
+          <span class="status-badge" style="margin-left:auto;background:rgba(63,185,80,0.15);color:var(--success);padding:0.2rem 0.5rem;border-radius:var(--radius);font-size:0.75rem;">✓ ${esc(I18n.t('input.importParsedOk') || 'Parsat')}</span>
+        </header>`;
+
+      if (imp.perCountry) {
+        const countries = (imp.countriesSource ? imp.countriesSource(yd) : []) || [];
+        if (countries.length === 0) {
+          html += `<p style="color:var(--text-muted);font-size:0.85rem;">${esc(I18n.t('input.noCountryRows') || 'Niciun rând per țară.')}</p>`;
+        } else {
+          html += `<div style="overflow-x:auto;"><table style="width:100%;font-size:0.85rem;border-collapse:collapse;">
+            <thead><tr style="border-bottom:1px solid var(--border);">
+              <th style="text-align:left;padding:0.4rem;">${esc(I18n.t('input.country'))}</th>
+              <th style="text-align:left;padding:0.4rem;">${esc(I18n.t('input.currency') || 'Monedă')}</th>
+              <th style="text-align:right;padding:0.4rem;">${esc(I18n.t('input.roGainsLong'))}</th>
+              <th style="text-align:right;padding:0.4rem;">≥1y ${esc(I18n.t('income.taxRON'))}</th>
+              <th style="text-align:right;padding:0.4rem;">${esc(I18n.t('input.roGainsShort'))}</th>
+              <th style="text-align:right;padding:0.4rem;">&lt;1y ${esc(I18n.t('income.taxRON'))}</th>
+              <th style="text-align:right;padding:0.4rem;">${esc(I18n.t('input.actions') || 'Acțiuni')}</th>
+            </tr></thead>
+            <tbody>`;
+          for (let idx = 0; idx < countries.length; idx++) {
+            const c = countries[idx];
+            const editKey = `${imp.id}:country:${idx}`;
+            const isEditing = inlineEditingCountries.has(editKey);
+            const longGain = (c.longGain || 0) - (c.longLoss || 0);
+            const shortGain = (c.shortGain || 0) - (c.shortLoss || 0);
+            const cur = c.currency || 'RON';
+            const reasonVal = c.correctionReason || '';
+            if (isEditing) {
+              html += `<tr class="inline-edit-row" data-edit-key="${esc(editKey)}" style="background:rgba(88,166,255,0.05);border-bottom:1px solid var(--border);">
+                <td colspan="7" style="padding:0.6rem;">
+                  <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.4rem;">${esc(I18n.t('input.editCountryTitle') || 'Editare rând per țară')} — <strong>${esc(c.country || '?')}</strong> [${esc(cur)}]</div>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:0.5rem;margin-bottom:0.5rem;">
+                    <label style="display:flex;flex-direction:column;font-size:0.75rem;color:var(--text-muted);">${esc(I18n.t('input.roGainsLong'))} <input type="number" step="any" class="inline-edit-country-field" data-edit-key="${esc(editKey)}" data-field="longGain" value="${esc(String(c.longGain ?? 0))}" style="margin-top:0.15rem;padding:0.35rem;background:var(--bg-input);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);font-size:0.85rem;"></label>
+                    <label style="display:flex;flex-direction:column;font-size:0.75rem;color:var(--text-muted);">${esc(I18n.t('input.longLoss') || 'Pierdere ≥1 an')} <input type="number" step="any" class="inline-edit-country-field" data-edit-key="${esc(editKey)}" data-field="longLoss" value="${esc(String(c.longLoss ?? 0))}" style="margin-top:0.15rem;padding:0.35rem;background:var(--bg-input);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);font-size:0.85rem;"></label>
+                    <label style="display:flex;flex-direction:column;font-size:0.75rem;color:var(--text-muted);">${esc(I18n.t('input.taxLong') || 'Impozit ≥1 an')} <input type="number" step="any" class="inline-edit-country-field" data-edit-key="${esc(editKey)}" data-field="longTax" value="${esc(String(c.longTax ?? 0))}" style="margin-top:0.15rem;padding:0.35rem;background:var(--bg-input);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);font-size:0.85rem;"></label>
+                    <label style="display:flex;flex-direction:column;font-size:0.75rem;color:var(--text-muted);">${esc(I18n.t('input.roGainsShort'))} <input type="number" step="any" class="inline-edit-country-field" data-edit-key="${esc(editKey)}" data-field="shortGain" value="${esc(String(c.shortGain ?? 0))}" style="margin-top:0.15rem;padding:0.35rem;background:var(--bg-input);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);font-size:0.85rem;"></label>
+                    <label style="display:flex;flex-direction:column;font-size:0.75rem;color:var(--text-muted);">${esc(I18n.t('input.shortLoss') || 'Pierdere <1 an')} <input type="number" step="any" class="inline-edit-country-field" data-edit-key="${esc(editKey)}" data-field="shortLoss" value="${esc(String(c.shortLoss ?? 0))}" style="margin-top:0.15rem;padding:0.35rem;background:var(--bg-input);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);font-size:0.85rem;"></label>
+                    <label style="display:flex;flex-direction:column;font-size:0.75rem;color:var(--text-muted);">${esc(I18n.t('input.taxShort') || 'Impozit <1 an')} <input type="number" step="any" class="inline-edit-country-field" data-edit-key="${esc(editKey)}" data-field="shortTax" value="${esc(String(c.shortTax ?? 0))}" style="margin-top:0.15rem;padding:0.35rem;background:var(--bg-input);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);font-size:0.85rem;"></label>
+                  </div>
+                  <div style="margin-bottom:0.5rem;">
+                    <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:0.2rem;">${esc(I18n.t('input.reasonOptional') || 'Motiv corecție (opțional)')}</label>
+                    <input type="text" class="inline-edit-country-reason" data-edit-key="${esc(editKey)}" value="${esc(reasonVal)}" placeholder="${esc(I18n.t('input.reasonPlaceholder') || '')}" style="width:100%;padding:0.4rem;background:var(--bg-input);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);font-size:0.85rem;">
+                  </div>
+                  <div style="display:flex;gap:0.4rem;justify-content:flex-end;">
+                    <button type="button" class="btn-secondary inline-edit-cancel" data-edit-key="${esc(editKey)}" style="font-size:0.8rem;padding:0.4rem 0.8rem;">${esc(I18n.t('input.cancelEdit') || 'Anulează')}</button>
+                    <button type="button" class="btn-primary inline-edit-country-save" data-edit-key="${esc(editKey)}" data-imp-id="${esc(imp.id)}" data-idx="${idx}" style="font-size:0.8rem;padding:0.4rem 0.8rem;">${esc(I18n.t('input.saveEdit') || 'Salvează')}</button>
+                  </div>
+                </td>
+              </tr>`;
+            } else {
+              html += `<tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:0.4rem;">${esc(c.country || '?')}${reasonVal ? `<br><small style="color:var(--text-muted);font-style:italic;">📝 ${esc(reasonVal)}</small>` : ''}</td>
+                <td style="padding:0.4rem;">${esc(cur)}</td>
+                <td style="padding:0.4rem;text-align:right;font-variant-numeric:tabular-nums;">${esc(fmtVal(longGain, cur))}</td>
+                <td style="padding:0.4rem;text-align:right;font-variant-numeric:tabular-nums;">${esc(fmtVal(c.longTax || 0, cur))}</td>
+                <td style="padding:0.4rem;text-align:right;font-variant-numeric:tabular-nums;">${esc(fmtVal(shortGain, cur))}</td>
+                <td style="padding:0.4rem;text-align:right;font-variant-numeric:tabular-nums;">${esc(fmtVal(c.shortTax || 0, cur))}</td>
+                <td style="padding:0.4rem;text-align:right;"><button type="button" class="btn-secondary inline-edit-country-start" data-imp-id="${esc(imp.id)}" data-idx="${idx}" style="font-size:0.75rem;padding:0.25rem 0.55rem;">${esc(I18n.t('input.editInline') || '✎ Editare')}</button></td>
+              </tr>`;
+            }
+          }
+          html += `</tbody></table></div>`;
+        }
+      } else {
+        const rows = imp.rows ? imp.rows(yd) : [];
+        if (rows.length === 0) {
+          html += `<p style="color:var(--text-muted);font-size:0.85rem;">${esc(I18n.t('input.noEditableFields') || 'Niciun câmp editabil.')}</p>`;
+        } else {
+          html += `<div style="overflow-x:auto;"><table style="width:100%;font-size:0.9rem;border-collapse:collapse;">
+            <thead><tr style="border-bottom:1px solid var(--border);">
+              <th style="text-align:left;padding:0.4rem;">${esc(I18n.t('input.fieldLabel') || 'Câmp')}</th>
+              <th style="text-align:right;padding:0.4rem;">${esc(I18n.t('input.parsedValue') || 'Parsat')}</th>
+              <th style="text-align:right;padding:0.4rem;">${esc(I18n.t('input.currentOverride') || 'Override manual')}</th>
+              <th style="text-align:right;padding:0.4rem;">${esc(I18n.t('input.actions') || 'Acțiuni')}</th>
+            </tr></thead>
+            <tbody>`;
+          for (const r of rows) {
+            const manualVal = r.manualKey ? yd[r.manualKey] : null;
+            const reasonVal = r.manualKey ? (yd[r.manualKey + 'Reason'] || '') : '';
+            const hasManual = manualVal !== undefined && manualVal !== '' && manualVal !== null;
+            const editKey = r.manualKey ? `${imp.id}:${r.manualKey}` : null;
+            const isEditing = editKey && inlineEditingRows.has(editKey);
+            if (isEditing) {
+              const editValue = hasManual ? String(manualVal) : (r.parsedValue != null ? String(r.parsedValue) : '');
+              html += `<tr class="inline-edit-row" data-edit-key="${esc(editKey)}" style="background:rgba(88,166,255,0.05);border-bottom:1px solid var(--border);">
+                <td colspan="4" style="padding:0.6rem;">
+                  <div style="display:flex;flex-wrap:wrap;gap:0.6rem;align-items:flex-end;">
+                    <div style="flex:1;min-width:180px;">
+                      <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:0.2rem;">${esc(r.label)} ${r.currency ? `<span style="color:var(--text-muted);">(${esc(r.currency)})</span>` : ''}</label>
+                      <input type="number" step="any" class="inline-edit-value" data-edit-key="${esc(editKey)}" value="${esc(editValue)}" style="width:100%;padding:0.4rem;background:var(--bg-input);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);font-size:0.9rem;">
+                      <small style="display:block;color:var(--text-muted);font-size:0.7rem;margin-top:0.15rem;">${esc(I18n.t('input.parsedValue') || 'Parsat')}: ${esc(fmtVal(r.parsedValue, r.currency))}</small>
+                    </div>
+                    <div style="flex:2;min-width:200px;">
+                      <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:0.2rem;">${esc(I18n.t('input.reasonOptional') || 'Motiv corecție (opțional)')}</label>
+                      <input type="text" class="inline-edit-reason" data-edit-key="${esc(editKey)}" value="${esc(reasonVal)}" placeholder="${esc(I18n.t('input.reasonPlaceholder') || '')}" style="width:100%;padding:0.4rem;background:var(--bg-input);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);font-size:0.85rem;">
+                    </div>
+                    <div style="display:flex;gap:0.4rem;">
+                      <button type="button" class="btn-secondary inline-edit-cancel" data-edit-key="${esc(editKey)}" style="font-size:0.8rem;padding:0.4rem 0.8rem;">${esc(I18n.t('input.cancelEdit') || 'Anulează')}</button>
+                      <button type="button" class="btn-primary inline-edit-save" data-edit-key="${esc(editKey)}" data-imp-id="${esc(imp.id)}" data-manual-key="${esc(r.manualKey)}" style="font-size:0.8rem;padding:0.4rem 0.8rem;">${esc(I18n.t('input.saveEdit') || 'Salvează')}</button>
+                    </div>
+                  </div>
+                </td>
+              </tr>`;
+            } else {
+              const cellStyle = hasManual ? 'color:var(--warning);font-weight:600;' : 'color:var(--text-muted);';
+              html += `<tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:0.4rem;">${esc(r.label)}${reasonVal ? `<br><small style="color:var(--text-muted);font-style:italic;">📝 ${esc(reasonVal)}</small>` : ''}</td>
+                <td style="padding:0.4rem;text-align:right;font-variant-numeric:tabular-nums;">${esc(fmtVal(r.parsedValue, r.currency))}</td>
+                <td style="padding:0.4rem;text-align:right;font-variant-numeric:tabular-nums;${cellStyle}">${hasManual ? esc(fmtVal(parseFloat(manualVal), r.currency)) : '—'}</td>
+                <td style="padding:0.4rem;text-align:right;">${r.manualKey ? `<button type="button" class="btn-secondary inline-edit-start" data-imp-id="${esc(imp.id)}" data-manual-key="${esc(r.manualKey)}" style="font-size:0.75rem;padding:0.25rem 0.55rem;">${esc(I18n.t('input.editInline') || '✎ Editare')}</button>` : ''}</td>
+              </tr>`;
+            }
+          }
+          html += `</tbody></table></div>`;
+        }
+      }
+
+      html += `<footer style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <button type="button" class="btn-primary import-action-raw" data-file="${esc(imp.rawFilePattern.replace('{year}', selectedYear))}" style="font-size:0.8rem;padding:0.35rem 0.7rem;">📃 ${esc(I18n.t('input.viewRaw') || 'Vezi raw text')}</button>
+        <button type="button" class="btn-primary import-action-reimport" data-type="${esc(imp.id)}" style="font-size:0.8rem;padding:0.35rem 0.7rem;">⟳ ${esc(I18n.t('input.reimport') || 'Re-importă')}</button>
+        <button type="button" class="btn-primary import-action-delete" data-file="${esc(imp.rawFilePattern.replace('{year}', selectedYear))}" style="font-size:0.8rem;padding:0.35rem 0.7rem;background:var(--danger);">🗑 ${esc(I18n.t('input.deleteImport') || 'Șterge import')}</button>
+      </footer>`;
+      html += `</div>`;
+    }
+    panel.innerHTML = html;
+
+    // Wire the action buttons
+    panel.querySelectorAll('.import-action-raw').forEach(btn => {
+      btn.onclick = () => {
+        const file = btn.dataset.file;
+        // Switch to Raw Data subtab (now nested under the "Avansat" group).
+        // switchTab() resolves the parent group automatically.
+        switchTab('raw');
+        window._rawSelectFile?.(file);
+      };
+    });
+    panel.querySelectorAll('.import-action-reimport').forEach(btn => {
+      btn.onclick = () => {
+        // Switch to the Import subtab (now nested under the "Date" group).
+        switchTab('import');
+        // Pre-select the type
+        const typeSel = document.getElementById('upload-type');
+        if (typeSel) typeSel.value = btn.dataset.type;
+      };
+    });
+    panel.querySelectorAll('.import-action-delete').forEach(btn => {
+      btn.onclick = async () => {
+        const file = btn.dataset.file;
+        if (!confirm((I18n.t('input.confirmDeleteImport') || 'Confirmi ștergerea importului "{file}"?').replace('{file}', file))) return;
+        try {
+          await fetch(`/api/raw/${encodeURIComponent(file)}`, { method: 'DELETE' });
+          await loadAllData();
+          applyAddDataMode();
+          render();
+          showToast(I18n.t('raw.deleted') || 'Import șters', 'success');
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      };
+    });
+
+    // Inline edit — start (flat row)
+    panel.querySelectorAll('.inline-edit-start').forEach(btn => {
+      btn.onclick = () => {
+        const key = `${btn.dataset.impId}:${btn.dataset.manualKey}`;
+        inlineEditingRows.add(key);
+        renderImportsPanel(detectActiveImports(selectedYear));
+      };
+    });
+    // Inline edit — start (country row)
+    panel.querySelectorAll('.inline-edit-country-start').forEach(btn => {
+      btn.onclick = () => {
+        const key = `${btn.dataset.impId}:country:${btn.dataset.idx}`;
+        inlineEditingCountries.add(key);
+        renderImportsPanel(detectActiveImports(selectedYear));
+      };
+    });
+    // Inline edit — cancel (handles both flat and country)
+    panel.querySelectorAll('.inline-edit-cancel').forEach(btn => {
+      btn.onclick = () => {
+        const k = btn.dataset.editKey;
+        inlineEditingRows.delete(k);
+        inlineEditingCountries.delete(k);
+        renderImportsPanel(detectActiveImports(selectedYear));
+      };
+    });
+    // Inline edit — save (flat row)
+    panel.querySelectorAll('.inline-edit-save').forEach(btn => {
+      btn.onclick = async () => {
+        const editKey = btn.dataset.editKey;
+        const manualKey = btn.dataset.manualKey;
+        const valEl = panel.querySelector(`.inline-edit-value[data-edit-key="${editKey}"]`);
+        const reasonEl = panel.querySelector(`.inline-edit-reason[data-edit-key="${editKey}"]`);
+        const rawVal = (valEl?.value || '').trim();
+        const parsedVal = rawVal === '' ? null : parseFloat(rawVal);
+        if (rawVal !== '' && (parsedVal == null || isNaN(parsedVal))) {
+          showToast(I18n.t('errors.invalidNumber') || 'Valoare numerică invalidă', 'error');
+          return;
+        }
+        const reasonVal = (reasonEl?.value || '').trim();
+        const payload = {
+          [manualKey]: parsedVal,
+          [manualKey + 'Reason']: reasonVal || null,
+        };
+        try {
+          const resp = await fetch(`/api/data/${selectedYear}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const result = await resp.json();
+          if (!result.success) throw new Error(result.error || 'Save failed');
+          inlineEditingRows.delete(editKey);
+          await loadAllData();
+          render();
+          showToast(I18n.t('input.editApplied') || 'Corecție aplicată', 'success');
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      };
+    });
+    // Inline edit — save (country row)
+    panel.querySelectorAll('.inline-edit-country-save').forEach(btn => {
+      btn.onclick = async () => {
+        const editKey = btn.dataset.editKey;
+        const impId = btn.dataset.impId;
+        const idx = parseInt(btn.dataset.idx, 10);
+        const desc = IMPORT_DESCRIPTORS.find(d => d.id === impId);
+        if (!desc || !desc.perCountry) return;
+        const ydNow = appData.years?.[selectedYear] || {};
+        const rootKey = impId === 'xtb_portfolio' ? 'xtbPortfolio' : impId === 'tradeville_portfolio' ? 'tradevillePortfolio' : null;
+        if (!rootKey) return;
+        const root = ydNow[rootKey];
+        if (!root || !Array.isArray(root.countries) || !root.countries[idx]) return;
+        const fieldEls = panel.querySelectorAll(`.inline-edit-country-field[data-edit-key="${editKey}"]`);
+        const reasonEl = panel.querySelector(`.inline-edit-country-reason[data-edit-key="${editKey}"]`);
+        const newCountry = { ...root.countries[idx] };
+        for (const el of fieldEls) {
+          const f = el.dataset.field;
+          const raw = (el.value || '').trim();
+          const num = raw === '' ? 0 : parseFloat(raw);
+          if (raw !== '' && isNaN(num)) {
+            showToast(I18n.t('errors.invalidNumber') || 'Valoare numerică invalidă', 'error');
+            return;
+          }
+          newCountry[f] = num;
+        }
+        const reasonVal = (reasonEl?.value || '').trim();
+        newCountry.correctionReason = reasonVal || null;
+        const newCountries = root.countries.slice();
+        newCountries[idx] = newCountry;
+        const payload = { [rootKey]: { ...root, countries: newCountries } };
+        try {
+          const resp = await fetch(`/api/data/${selectedYear}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const result = await resp.json();
+          if (!result.success) throw new Error(result.error || 'Save failed');
+          inlineEditingCountries.delete(editKey);
+          await loadAllData();
+          render();
+          showToast(I18n.t('input.editApplied') || 'Corecție aplicată', 'success');
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      };
+    });
+  }
+
+  /** Wire the sub-tab buttons + advanced toggle once on init. */
+  function setupAddDataModeSwitcher() {
+    const importsBtn = document.getElementById('data-mode-imports');
+    const newBtn = document.getElementById('data-mode-new');
+    const advancedToggle = document.getElementById('data-advanced-toggle');
+    if (!importsBtn || !newBtn || !advancedToggle) return;
+    importsBtn.addEventListener('click', () => {
+      if (importsBtn.disabled) return;
+      setAddDataMode('imports');
+      applyAddDataMode();
+    });
+    newBtn.addEventListener('click', () => {
+      setAddDataMode('new');
+      applyAddDataMode();
+    });
+    advancedToggle.addEventListener('change', (e) => {
+      setAdvancedMode(e.target.checked);
+      applyAddDataMode();
+    });
+  }
+
   // ============ DATA FORM ============
+  /**
+   * Set a manual input's value from yd[manualKey] when present, otherwise
+   * fall back to a value from an imported document. Adds a small "📄 imported"
+   * hint below the input so the user knows where the value comes from.
+   */
+  function fillInputWithImport(inputId, yd, manualKey, importedVal, sourceLabel) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const manual = yd[manualKey];
+    const hasManual = manual !== undefined && manual !== '' && manual !== null;
+    const importNum = (importedVal != null && Math.abs(importedVal) > 0.005)
+      ? Math.round(importedVal * 100) / 100
+      : null;
+
+    if (hasManual) {
+      input.value = manual;
+    } else if (importNum != null) {
+      input.value = importNum;
+    } else {
+      input.value = '';
+    }
+
+    let hint = input.parentElement.querySelector('.import-hint');
+    if (importNum != null) {
+      if (!hint) {
+        hint = document.createElement('small');
+        hint.className = 'import-hint';
+        hint.style.cssText = 'color:var(--success);font-size:0.7rem;display:block;margin-top:0.2rem;font-style:italic;';
+        input.parentElement.appendChild(hint);
+      }
+      const baseLabel = I18n.t('input.importedFrom');
+      if (hasManual) {
+        hint.textContent = `📄 ${baseLabel} ${sourceLabel}: ${importNum} (${I18n.t('input.manualOverride')})`;
+      } else {
+        hint.textContent = `📄 ${baseLabel} ${sourceLabel}`;
+      }
+      hint.style.display = '';
+    } else if (hint) {
+      hint.style.display = 'none';
+    }
+  }
+
   function populateForm() {
     const yd = appData.years?.[selectedYear] || {};
     const rate = exchangeRates[selectedYear]?.usdRon || 4.57;
     const defaultMinSalary = (cassThresholds[selectedYear] || cassThresholds[2025]).minSalary;
 
-    // Show year banner
+    // Show year banner with a "Reset year" button on the right.
     const banner = document.getElementById('input-year-banner');
     if (banner) {
-      banner.innerHTML = `<span class="year-badge">${selectedYear}</span><span>${I18n.t('misc.editingBanner')} <strong>${selectedYear}</strong>. ${I18n.t('misc.rateAndSalaryApply')}</span>`;
+      banner.innerHTML = `<span class="year-badge">${selectedYear}</span><span style="flex:1;">${I18n.t('misc.editingBanner')} <strong>${selectedYear}</strong>. ${I18n.t('misc.rateAndSalaryApply')}</span><button type="button" id="reset-year-btn" class="btn-primary" style="background:var(--danger); font-size:0.8rem; padding:0.35rem 0.7rem; margin-left:auto;" title="${I18n.t('resetYear.tooltip') || ''}">🗑 ${I18n.t('resetYear.button') || 'Reset an'}</button>`;
+      const resetBtn = document.getElementById('reset-year-btn');
+      if (resetBtn) resetBtn.addEventListener('click', () => openResetYearModal(selectedYear));
     }
 
     document.getElementById('input-us-broker').value = yd.usBroker || '';
     document.getElementById('input-ro-broker').value = yd.roBroker || '';
-    document.getElementById('input-us-dividends').value = yd.fidelityDividends || '';
-    document.getElementById('input-us-div-tax').value = yd.usDivTaxPaid || '';
-    document.getElementById('input-ro-dividends').value = yd.xtbDividends || '';
-    document.getElementById('input-ro-div-tax').value = yd.roDivTaxPaid || '';
+
+    // US dividends & gains: imported data may come from Fidelity statements or 1042-S
+    fillInputWithImport('input-us-dividends', yd, 'fidelityDividends', yd.fidelityDividendsYTD, 'Fidelity');
+    fillInputWithImport('input-us-div-tax', yd, 'usDivTaxPaid', yd.fidelityTaxWithheldYTD, 'Fidelity');
+
+    // Romania RON dividends & interest: imported from XTB Dividends report
+    const xtbDiv = yd.xtbDividendsReport || {};
+    fillInputWithImport('input-ro-dividends', yd, 'xtbDividends', xtbDiv.dividends?.grossRON, 'XTB');
+    fillInputWithImport('input-ro-div-tax', yd, 'roDivTaxPaid', xtbDiv.dividends?.taxWithheldRON, 'XTB');
+    fillInputWithImport('input-interest', yd, 'interestIncome', xtbDiv.interest?.grossRON, 'XTB');
+    fillInputWithImport('input-interest-tax-paid', yd, 'interestTaxPaid', xtbDiv.interest?.taxWithheldRON, 'XTB');
+
+    document.getElementById('input-ro-eur-dividends').value = yd.roEurDividends || '';
+    document.getElementById('input-ro-eur-div-tax').value = yd.roEurDivTaxPaid || '';
+    document.getElementById('input-ro-usd-dividends').value = yd.roUsdDividends || '';
+    document.getElementById('input-ro-usd-div-tax').value = yd.roUsdDivTaxPaid || '';
     document.getElementById('input-us-gains').value = yd.fidelityGains || '';
     document.getElementById('input-us-cost').value = yd.fidelityCost || '';
-    document.getElementById('input-interest').value = yd.interestIncome || '';
-    document.getElementById('input-interest-tax-paid').value = yd.interestTaxPaid || '';
+    document.getElementById('input-ro-eur-interest').value = yd.roEurInterest || '';
+    document.getElementById('input-ro-eur-interest-tax').value = yd.roEurInterestTaxPaid || '';
+    document.getElementById('input-ro-usd-interest').value = yd.roUsdInterest || '';
+    document.getElementById('input-ro-usd-interest-tax').value = yd.roUsdInterestTaxPaid || '';
     document.getElementById('input-rental-income').value = yd.rentalIncome || '';
     document.getElementById('input-rental-tax-paid').value = yd.rentalTaxPaid || '';
     document.getElementById('input-royalty-income').value = yd.royaltyIncome || '';
@@ -2210,14 +5106,65 @@ const App = (() => {
     document.getElementById('input-gambling-tax-paid').value = yd.gamblingTaxPaid || '';
     document.getElementById('input-other-income').value = yd.otherIncome || '';
     document.getElementById('input-other-tax-paid').value = yd.otherTaxPaid || '';
+    const pfaInput = document.getElementById('input-pfa-net-income');
+    if (pfaInput) pfaInput.value = yd.pfaNetIncome || '';
+    const pfaOptIn = document.getElementById('input-pfa-opt-in-cass');
+    if (pfaOptIn) pfaOptIn.checked = !!yd.pfaOptInCASS;
     document.getElementById('input-exchange-rate').value = yd.exchangeRate || rate;
+    const defaultEurRate = exchangeRates[selectedYear]?.eurRon || 4.97;
+    document.getElementById('input-eur-rate').value = yd.eurRate || defaultEurRate;
     document.getElementById('input-min-salary').value = yd.minSalary || defaultMinSalary;
     document.getElementById('input-d212-deadline').value = yd.d212Deadline || d212DefaultDeadline(selectedYear);
     document.getElementById('input-stock-withholding').value = yd.stockWithholdingPaid || '';
     document.getElementById('input-salary-taxed').value = yd.salaryTaxedIncome || '';
 
-    // Populate RO gains country rows
-    renderRoGainsRows(yd.roGainsCountries || []);
+    // Populate RO gains country rows: prefer manual; fall back to imported XTB / Tradeville portfolio
+    const manualCountries = yd.roGainsCountries;
+    const xtbCountries = yd.xtbPortfolio?.countries;
+    const tvCountries = yd.tradevillePortfolio?.countries;
+    let rowsToRender;
+    let sourceForRows = null;
+    if (Array.isArray(manualCountries) && manualCountries.length > 0) {
+      rowsToRender = manualCountries;
+    } else if (Array.isArray(xtbCountries) && xtbCountries.length > 0) {
+      rowsToRender = xtbCountries.map(c => ({
+        country: c.country,
+        currency: c.currency || 'RON',
+        longGain: c.longGain || 0,
+        shortGain: c.shortGain || 0,
+        taxWithheld: (c.longTax || 0) + (c.shortTax || 0)
+      }));
+      sourceForRows = 'XTB';
+    } else if (Array.isArray(tvCountries) && tvCountries.length > 0) {
+      rowsToRender = tvCountries.map(c => ({
+        country: c.country,
+        currency: c.currency || 'RON',
+        longGain: c.longGain || 0,
+        shortGain: c.shortGain || 0,
+        taxWithheld: (c.longTax || 0) + (c.shortTax || 0)
+      }));
+      sourceForRows = 'Tradeville';
+    } else {
+      rowsToRender = [];
+    }
+    renderRoGainsRows(rowsToRender);
+    // Show a hint above the country rows when they came from an import
+    const roGainsContainer = document.getElementById('ro-gains-rows');
+    if (roGainsContainer) {
+      let importedHint = roGainsContainer.parentElement.querySelector('.ro-gains-import-hint');
+      if (sourceForRows) {
+        if (!importedHint) {
+          importedHint = document.createElement('p');
+          importedHint.className = 'ro-gains-import-hint';
+          importedHint.style.cssText = 'color:var(--success);font-size:0.8rem;font-style:italic;margin:0 0 0.5rem 0;';
+          roGainsContainer.parentElement.insertBefore(importedHint, roGainsContainer);
+        }
+        importedHint.textContent = `📄 ${I18n.t('input.importedFrom')} ${sourceForRows}`;
+        importedHint.style.display = '';
+      } else if (importedHint) {
+        importedHint.style.display = 'none';
+      }
+    }
 
     // Update fieldset legend with year
     const legend = document.getElementById('legend-rates');
@@ -2227,6 +5174,10 @@ const App = (() => {
 
     // Populate tax rates
     populateTaxRates();
+
+    // Apply the Add Data sub-tab mode (imports vs new) + advanced toggle.
+    // Done last so that all inputs are populated before deciding which to hide.
+    applyAddDataMode();
 
     // Update save buttons with year
     const btnData = document.getElementById('btn-save-data');
@@ -2256,13 +5207,20 @@ const App = (() => {
   function addRoGainsRow(container, data) {
     const row = document.createElement('div');
     row.className = 'ro-gains-row';
-    row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:0.75rem;align-items:end;margin-bottom:0.75rem;';
+    row.style.cssText = 'display:grid;grid-template-columns:1fr 0.7fr 1fr 1fr 1fr auto;gap:0.75rem;align-items:end;margin-bottom:0.75rem;';
     const countryOpts = `<option value="" disabled ${!data?.country ? 'selected' : ''}>${I18n.t('input.selectCountry')}</option>` + RO_COUNTRIES.map(c => `<option value="${c}"${data?.country === c ? ' selected' : ''}>${c}</option>`).join('');
+    const curVal = (data?.currency || 'RON').toUpperCase();
+    const curOpts = ['RON', 'EUR', 'USD'].map(c => `<option value="${c}"${curVal === c ? ' selected' : ''}>${c}</option>`).join('');
     row.innerHTML = `
       <div class="form-row" style="margin-bottom:0;">
         <label>${I18n.t('input.country')}</label>
         <select class="ro-country">${countryOpts}</select>
         <small style="color:var(--text-muted);font-size:0.7rem;">${I18n.t('input.countryHint')}</small>
+      </div>
+      <div class="form-row" style="margin-bottom:0;">
+        <label>${I18n.t('input.currency') || 'Currency'}</label>
+        <select class="ro-currency">${curOpts}</select>
+        <small style="color:var(--text-muted);font-size:0.7rem;">${I18n.t('input.currencyHint') || 'Currency of amounts in this row'}</small>
       </div>
       <div class="form-row" style="margin-bottom:0;">
         <label>${I18n.t('input.roGainsLong')}</label>
@@ -2294,12 +5252,14 @@ const App = (() => {
     const result = [];
     rows.forEach(row => {
       const country = row.querySelector('.ro-country').value;
+      const currency = row.querySelector('.ro-currency')?.value || 'RON';
       const longGain = row.querySelector('.ro-long').value;
       const shortGain = row.querySelector('.ro-short').value;
       const taxWithheld = row.querySelector('.ro-tax').value;
       if (longGain || shortGain || taxWithheld) {
         result.push({
           country,
+          currency,
           longGain: parseFloat(longGain) || 0,
           shortGain: parseFloat(shortGain) || 0,
           taxWithheld: parseFloat(taxWithheld) || 0
@@ -2323,11 +5283,19 @@ const App = (() => {
       usDivTaxPaid: document.getElementById('input-us-div-tax').value,
       xtbDividends: document.getElementById('input-ro-dividends').value,
       roDivTaxPaid: document.getElementById('input-ro-div-tax').value,
+      roEurDividends: document.getElementById('input-ro-eur-dividends').value,
+      roEurDivTaxPaid: document.getElementById('input-ro-eur-div-tax').value,
+      roUsdDividends: document.getElementById('input-ro-usd-dividends').value,
+      roUsdDivTaxPaid: document.getElementById('input-ro-usd-div-tax').value,
       fidelityGains: document.getElementById('input-us-gains').value,
       fidelityCost: document.getElementById('input-us-cost').value,
       roGainsCountries: collectRoGainsRows(),
       interestIncome: document.getElementById('input-interest').value,
       interestTaxPaid: document.getElementById('input-interest-tax-paid').value,
+      roEurInterest: document.getElementById('input-ro-eur-interest').value,
+      roEurInterestTaxPaid: document.getElementById('input-ro-eur-interest-tax').value,
+      roUsdInterest: document.getElementById('input-ro-usd-interest').value,
+      roUsdInterestTaxPaid: document.getElementById('input-ro-usd-interest-tax').value,
       rentalIncome: document.getElementById('input-rental-income').value,
       rentalTaxPaid: document.getElementById('input-rental-tax-paid').value,
       royaltyIncome: document.getElementById('input-royalty-income').value,
@@ -2336,6 +5304,8 @@ const App = (() => {
       gamblingTaxPaid: document.getElementById('input-gambling-tax-paid').value,
       otherIncome: document.getElementById('input-other-income').value,
       otherTaxPaid: document.getElementById('input-other-tax-paid').value,
+      pfaNetIncome: (document.getElementById('input-pfa-net-income') || {}).value,
+      pfaOptInCASS: !!(document.getElementById('input-pfa-opt-in-cass') || {}).checked,
       stockWithholdingPaid: document.getElementById('input-stock-withholding').value,
       salaryTaxedIncome: document.getElementById('input-salary-taxed').value
     };
@@ -2361,6 +5331,7 @@ const App = (() => {
     e.preventDefault();
     const payload = {
       exchangeRate: document.getElementById('input-exchange-rate').value,
+      eurRate: document.getElementById('input-eur-rate').value,
       minSalary: document.getElementById('input-min-salary').value,
       d212Deadline: document.getElementById('input-d212-deadline').value
     };
@@ -2421,6 +5392,105 @@ const App = (() => {
     document.getElementById('input-ro-capgains-long-rate').value = tr.roCapGainsLongRate ?? (selectedYear >= 2026 ? 3 : selectedYear >= 2023 ? 1 : 10);
     document.getElementById('input-ro-capgains-short-rate').value = tr.roCapGainsShortRate ?? (selectedYear >= 2026 ? 6 : selectedYear >= 2023 ? 3 : 10);
     document.getElementById('input-ro-interest-rate').value = tr.roInterestRate ?? (selectedYear >= 2026 ? 16 : 10);
+  }
+
+  // ============ D-7: D212 XML EXPORT ============
+  /**
+   * Build a D212 XML skeleton for the given year and trigger a download.
+   * The XML carries the computed cap11 + cap14 elements; required personal
+   * data attributes (nume_c, prenume_c, cif, nerezident) are placeholders
+   * that the user replaces in the official ANAF tool before submission.
+   *
+   * Server endpoint: POST /api/d212-xml/:year with { cap11Rows, cap14Rows }
+   * — server calls lib/d212-xml-builder.js (canonical, tested) and returns
+   * the XML with the right Content-Disposition for browser download.
+   */
+  async function exportD212Xml(year) {
+    try {
+      const data = computeYearData(year);
+      const cap11Rows = data.cap11Rows || [];
+      const cap14Rows = data.cap14Rows || [];
+      const obligRealizat = data.obligRealizat || null;
+      if (cap11Rows.length === 0 && cap14Rows.length === 0 && !obligRealizat) {
+        showToast(I18n.t('taxes.exportXmlEmpty') || 'Nu există venituri de declarat pentru acest an.', 'error');
+        return;
+      }
+      const resp = await fetch(`/api/d212-xml/${year}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cap11Rows, cap14Rows, obligRealizat }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: resp.statusText }));
+        throw new Error(err.error || `HTTP ${resp.status}`);
+      }
+      const xml = await resp.text();
+      const blob = new Blob([xml], { type: 'application/xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `D212_${year}_skeleton.xml`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(I18n.t('taxes.exportXmlDone') || `XML salvat: D212_${year}_skeleton.xml`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  /**
+   * P3 — Export ANAF audit pack as a deterministic ZIP archive.
+   *
+   * Posts the current year's computed values + (if available) generated
+   * D212 XML to the server, which adds raw broker statements + parsed
+   * JSON + methodology + BNR rates and streams back a ZIP file.
+   */
+  async function exportAuditPack(year) {
+    try {
+      const computed = computeYearData(year);
+      // Best-effort: also try to grab the generated XML from the same
+      // path the export-xml button uses; ignore failures (the pack
+      // simply won't include it).
+      let generatedXml = null;
+      try {
+        const xmlResp = await fetch(`/api/d212-xml/${year}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cap11Rows: computed.cap11Rows || [],
+            cap14Rows: computed.cap14Rows || [],
+            obligRealizat: computed.obligRealizat || null,
+          }),
+        });
+        if (xmlResp.ok) generatedXml = await xmlResp.text();
+      } catch (e) { /* not fatal */ }
+
+      const resp = await fetch(`/api/export/audit-pack/${year}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ computed, generatedXml }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: resp.statusText }));
+        throw new Error(err.error || `HTTP ${resp.status}`);
+      }
+      const blob = await resp.blob();
+      const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `D212-audit-pack-${year}-${today}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      const sizeKB = (blob.size / 1024).toFixed(1);
+      showToast((I18n.t('taxes.exportAuditPackDone') || 'Pachet audit salvat') + ` (${sizeKB} KB)`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
   }
 
   // ============ YEAR PICKER ============
@@ -2620,11 +5690,458 @@ const App = (() => {
   }
 
   // ============ PDF UPLOAD ============
+  /**
+   * Mapping of upload document type → manual fields it will override.
+   * Used to warn the user before an import overwrites their manual entries.
+   * Each entry is a list of keys from yd (year data) considered "manual" for
+   * the given document type. roGainsCountries is an array; everything else is
+   * a scalar where non-empty means user-entered.
+   */
+  const MANUAL_FIELDS_BY_UPLOAD = {
+    xtb_portfolio:        ['roGainsCountries', 'roGainsLong', 'roGainsShort', 'roGainsTaxWithheld'],
+    tradeville_portfolio: ['roGainsCountries', 'roGainsLong', 'roGainsShort', 'roGainsTaxWithheld'],
+    xtb_dividends:        ['xtbDividends', 'roDivTaxPaid',
+                           'roEurDividends', 'roEurDivTaxPaid', 'roUsdDividends', 'roUsdDivTaxPaid',
+                           'roEurInterest', 'roEurInterestTaxPaid', 'roUsdInterest', 'roUsdInterestTaxPaid',
+                           'interestIncome', 'interestTaxPaid'],
+    fidelity_statement:   ['fidelityDividends', 'usDivTaxPaid', 'fidelityGains', 'fidelityCost'],
+    ms_statement:         ['fidelityDividends', 'usDivTaxPaid', 'fidelityGains', 'fidelityCost'],
+    investment:           ['fidelityDividends', 'fidelityGains'],
+    form_1042s:           ['fidelityDividends', 'usDivTaxPaid'],
+    stock_award:          ['salaryTaxedIncome', 'stockWithholdingPaid'],
+    adeverinta:           ['salaryTaxedIncome', 'stockWithholdingPaid'],
+    trade_confirmation:   ['fidelityGains', 'fidelityCost'],
+    declaratie:           ['fidelityDividends', 'usDivTaxPaid', 'fidelityGains', 'fidelityCost',
+                           'xtbDividends', 'roDivTaxPaid', 'roEurDividends', 'roEurDivTaxPaid',
+                           'roUsdDividends', 'roUsdDivTaxPaid', 'roGainsCountries',
+                           'roGainsLong', 'roGainsShort', 'roGainsTaxWithheld',
+                           'roEurInterest', 'roEurInterestTaxPaid', 'roUsdInterest', 'roUsdInterestTaxPaid',
+                           'interestIncome', 'interestTaxPaid', 'salaryTaxedIncome', 'stockWithholdingPaid'],
+  };
+
+  /** Return the manual-field keys for `type` that currently have user-entered values for `year`. */
+  function detectManualConflict(year, type) {
+    const yd = appData.years?.[year] || {};
+    const keys = MANUAL_FIELDS_BY_UPLOAD[type] || [];
+    const hits = [];
+    for (const k of keys) {
+      const v = yd[k];
+      if (k === 'roGainsCountries') {
+        if (Array.isArray(v) && v.length > 0) hits.push(k);
+      } else if (v !== undefined && v !== '' && v !== null && v !== 0) {
+        hits.push(k);
+      }
+    }
+    return hits;
+  }
+
+  /** Send a PUT that clears the given manual fields (sets to empty / []). */
+  async function clearManualFields(year, keys) {
+    if (!keys || !keys.length) return;
+    const payload = {};
+    for (const k of keys) {
+      payload[k] = k === 'roGainsCountries' ? [] : '';
+    }
+    await fetch(`/api/data/${year}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  }
+
+  /**
+   * Given the dryRun upload response, derive the values the import would assign
+   * to each manual field. Returns a map { fieldKey: { value, formatted } } —
+   * undefined entries mean the field will simply be cleared.
+   */
+  function extractNewValuesFromDryRun(uploadType, parsed) {
+    if (!parsed) return {};
+    const out = {};
+    const fmtRON = (v) => Math.round(v || 0).toLocaleString('ro-RO') + ' RON';
+    const fmtUSDv = (v) => '$' + (v || 0).toFixed(2);
+
+    if (uploadType === 'xtb_dividends') {
+      if (parsed.dividends) {
+        out.xtbDividends = { formatted: fmtRON(parsed.dividends.grossRON) };
+        out.roDivTaxPaid = { formatted: fmtRON(parsed.dividends.taxWithheldRON) };
+      }
+      if (parsed.interest) {
+        out.interestIncome = { formatted: fmtRON(parsed.interest.grossRON) };
+        out.interestTaxPaid = { formatted: fmtRON(parsed.interest.taxWithheldRON) };
+      }
+      // EUR/USD manuals would just be cleared (the report aggregates everything in RON)
+    } else if (uploadType === 'xtb_portfolio' || uploadType === 'tradeville_portfolio') {
+      if (Array.isArray(parsed.countries) && parsed.countries.length > 0) {
+        out.roGainsCountries = {
+          formatted: parsed.countries.length + ' ' + I18n.t('import.overrideRows'),
+          detail: parsed.countries.map(c => {
+            const cur = c.currency || 'RON';
+            const lg = c.longGainRON ?? c.longGain ?? 0;
+            const ll = c.longLossRON ?? c.longLoss ?? 0;
+            const sg = c.shortGainRON ?? c.shortGain ?? 0;
+            const sl = c.shortLossRON ?? c.shortLoss ?? 0;
+            const lt = c.longTaxRON ?? c.longTax ?? 0;
+            const st = c.shortTaxRON ?? c.shortTax ?? 0;
+            return `${c.country} [${cur}]: ≥1y +${Math.round(lg)} -${Math.round(ll)} (tax ${Math.round(lt)}), <1y +${Math.round(sg)} -${Math.round(sl)} (tax ${Math.round(st)})`;
+          }).join('\n')
+        };
+      }
+    } else if (uploadType === 'fidelity_statement' || uploadType === 'ms_statement') {
+      if (parsed.dividendsYTD !== undefined && parsed.dividendsYTD > 0) {
+        out.fidelityDividends = { formatted: fmtUSDv(parsed.dividendsYTD) };
+      } else if (parsed.dividends && typeof parsed.dividends === 'number' && parsed.dividends > 0) {
+        out.fidelityDividends = { formatted: fmtUSDv(parsed.dividends) };
+      }
+      if (parsed.taxWithheldYTD !== undefined && parsed.taxWithheldYTD > 0) {
+        out.usDivTaxPaid = { formatted: fmtUSDv(parsed.taxWithheldYTD) };
+      } else if (parsed.taxWithheld !== undefined && parsed.taxWithheld > 0) {
+        out.usDivTaxPaid = { formatted: fmtUSDv(parsed.taxWithheld) };
+      }
+      if (parsed.sales?.length) {
+        const totalProceeds = parsed.sales.reduce((s, x) => s + (x.netProceeds || x.saleProceeds || 0), 0);
+        out.fidelityGains = { formatted: fmtUSDv(totalProceeds) + ' (' + parsed.sales.length + ' sales)' };
+      }
+    } else if (uploadType === 'form_1042s') {
+      // Sum all forms in the batch: 1042-S PDFs commonly carry 2+ forms
+      // (e.g. one for interest code 01, one for dividends code 06).
+      const forms = (parsed && Array.isArray(parsed.forms)) ? parsed.forms : (parsed && parsed.grossIncomeUSD != null ? [parsed] : []);
+      const totalGross = forms.reduce((s, f) => s + (Number(f.grossIncomeUSD) || 0), 0);
+      const totalTax = forms.reduce((s, f) => s + (Number(f.federalTaxWithheldUSD) || 0), 0);
+      if (totalGross) out.fidelityDividends = { formatted: fmtUSDv(totalGross) + (forms.length > 1 ? ` (${forms.length} forms)` : '') };
+      if (totalTax) out.usDivTaxPaid = { formatted: fmtUSDv(totalTax) + (forms.length > 1 ? ` (${forms.length} forms)` : '') };
+    } else if (uploadType === 'stock_award') {
+      if (Array.isArray(parsed.rows) && parsed.rows.length > 0) {
+        const totalBik = parsed.rows.reduce((s, r) => s + (parseFloat(r.stock_award_bik) || 0) + (parseFloat(r.espp_gain_bik) || 0), 0);
+        const totalWh = parsed.rows.reduce((s, r) => s + (parseFloat(r.stock_withholding) || 0), 0);
+        out.salaryTaxedIncome = { formatted: fmtRON(totalBik) + ' (' + parsed.rows.length + ' vests)' };
+        out.stockWithholdingPaid = { formatted: fmtRON(totalWh) };
+      }
+    } else if (uploadType === 'trade_confirmation') {
+      // single trade — append-style, but flagged as conflicting if user already had manual override
+      if (parsed.transactionType !== 'purchase') {
+        out.fidelityGains = { formatted: fmtUSDv(parsed.netProceeds || 0) + ' (1 sale)' };
+      }
+    }
+    return out;
+  }
+
+  /** Format a current manual value for display in the diff dialog. */
+  function formatCurrentManual(key, value) {
+    if (value === undefined || value === '' || value === null) return '—';
+    if (key === 'roGainsCountries') {
+      if (!Array.isArray(value) || value.length === 0) return '—';
+      return value.length + ' ' + I18n.t('import.overrideRows') + '\n' +
+        value.map(c => {
+          const cur = c.currency || 'RON';
+          return `${c.country || '?'} [${cur}]: ≥1y +${c.longGain || 0}, <1y +${c.shortGain || 0}, tax ${c.taxWithheld || 0}`;
+        }).join('\n');
+    }
+    if (key === 'fidelityDividends' || key === 'usDivTaxPaid' ||
+        key === 'fidelityGains' || key === 'fidelityCost') {
+      return '$' + (parseFloat(value) || 0).toFixed(2);
+    }
+    if (key === 'roEurDividends' || key === 'roEurDivTaxPaid' ||
+        key === 'roEurInterest' || key === 'roEurInterestTaxPaid') {
+      return (parseFloat(value) || 0).toFixed(2) + ' EUR';
+    }
+    if (key === 'roUsdDividends' || key === 'roUsdDivTaxPaid' ||
+        key === 'roUsdInterest' || key === 'roUsdInterestTaxPaid') {
+      return (parseFloat(value) || 0).toFixed(2) + ' USD';
+    }
+    // RON or generic numeric
+    const num = parseFloat(value);
+    if (!isNaN(num)) return Math.round(num).toLocaleString('ro-RO') + ' RON';
+    return String(value);
+  }
+
+  /**
+   * Open the "Reset year" confirmation modal. Fetches the server-side
+   * manifest first so the user sees the exact list of files / data the
+   * action will wipe, then requires typing the year before the destructive
+   * button enables. On confirm, calls DELETE /api/year/:year and reloads
+   * appData so every tab reflects the cleared state.
+   */
+  async function openResetYearModal(year) {
+    const modal = document.getElementById('reset-year-modal');
+    const body = document.getElementById('reset-year-modal-body');
+    const confirmBtn = document.getElementById('reset-year-confirm-btn');
+    const cancelBtn = document.getElementById('reset-year-cancel-btn');
+    const closeBtn = document.getElementById('reset-year-modal-close');
+    if (!modal || !body || !confirmBtn) return;
+
+    body.innerHTML = `<p style="color:var(--text-muted)">${esc(I18n.t('resetYear.loading') || 'Loading…')}</p>`;
+    confirmBtn.disabled = true;
+    modal.classList.remove('hidden');
+
+    let preview;
+    try {
+      const resp = await fetch(`/api/year/${year}/reset-preview`);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      preview = await resp.json();
+    } catch (err) {
+      body.innerHTML = `<p style="color:var(--danger)">${esc(I18n.t('resetYear.previewError') || 'Could not load reset preview.')} ${esc(err.message)}</p>`;
+      return;
+    }
+
+    const t = (k, fallback) => I18n.t(k) || fallback;
+    const hasAnything =
+      (preview.rawFiles && preview.rawFiles.length) ||
+      (preview.yearDataFields && preview.yearDataFields.length) ||
+      preview.tradeCount > 0 ||
+      preview.stockAwardsAssigned > 0 ||
+      preview.ledgerVests > 0 ||
+      preview.ledgerSales > 0;
+
+    if (!hasAnything) {
+      body.innerHTML = `
+        <p>${esc(t('resetYear.nothingToReset', `Nothing to reset for year ${year}. No documents, trades, or manual entries are stored for this year.`).replace('{year}', year))}</p>
+      `;
+      confirmBtn.disabled = true;
+      // Allow closing only.
+      const cleanup = () => {
+        modal.classList.add('hidden');
+        cancelBtn.removeEventListener('click', cleanup);
+        closeBtn.removeEventListener('click', cleanup);
+        modal.removeEventListener('click', onBackdrop);
+        document.removeEventListener('keydown', onKey);
+      };
+      const onBackdrop = (e) => { if (e.target === modal) cleanup(); };
+      const onKey = (e) => { if (e.key === 'Escape') cleanup(); };
+      cancelBtn.addEventListener('click', cleanup);
+      closeBtn.addEventListener('click', cleanup);
+      modal.addEventListener('click', onBackdrop);
+      document.addEventListener('keydown', onKey);
+      return;
+    }
+
+    const rawList = (preview.rawFiles || []).map(f => `<li><code>${esc(f)}</code></li>`).join('');
+    const fieldsList = (preview.yearDataFields || []).map(f => `<code style="background:var(--bg-secondary); padding:0.1rem 0.3rem; border-radius:3px; margin-right:0.3rem; display:inline-block; margin-bottom:0.2rem;">${esc(f)}</code>`).join('');
+
+    body.innerHTML = `
+      <p style="margin-top:0;">${esc(t('resetYear.intro', `You are about to permanently wipe everything stored for year ${year}. This cannot be undone.`).replace('{year}', year))}</p>
+
+      <h4 style="margin:1rem 0 0.5rem; font-size:0.9rem;">${esc(t('resetYear.willDelete', 'Will be deleted:'))}</h4>
+      <ul style="margin:0; padding-left:1.2rem; font-size:0.85rem;">
+        ${(preview.rawFiles || []).length > 0 ? `<li>${esc(t('resetYear.rawFiles', '{n} raw document file(s):').replace('{n}', preview.rawFiles.length))}<ul style="margin-top:0.3rem;">${rawList}</ul></li>` : ''}
+        ${(preview.yearDataFields || []).length > 0 ? `<li>${esc(t('resetYear.yearDataFields', '{n} parsed/manual field(s):').replace('{n}', preview.yearDataFields.length))}<div style="margin-top:0.3rem;">${fieldsList}</div></li>` : ''}
+        ${preview.tradeCount > 0 ? `<li>${esc(t('resetYear.trades', '{n} trade record(s)').replace('{n}', preview.tradeCount))}</li>` : ''}
+        ${preview.ledgerVests > 0 ? `<li>${esc(t('resetYear.ledgerVests', '{n} stock-vest ledger entry/entries').replace('{n}', preview.ledgerVests))}</li>` : ''}
+        ${preview.ledgerSales > 0 ? `<li>${esc(t('resetYear.ledgerSales', '{n} sale ledger entry/entries').replace('{n}', preview.ledgerSales))}</li>` : ''}
+        ${preview.stockAwardsAssigned > 0 ? `<li>${esc(t('resetYear.stockAwards', '{n} stock award(s) will be unassigned from this year (records kept for other years).').replace('{n}', preview.stockAwardsAssigned))}</li>` : ''}
+      </ul>
+
+      <p style="margin:1rem 0 0.5rem; font-size:0.85rem; color:var(--text-muted);">${esc(t('resetYear.preserved', 'Stock award records, ledger entries from other years, BNR rates, and CASS thresholds are NOT affected.'))}</p>
+
+      <p style="margin:1rem 0 0.3rem; font-size:0.9rem;"><strong>${esc(t('resetYear.typeToConfirm', 'Type {year} to confirm:').replace('{year}', year))}</strong></p>
+      <input type="text" id="reset-year-confirm-input" autocomplete="off" style="width:100%; padding:0.5rem; font-size:1rem; border:1px solid var(--border); border-radius:var(--radius); background:var(--bg-primary); color:var(--text-primary);">
+    `;
+
+    const input = document.getElementById('reset-year-confirm-input');
+    const updateBtn = () => {
+      confirmBtn.disabled = (input.value || '').trim() !== String(year);
+    };
+    if (input) {
+      input.addEventListener('input', updateBtn);
+      setTimeout(() => input.focus(), 50);
+    }
+    updateBtn();
+
+    const cleanup = (result) => {
+      modal.classList.add('hidden');
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click', onCancel);
+      closeBtn.removeEventListener('click', onCancel);
+      modal.removeEventListener('click', onBackdrop);
+      document.removeEventListener('keydown', onKey);
+      if (input) input.removeEventListener('input', updateBtn);
+      if (result === 'confirm') performResetYear(year);
+    };
+    const onConfirm = () => { if (!confirmBtn.disabled) cleanup('confirm'); };
+    const onCancel = () => cleanup('cancel');
+    const onBackdrop = (e) => { if (e.target === modal) cleanup('cancel'); };
+    const onKey = (e) => { if (e.key === 'Escape') cleanup('cancel'); };
+    confirmBtn.addEventListener('click', onConfirm);
+    cancelBtn.addEventListener('click', onCancel);
+    closeBtn.addEventListener('click', onCancel);
+    modal.addEventListener('click', onBackdrop);
+    document.addEventListener('keydown', onKey);
+  }
+
+  /**
+   * Execute the year reset on the server and refresh local app state.
+   */
+  async function performResetYear(year) {
+    try {
+      const resp = await fetch(`/api/year/${year}`, { method: 'DELETE' });
+      if (!resp.ok) {
+        const errPayload = await resp.json().catch(() => ({}));
+        throw new Error(errPayload.error || `HTTP ${resp.status}`);
+      }
+      const summary = await resp.json();
+      // Invalidate the compute cache and any DUF picks for the year so the UI
+      // re-renders cleanly.
+      _computeDataVersion++;
+      if (typeof _dufImports !== 'undefined' && _dufImports.delete) _dufImports.delete(year);
+      if (typeof _dufPicks !== 'undefined' && _dufPicks.delete) _dufPicks.delete(year);
+      if (typeof _d205Entries !== 'undefined' && _d205Entries.delete) _d205Entries.delete(year);
+
+      // Re-fetch the global app state so every tab reflects the wipe.
+      try {
+        const dataResp = await fetch('/api/data');
+        if (dataResp.ok) {
+          appData = await dataResp.json();
+        }
+      } catch (_) { /* best-effort refresh */ }
+
+      // Reload stock awards (since some may now be unassigned).
+      try {
+        const swResp = await fetch('/api/stock-awards');
+        if (swResp.ok) window._cachedStockAwards = await swResp.json();
+      } catch (_) { /* best-effort */ }
+
+      // Re-render the form for the cleared year and refresh tabs.
+      try { populateForm(); } catch (_) {}
+      try { if (typeof renderTaxes === 'function') renderTaxes(); } catch (_) {}
+      try { if (typeof renderImportsPanel === 'function') renderImportsPanel(detectActiveImports(year)); } catch (_) {}
+
+      const parts = [];
+      if (summary.rawFilesDeleted) parts.push(`${summary.rawFilesDeleted} ${I18n.t('resetYear.summaryRawFiles') || 'fișiere'}`);
+      if (summary.yearDataDeleted) parts.push(I18n.t('resetYear.summaryYearData') || 'date an');
+      if (summary.tradesDeleted) parts.push(`${summary.tradesDeleted} ${I18n.t('resetYear.summaryTrades') || 'tranzacții'}`);
+      if (summary.vestsDeleted || summary.salesDeleted) parts.push(`${summary.vestsDeleted + summary.salesDeleted} ${I18n.t('resetYear.summaryLedger') || 'ledger'}`);
+      if (summary.awardsUnassigned) parts.push(`${summary.awardsUnassigned} ${I18n.t('resetYear.summaryAwards') || 'awards'}`);
+      const msg = (I18n.t('resetYear.success') || 'Year {year} reset.').replace('{year}', year)
+        + (parts.length ? ' ' + parts.join(', ') + '.' : '');
+      alert(msg);
+    } catch (err) {
+      alert((I18n.t('resetYear.error') || 'Reset failed:') + ' ' + err.message);
+    }
+  }
+
+  /**
+   * Show the override-confirmation modal with a diff table.
+   * Returns a promise that resolves to true (confirm) or false (cancel).
+   */
+  function showOverrideConfirm(year, uploadType, conflictingFields, newValuesMap) {
+    const modal = document.getElementById('override-modal');
+    const body = document.getElementById('override-modal-body');
+    const confirmBtn = document.getElementById('override-confirm-btn');
+    const cancelBtn = document.getElementById('override-cancel-btn');
+    const closeBtn = document.getElementById('override-modal-close');
+
+    const yd = appData.years?.[year] || {};
+    const rows = conflictingFields.map(k => {
+      const label = I18n.t('import.manualFieldLabels.' + k) || k;
+      const currentRaw = yd[k];
+      const current = esc(formatCurrentManual(k, currentRaw)).replace(/\n/g, '<br>');
+      const newEntry = newValuesMap[k];
+      let newCell;
+      if (newEntry === undefined) {
+        // Field will be cleared, not replaced with anything specific
+        newCell = `<em style="color:var(--text-muted)">${esc(I18n.t('import.overrideWillClear'))}</em>`;
+      } else {
+        const main = esc(newEntry.formatted || '').replace(/\n/g, '<br>');
+        const detail = newEntry.detail
+          ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem;white-space:pre-wrap;">${esc(newEntry.detail)}</div>`
+          : '';
+        newCell = main + detail;
+      }
+      return `<tr>
+        <td style="padding:0.5rem; border-bottom:1px solid var(--border); vertical-align:top;"><strong>${esc(label)}</strong></td>
+        <td style="padding:0.5rem; border-bottom:1px solid var(--border); vertical-align:top; color:var(--danger);">${current}</td>
+        <td style="padding:0.5rem; border-bottom:1px solid var(--border); vertical-align:top; color:var(--success);">${newCell}</td>
+      </tr>`;
+    }).join('');
+
+    body.innerHTML = `
+      <p style="margin-top:0;">${esc(I18n.t('import.overrideIntro', { year }))}</p>
+      <table style="width:100%; border-collapse:collapse; margin-top:0.5rem; font-size:0.9rem;">
+        <thead>
+          <tr>
+            <th style="text-align:left; padding:0.5rem; border-bottom:2px solid var(--border);">${esc(I18n.t('import.overrideColField'))}</th>
+            <th style="text-align:left; padding:0.5rem; border-bottom:2px solid var(--border); color:var(--danger);">${esc(I18n.t('import.overrideColCurrent'))}</th>
+            <th style="text-align:left; padding:0.5rem; border-bottom:2px solid var(--border); color:var(--success);">${esc(I18n.t('import.overrideColNew'))}</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p style="margin-top:1rem; font-size:0.85rem; color:var(--text-muted);">${esc(I18n.t('import.overrideFooter'))}</p>
+    `;
+
+    modal.classList.remove('hidden');
+
+    return new Promise((resolve) => {
+      const cleanup = (result) => {
+        modal.classList.add('hidden');
+        confirmBtn.removeEventListener('click', onConfirm);
+        cancelBtn.removeEventListener('click', onCancel);
+        closeBtn.removeEventListener('click', onCancel);
+        modal.removeEventListener('click', onBackdrop);
+        document.removeEventListener('keydown', onKey);
+        resolve(result);
+      };
+      const onConfirm = () => cleanup(true);
+      const onCancel = () => cleanup(false);
+      const onBackdrop = (e) => { if (e.target === modal) cleanup(false); };
+      const onKey = (e) => { if (e.key === 'Escape') cleanup(false); };
+      confirmBtn.addEventListener('click', onConfirm);
+      cancelBtn.addEventListener('click', onCancel);
+      closeBtn.addEventListener('click', onCancel);
+      modal.addEventListener('click', onBackdrop);
+      document.addEventListener('keydown', onKey);
+    });
+  }
+
   async function handleUpload(e) {
     e.preventDefault();
     const yearVal = document.getElementById('upload-year').value;
     const typeVal = document.getElementById('upload-type').value;
     const files = document.getElementById('upload-file').files;
+
+    // Pre-flight override check: only meaningful for single-file uploads
+    // (multi-file uploads run sequentially and conflict per file is ambiguous).
+    let conflictingFields = [];
+    if (files.length === 1) {
+      conflictingFields = detectManualConflict(parseInt(yearVal, 10), typeVal);
+      if (conflictingFields.length > 0) {
+        // Dry-run upload first to obtain the parsed values from the document
+        const dryForm = new FormData();
+        dryForm.append('year', yearVal);
+        dryForm.append('type', typeVal);
+        dryForm.append('file', files[0]);
+        const submitBtn = document.getElementById('upload-submit-btn');
+        const origLabel = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = I18n.t('import.overrideAnalyzing');
+        let dryResult;
+        try {
+          const dryResp = await fetch('/api/upload?dryRun=true', { method: 'POST', body: dryForm });
+          dryResult = await dryResp.json();
+        } catch (err) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = origLabel;
+          showToast(I18n.t('import.error') + ': ' + err.message, 'error');
+          return;
+        }
+        submitBtn.textContent = origLabel;
+        submitBtn.disabled = false;
+
+        if (!dryResult || !dryResult.success) {
+          // Dry run failed (low OCR quality, parse error). Fall back to plain warning.
+          const fallbackMsg = I18n.t('import.overrideManualWarn', {
+            year: yearVal,
+            fields: conflictingFields
+              .map(k => '• ' + (I18n.t('import.manualFieldLabels.' + k) || k))
+              .join('\n')
+          });
+          if (!confirm(fallbackMsg)) return;
+        } else {
+          const newValuesMap = extractNewValuesFromDryRun(typeVal, dryResult.parsed);
+          const ok = await showOverrideConfirm(parseInt(yearVal, 10), typeVal, conflictingFields, newValuesMap);
+          if (!ok) return;
+        }
+      }
+    }
 
     const resultDiv = document.getElementById('upload-result');
     const submitBtn = document.getElementById('upload-submit-btn');
@@ -2738,13 +6255,24 @@ const App = (() => {
             </div>`;
           }
         } else if (result.type === 'form_1042s') {
-          const p = result.parsed;
-          resultHtml += `<div style="margin-top:0.5rem;">
-            <p><strong>Form 1042-S</strong> - ${esc(p.incomeType)} (code ${esc(p.incomeCode)})</p>
-            <p>Gross Income: <strong>$${p.grossIncomeUSD?.toFixed(2)}</strong> | Tax Rate: ${p.taxRate}% | Tax Withheld: <strong>$${p.federalTaxWithheldUSD?.toFixed(2)}</strong></p>
-            <p>Agent: ${esc(p.withholdingAgent)} | Recipient: ${esc(p.recipientName)} (${esc(p.recipientCountry)})</p>
-            ${result.isDuplicate ? '<p style="color:var(--warning)">\u26a0 Duplicate detected (same form identifier already imported)</p>' : ''}
-          </div>`;
+          // result.parsed is now {forms: [...]} (refactored to support PDFs that
+          // bundle multiple distinct 1042-S forms — one per income code).
+          const forms = (result.parsed && result.parsed.forms) || (result.forms || []);
+          if (forms.length === 0) {
+            resultHtml += `<p style="color:var(--warning);margin-top:0.5rem;">⚠ Nu am extras nicio formă 1042-S din PDF.</p>`;
+          } else {
+            const fmtN = (n) => Number(n || 0).toFixed(2);
+            resultHtml += `<div style="margin-top:0.5rem;">
+              <p><strong>Form 1042-S</strong> — ${forms.length} ${forms.length === 1 ? 'formă' : 'forme'} extrase${result.duplicates ? ` (${result.duplicates} duplicate${result.duplicates === 1 ? '' : 's'} ignorate)` : ''}</p>`;
+            for (const p of forms) {
+              resultHtml += `<div style="margin-left:0.5rem;padding:0.4rem 0.5rem;border-left:2px solid var(--border);margin-bottom:0.35rem;">
+                <p style="margin:0;"><strong>${esc(p.incomeType)}</strong> (code ${esc(p.incomeCode)}) — UID <code>${esc(p.uniqueFormId || '?')}</code></p>
+                <p style="margin:0;font-size:0.9em;">Gross Income: <strong>$${fmtN(p.grossIncomeUSD)}</strong> · Tax Rate: ${p.taxRate}% · Tax Withheld: <strong>$${fmtN(p.federalTaxWithheldUSD)}</strong></p>
+                <p style="margin:0;font-size:0.85em;color:var(--text-muted);">Agent: ${esc(p.withholdingAgent)} · Recipient: ${esc(p.recipientName)} (${esc(p.recipientCountry)})</p>
+              </div>`;
+            }
+            resultHtml += `</div>`;
+          }
         } else if (result.type === 'fidelity_statement') {
           const p = result.parsed || {};
           const parts = [];
@@ -2765,10 +6293,36 @@ const App = (() => {
           if (p.msDividends) parts.push(`Dividends: $${p.msDividends.toFixed(2)}`);
           if (p.msTaxWithheld) parts.push(`Tax: $${p.msTaxWithheld.toFixed(2)}`);
           resultHtml += parts.length > 0 ? `<p style="margin-top:0.3rem;color:var(--text-secondary);font-size:0.85rem;">${parts.join(' | ')}</p>` : '';
+        } else if (result.type === 'xtb_dividends') {
+          const p = result.parsed || {};
+          const parts = [];
+          if (p.dividends?.grossRON) {
+            parts.push(`${I18n.t('income.dividends')}: ${fmt(p.dividends.grossRON)} RON (${I18n.t('income.taxRON')}: ${fmt(p.dividends.taxWithheldRON)} RON)`);
+          }
+          if (p.interest?.grossRON) {
+            parts.push(`${I18n.t('income.interestIncome')}: ${fmt(p.interest.grossRON)} RON (${I18n.t('income.taxRON')}: ${fmt(p.interest.taxWithheldRON)} RON)`);
+          }
+          if ((p.dividendRows || []).length > 0) parts.push(`${p.dividendRows.length} ${I18n.t('misc.rows') || 'rows'}`);
+          resultHtml += parts.length > 0 ? `<p style="margin-top:0.3rem;color:var(--text-secondary);font-size:0.85rem;">${parts.join(' | ')}</p>` : '';
+        } else if (result.type === 'xtb_portfolio' || result.type === 'tradeville_portfolio') {
+          const p = result.parsed || {};
+          const parts = [];
+          if (Array.isArray(p.countries) && p.countries.length > 0) {
+            const countryList = p.countries.map(c => `${c.country}${c.currency && c.currency !== 'RON' ? ' [' + c.currency + ']' : ''}`).join(', ');
+            parts.push(`${p.countries.length} ${I18n.t('input.country').toLowerCase()}: ${countryList}`);
+          }
+          if (p.longTerm) parts.push(`≥1yr: +${fmt(p.longTerm.gainRON || 0)} / -${fmt(p.longTerm.lossRON || 0)} RON`);
+          if (p.shortTerm) parts.push(`<1yr: +${fmt(p.shortTerm.gainRON || 0)} / -${fmt(p.shortTerm.lossRON || 0)} RON`);
+          if (p.totalTaxWithheldRON) parts.push(`${I18n.t('income.taxRON')}: ${fmt(p.totalTaxWithheldRON)} RON`);
+          resultHtml += parts.length > 0 ? `<p style="margin-top:0.3rem;color:var(--text-secondary);font-size:0.85rem;">${parts.join(' | ')}</p>` : '';
         } else {
-          // Generic: show a compact summary instead of raw JSON
-          const keys = Object.keys(result.parsed || {}).filter(k => k !== 'year');
-          if (keys.length <= 6) {
+          // Generic: show a compact summary, filtering out object/array values
+          const keys = Object.keys(result.parsed || {}).filter(k => {
+            if (k === 'year' || k === 'source') return false;
+            const v = result.parsed[k];
+            return v != null && typeof v !== 'object';
+          });
+          if (keys.length > 0 && keys.length <= 6) {
             resultHtml += `<p style="margin-top:0.3rem;color:var(--text-secondary);font-size:0.85rem;">${keys.map(k => `${k}: ${typeof result.parsed[k] === 'number' ? result.parsed[k].toLocaleString() : esc(String(result.parsed[k]).slice(0, 50))}`).join(' | ')}</p>`;
           }
         }
@@ -2839,6 +6393,11 @@ const App = (() => {
 
     if (anySuccess) {
       try {
+        // Clear manual fields that this upload type overrides, so the
+        // import becomes the authoritative source going forward.
+        if (conflictingFields.length > 0) {
+          await clearManualFields(parseInt(yearVal, 10), conflictingFields);
+        }
         await loadAllData();
         populateYears();
         const uploadedYear = parseInt(yearVal, 10);
@@ -2856,6 +6415,94 @@ const App = (() => {
     submitBtn.style.removeProperty('background');
     submitBtn.style.minWidth = '';
     if (typeof indInterval !== 'undefined') clearInterval(indInterval);
+  }
+
+  // ============ RULES & REFERENCES (P2) ============
+  /**
+   * Render the accountant-facing rules catalog page. Pulls from
+   * `lib/rules-catalog.js` (loaded as window.RulesCatalog) and produces
+   * a card-per-rule layout grouped by category. Legal text stays in
+   * Romanian (preserved verbatim from sources); chrome labels come from
+   * the locale files.
+   */
+  function renderRulesPage() {
+    const container = document.getElementById('rules-content');
+    if (!container) return;
+    const RC = window.RulesCatalog;
+    if (!RC || !Array.isArray(RC.RULES)) {
+      container.innerHTML = '<p style="color:var(--danger)">RulesCatalog missing — was /lib/rules-catalog.js loaded?</p>';
+      return;
+    }
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const grouped = RC.getRulesByCategory();
+    const categoryOrder = Object.keys(RC.CATEGORIES);
+    const tStaleDays = 365; // > 1 year unchecked = visual warning
+    const today = Date.now();
+
+    const ruleCard = (r) => {
+      const verifiedTs = r.lastVerified ? Date.parse(r.lastVerified) : 0;
+      const ageDays = verifiedTs ? Math.floor((today - verifiedTs) / 86400000) : null;
+      const stale = ageDays !== null && ageDays > tStaleDays;
+      const verifiedBadge = r.lastVerified
+        ? `<span style="font-size:0.8rem;color:${stale ? 'var(--danger)' : 'var(--text-muted)'};margin-left:0.5rem;">${I18n.t('rules.verified') || 'Verificat'}: ${esc(r.lastVerified)}${stale ? ' ⚠' : ''}</span>`
+        : '';
+      const rates = (r.taxRates || []).map(s => `<li>${esc(s)}</li>`).join('');
+      const formula = (r.formula || []).map(s => esc(s)).join('\n');
+      const seeAlso = (r.seeAlso || [])
+        .map(id => `<a href="#rule-${esc(id)}" style="color:var(--accent);text-decoration:none;">${esc(id)}</a>`)
+        .join(' · ');
+      const exampleBlock = r.example
+        ? `<div style="margin-top:0.5rem;padding:0.5rem;background:var(--bg-secondary);border-radius:4px;font-size:0.88rem;">
+             <strong>${I18n.t('rules.example') || 'Exemplu'}:</strong>
+             <div style="margin-top:0.3rem;"><em>${I18n.t('rules.input') || 'Intrare'}:</em> ${esc(r.example.input)}</div>
+             <pre style="margin:0.3rem 0 0 0;padding:0.3rem;background:var(--bg);border-radius:3px;font-size:0.85rem;white-space:pre-wrap;">${esc(r.example.output)}</pre>
+           </div>`
+        : '';
+      const narrativeBlock = r.narrative
+        ? `<div style="margin-top:0.5rem;font-size:0.9rem;line-height:1.4;">${esc(r.narrative)}</div>`
+        : '';
+      const seeAlsoBlock = seeAlso
+        ? `<div style="margin-top:0.4rem;font-size:0.85rem;color:var(--text-muted);">${I18n.t('rules.seeAlso') || 'Vezi și'}: ${seeAlso}</div>`
+        : '';
+      return `
+        <div id="rule-${esc(r.id)}" class="card" style="margin-bottom:0.75rem;padding:0.9rem 1rem;">
+          <h3 style="margin:0 0 0.4rem 0;font-size:1.05rem;">${esc(r.title)}${verifiedBadge}</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.88rem;">
+            <div><strong>${I18n.t('rules.taxRates') || 'Cote impozit'}:</strong><ul style="margin:0.2rem 0 0 1rem;padding:0;">${rates}</ul></div>
+            <div>
+              <div><strong>${I18n.t('rules.codFiscal') || 'Cod fiscal'}:</strong> ${esc(r.lawArticle)}</div>
+              <div><strong>${I18n.t('rules.instructions') || 'Instrucțiuni D212'}:</strong> ${esc(r.instructionParagraph)}</div>
+            </div>
+          </div>
+          <div style="margin-top:0.5rem;">
+            <strong>${I18n.t('rules.formula') || 'Formulă'}:</strong>
+            <pre style="margin:0.3rem 0 0 0;padding:0.5rem;background:var(--bg-secondary);border-radius:4px;font-size:0.85rem;line-height:1.35;white-space:pre-wrap;">${esc(formula)}</pre>
+          </div>
+          ${narrativeBlock}
+          ${exampleBlock}
+          <div style="margin-top:0.5rem;font-size:0.8rem;color:var(--text-muted);">
+            <code>${esc(r.codeRef)}</code>
+          </div>
+          ${seeAlsoBlock}
+        </div>
+      `;
+    };
+
+    const groupTitle = (key) => `<h2 style="margin:1.5rem 0 0.75rem 0;font-size:1.2rem;">${esc(RC.CATEGORIES[key])}</h2>`;
+
+    let html = `<div style="margin-bottom:1rem;padding:0.75rem 1rem;background:rgba(13,110,253,0.08);border-left:3px solid var(--info,#0d6efd);font-size:0.9rem;line-height:1.4;border-radius:4px;">`;
+    html += `<strong>${I18n.t('rules.howToUse') || 'Cum să folosești această pagină'}:</strong> `;
+    html += I18n.t('rules.howToUseBody') || 'Fiecare card reprezintă o regulă fiscală implementată în aplicație. Citește citatele legale, formula verbatim și pointer-ul la cod. Dacă observi o regulă lipsă sau o discrepanță, ';
+    html += `<a href="https://github.com/edspat/D212TaxHelper/issues/new?template=missing-rule.md" target="_blank" rel="noopener" style="color:var(--accent);">${I18n.t('rules.submitMissing') || 'deschide un issue'}</a>.`;
+    html += `</div>`;
+    for (const cat of categoryOrder) {
+      const rules = grouped[cat] || [];
+      if (rules.length === 0) continue;
+      html += groupTitle(cat);
+      for (const r of rules) html += ruleCard(r);
+    }
+    html += `<p style="margin-top:1.5rem;font-size:0.85rem;color:var(--text-muted);text-align:center;">${I18n.t('rules.footnote') || 'Sursele oficiale sunt în <code>docs/anaf/d212-2025/</code>. Toate citările trebuie verificate împotriva PDF-urilor ANAF.'}</p>`;
+    container.innerHTML = html;
   }
 
   // ============ RAW DATA ============
@@ -3303,9 +6950,23 @@ const App = (() => {
   }
 
   // Init on DOM ready
-  // Init on DOM ready
   document.addEventListener('DOMContentLoaded', () => {
-    init();
+    // Tear down the boot splash once init() resolves (or fails). The fade-out
+    // is CSS-driven; we add .hidden first, then remove the node after the
+    // transition so screen readers don't see two competing trees.
+    const dismissBootSplash = () => {
+      const el = document.getElementById('boot-splash');
+      if (!el) return;
+      el.classList.add('hidden');
+      setTimeout(() => el.remove(), 300);
+    };
+    // Safety net: even if something throws inside init() before render() lands,
+    // never leave the splash up for more than 15 seconds.
+    const splashFallbackTimer = setTimeout(dismissBootSplash, 15000);
+    Promise.resolve(init()).finally(() => {
+      clearTimeout(splashFallbackTimer);
+      dismissBootSplash();
+    });
     const restartBtn = document.getElementById('restart-btn');
 
     // Restart server button

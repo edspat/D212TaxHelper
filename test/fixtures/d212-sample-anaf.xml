@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!-- VERSIUNE_DECL=V-1.8.09 / 15.05.2026 -->
+<!-- DATA_GENERARE=2026-05-18 14:48:08 -->
+<!--
+  SYNTHETIC REFERENCE FIXTURE — structural mirror of a D212 XML produced by
+  the ANAF DUF portal (https://www.anaf.ro/declaratii/duf). EVERY value in
+  this file is synthetic and chosen for round numbers; none of them
+  correspond to any real taxpayer.
+
+    * CNP: 1800101220038 — passes mod-11 checksum, not a real person.
+    * Name: POPESCU / ION — common placeholder names.
+    * Address / authorization document: placeholders only.
+    * Investment income: 500000 RON (round) → CASS base 24×4050 = 97200 → 9720.
+    * PFA gross: 50000 RON → 12-SM CASS tier → base 48600 → 4860.
+    * Income tax: 5000 RON (10% × 50000 PFA net). All other numbers in the
+      oblig_realizat block are mathematically derived from these three.
+
+  Tests use this file to verify our XML emission matches the structure ANAF
+  expects (attribute names, omission patterns, capitole boundaries). Do not
+  edit by hand; if the structural model changes, regenerate from scratch with
+  synthetic round numbers like above and update the dependent tests.
+-->
+<d212 an_r="2026" luna_r="12" d_rec="0" rectif1="0" rectif2="0" totalPlata_A="22" bifa_conformare="0" bifa18="0" bifa19="0" bifa23="0" anulare_litA="0" anulare_litB="0" bifa111="1" bifa112="0" bifa14="1" bifa113="0" bifa121="1" bifa15="0" bifa122="0" bifa131="0" bifa132="1" nume_c="POPESCU" prenume_c="ION" cif="1800101220038" nerezident="0" statut="4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="mfp:anaf:dgti:d212:declaratie:v11" xmlns="mfp:anaf:dgti:d212:declaratie:v11">
+<oblig_realizat cass_total_ven_ai="50000" baza_cass_datorat_ai="48600" cass_anuala_ai="4860" cass_datorat_art180_ai="0" cass_datorat_ai="4860" cass_retinut_platitor_alin6_ai="0" cass_dif_plus_ai="4860" cass_dif_minus6_ai="0" cass_ven_dpi="0" cass_ven_asc="0" cass_ven_cfb="0" cass_ven_inv="500000" cass_ven_asp="0" cass_ven_alt="0" cass_total_ven="500000" cass_baza="97200" cass_anuala="9720" cass_datorat_art180="0" cass_datorat="9720" cass_retinut="0" cass_dif_plus="9720" cass_dif_minus="0" bifa_cass_real="3" bifa_cass_datorat_dpi="1" bifa_cass_datorat_ai="1" real_venit_net_recalculat_ai="50000" real_cass-deductibil_ai="4860" real_venit_net_impozabil_ai="45140" real_impozit_datorat_ai="4514" real_cas_venit_net_ai="50000" real_cas_total_ven_ai="50000" real_cas_pondere_ai="1.00000" real_cas_datorata_ai="0" real_cass_venit_net_ai="50000" real_cass_total_ven_ai="50000" real_cass_pondere_ai="1.00000" real_cass_datorata_ai="4860" real_cass_deductibila_ai="4860" oblimpoz_real_total="4514" oblimpoz_real_dif_deplata="4514" oblimpoz_real_dif_restituit="0" oblcas_real_difPlus="0" oblcas_real_str="0" oblcass_real_difPlus_ai="4860" oblcass_real_difMinus_ai="0" oblcass_real_difMinus_174="0" oblcass_real_difPlus_dpi="9720" oblcass_real_difMinus_dpi="0" oblcass_real_str="0" oblcass_real_str_pensie="0" impozit_venit_plus="4514" impozit_venit_minus="0" cas_plus="0" cass_plus="14580" cass_minus="0" dif_de_plata="19094" dif_de_restituit="0" venit_ret_inv="500000" />
+<cap11 categ_venit="1016" det_ven_net="1" forma_org="1" caen="6201" descriere_sediu_bun="BUCURESTI, STR EXEMPLU NR 1" nr_doc_autoriz="0000" data_doc_autoriz="01.01.2020" venit_brut="50000" venit_net_anual="50000" pierdere_compensata="0" venit_recalculat="50000" />
+<cap14 str_stat_realiz_v="US" str_categ_venit="2012" dubla_impunere="1" str_venit_net_anual="0" str_pierdere_compensata="0" str_venit_recalculat="0" str_credit_fiscal="0" str_dif_impozit_datorat="0" />
+</d212>
+

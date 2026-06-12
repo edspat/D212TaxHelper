@@ -1,0 +1,764 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CAEN>
+  <cod rev="3" value="0111">Cultivarea cerealelor (excluzand orezul), plantelor leguminoase si a plantelor oleaginoase</cod>
+  <cod rev="3" value="0112">Cultivarea orezului</cod>
+  <cod rev="3" value="0113">Cultivarea legumelor si a pepenilor, a radacinoaselor si tuberculiferelor</cod>
+  <cod rev="3" value="0114">Cultivarea trestiei de zahar</cod>
+  <cod rev="3" value="0115">Cultivarea tutunului</cod>
+  <cod rev="3" value="0116">Cultivarea plantelor pentru fibre textile</cod>
+  <cod rev="3" value="0119">Cultivarea altor plante din culturi nepermanente</cod>
+  <cod rev="3" value="0121">Cultivarea strugurilor</cod>
+  <cod rev="3" value="0122">Cultivarea fructelor tropicale si subtropicale</cod>
+  <cod rev="3" value="0123">Cultivarea fructelor citrice</cod>
+  <cod rev="3" value="0124">Cultivarea fructelor seminoase si samburoase</cod>
+  <cod rev="3" value="0125">Cultivarea altor pomi fructiferi, a arbustilor fructiferi, capsunilor si a nuciferelor</cod>
+  <cod rev="3" value="0126">Cultivarea fructelor oleaginoase</cod>
+  <cod rev="3" value="0127">Cultivarea plantelor pentru prepararea bauturilor</cod>
+  <cod rev="3" value="0128">Cultivarea condimentelor, plantelor aromatice, medicinale si a plantelor de uz farmaceutic</cod>
+  <cod rev="3" value="0129">Cultivarea altor plante permanente</cod>
+  <cod rev="3" value="0130">Cultivarea plantelor pentru inmultire</cod>
+  <cod rev="3" value="0141">Cresterea bovinelor de lapte</cod>
+  <cod rev="3" value="0142">Cresterea altor bovine</cod>
+  <cod rev="3" value="0143">Cresterea cailor si a altor cabaline</cod>
+  <cod rev="3" value="0144">Cresterea camilelor si a camelidelor</cod>
+  <cod rev="3" value="0145">Cresterea ovinelor si caprinelor</cod>
+  <cod rev="3" value="0146">Cresterea porcinelor</cod>
+  <cod rev="3" value="0147">Cresterea pasarilor</cod>
+  <cod rev="3" value="0148">Cresterea altor animale</cod>
+  <cod rev="2" value="0149">Cresterea altor animale</cod>
+  <cod rev="3" value="0150">Activitati in ferme mixte (cultura vegetala combinata cu cresterea animalelor)</cod>
+  <cod rev="3" value="0161">Activitati auxiliare pentru productia vegetala</cod>
+  <cod rev="3" value="0162">Activitati auxiliare pentru cresterea animalelor</cod>
+  <cod rev="3" value="0163">Activitati dupa recoltare si pregatirea semintelor</cod>
+  <cod rev="2" value="0164">Pregatirea semintelor in vederea insamantarii</cod>
+  <cod rev="3" value="0170">Vanatoare, capturarea cu capcane a vanatului si activitati de servicii anexe vanatorii</cod>
+  <cod rev="3" value="0210">Silvicultura si alte activitati forestiere</cod>
+  <cod rev="3" value="0220">Exploatarea forestiera</cod>
+  <cod rev="3" value="0230">Colectarea produselor forestiere nelemnoase din flora spontana</cod>
+  <cod rev="3" value="0240">Activitati de servicii anexe silviculturii</cod>
+  <cod rev="3" value="0311">Pescuitul maritim</cod>
+  <cod rev="3" value="0312">Pescuitul in ape dulci</cod>
+  <cod rev="3" value="0321">Acvacultura maritima</cod>
+  <cod rev="3" value="0322">Acvacultura in ape dulci</cod>
+  <cod rev="3" value="0330">Activitati anexe pescuitului si acvaculturii</cod>
+  <cod rev="3" value="0510">Extractia carbunelui superior (PCS >= 23865 kJ/kg)</cod>
+  <cod rev="3" value="0520">Extractia carbunelui inferior (PCS &lt; 23865 kJ/kg)</cod>
+  <cod rev="3" value="0610">Extractia petrolului brut</cod>
+  <cod rev="3" value="0620">Extractia gazelor naturale</cod>
+  <cod rev="3" value="0710">Extractia minereurilor feroase</cod>
+  <cod rev="3" value="0721">Extractia minereurilor de uraniu si toriu</cod>
+  <cod rev="3" value="0729">Extractia altor minereuri metalifere neferoase</cod>
+  <cod rev="3" value="0811">Extractia pietrei ornamentale si a pietrei pentru constructii, extractia pietrei calcaroase, ghipsului, cretei si a ardeziei</cod>
+  <cod rev="3" value="0812">Extractia pietrisului si nisipului; extractia argilei si caolinului</cod>
+  <cod rev="3" value="0891">Extractia mineralelor pentru industria chimica si a ingrasamintelor naturale</cod>
+  <cod rev="3" value="0892">Extractia turbei</cod>
+  <cod rev="3" value="0893">Extractia sarii</cod>
+  <cod rev="3" value="0899">Alte activitati extractive n.c.a.</cod>
+  <cod rev="3" value="0910">Activitati de servicii anexe extractiei petrolului brut si gazelor naturale</cod>
+  <cod rev="3" value="0990">Activitati de servicii anexe pentru extractia mineralelor</cod>
+  <cod rev="3" value="1011">Prelucrarea si conservarea carnii</cod>
+  <cod rev="3" value="1012">Prelucrarea si conservarea carnii de pasare</cod>
+  <cod rev="3" value="1013">Fabricarea produselor din carne (inclusiv din carne de pasare)</cod>
+  <cod rev="3" value="1020">Prelucrarea si conservarea pestelui, crustaceelor si molustelor</cod>
+  <cod rev="3" value="1031">Prelucrarea si conservarea cartofilor</cod>
+  <cod rev="3" value="1032">Fabricarea sucurilor de fructe si legume</cod>
+  <cod rev="3" value="1039">Prelucrarea si conservarea fructelor si legumelor n.c.a.</cod>
+  <cod rev="3" value="1041">Fabricarea uleiurilor si grasimilor</cod>
+  <cod rev="3" value="1042">Fabricarea margarinei si a altor produse comestibile similare</cod>
+  <cod rev="3" value="1051">Fabricarea produselor lactate si a branzeturilor</cod>
+  <cod rev="3" value="1052">Fabricarea inghetatei</cod>
+  <cod rev="3" value="1061">Fabricarea produselor de morar it</cod>
+  <cod rev="3" value="1062">Fabricarea amidonului si a produselor din amidon</cod>
+  <cod rev="3" value="1071">Fabricarea painii; fabricarea prajiturilor si a produselor proaspete de patiserie</cod>
+  <cod rev="3" value="1072">Fabricarea biscuitilor si piscoturilor; fabricarea prajiturilor si a produselor conservate de patiserie</cod>
+  <cod rev="3" value="1073">Fabricarea macaroanelor, taiteilor, cus cusului si a altor produse fainoase similare</cod>
+  <cod rev="3" value="1081">Fabricarea zaharului</cod>
+  <cod rev="3" value="1082">Fabricarea produselor din cacao, a ciocolatei si a produselor zaharoase</cod>
+  <cod rev="3" value="1083">Prelucrarea ceaiului si cafelei</cod>
+  <cod rev="3" value="1084">Fabricarea condimentelor si ingredientelor</cod>
+  <cod rev="3" value="1085">Fabricarea de mancaruri preparate</cod>
+  <cod rev="3" value="1086">Fabricarea preparatelor alimentare omogenizate si alimentelor dietetice</cod>
+  <cod rev="3" value="1089">Fabricarea altor produse alimentare n.c.a.</cod>
+  <cod rev="3" value="1091">Fabricarea preparatelor pentru hrana animalelor de ferma</cod>
+  <cod rev="3" value="1092">Fabricarea preparatelor pentru hrana animalelor de companie</cod>
+  <cod rev="3" value="1101">Distilarea, rafinarea si mixarea bauturilor alcoolice</cod>
+  <cod rev="3" value="1102">Fabricarea vinurilor din struguri</cod>
+  <cod rev="3" value="1103">Fabricarea cidrului si a altor vinuri din fructe</cod>
+  <cod rev="3" value="1104">Fabricarea altor bauturi nedistilate, obtinute prin fermentare</cod>
+  <cod rev="3" value="1105">Fabricarea berii</cod>
+  <cod rev="3" value="1106">Fabricarea maltului</cod>
+  <cod rev="3" value="1107">Productia de bauturi racoritoare nealcoolice; productia de ape minerale si alte ape imbuteliate</cod>
+  <cod rev="3" value="1200">Fabricarea produselor din tutun</cod>
+  <cod rev="3" value="1310">Pregatirea fibrelor si filarea fibrelor textile</cod>
+  <cod rev="3" value="1320">Productia de tesaturi</cod>
+  <cod rev="3" value="1330">Finisarea materialelor textile</cod>
+  <cod rev="3" value="1391">Fabricarea de metraje prin tricotare sau crosetare</cod>
+  <cod rev="3" value="1392">Fabricarea de articole confectionate din textile (excluzand imbracamintea si lenjeria de corp)</cod>
+  <cod rev="3" value="1393">Fabricarea de covoare si mochete</cod>
+  <cod rev="3" value="1394">Fabricarea de odgoane, franghii, sfori si plase</cod>
+  <cod rev="3" value="1395">Fabricarea de textile netesute si articole din acestea, cu exceptia confectiilor de imbracaminte</cod>
+  <cod rev="3" value="1396">Fabricarea de articole tehnice si industriale din textile</cod>
+  <cod rev="3" value="1399">Fabricarea altor articole textile n.c.a.</cod>
+  <cod rev="3" value="1410">Fabricarea articolelor de imbracaminte prin tricotare sau crosetare</cod>
+  <cod rev="2" value="1411">Fabricarea articolelor de imbracaminte din piele</cod>
+  <cod rev="2" value="1412">Fabricarea articolelor de imbracaminte pentru lucru</cod>
+  <cod rev="2" value="1413">Fabricarea altor articole de imbracaminte (exclusiv lenjeria de corp)</cod>
+  <cod rev="2" value="1414">Fabricarea de articole de lenjerie de corp</cod>
+  <cod rev="2" value="1419">Fabricarea altor articole de imbracaminte si accesorii n.c.a.</cod>
+  <cod rev="2" value="1420">Fabricarea articolelor din blana</cod>
+  <cod rev="3" value="1421">Fabricarea articolelor de imbracaminte</cod>
+  <cod rev="3" value="1422">Fabricarea de articole de lenjerie de corp</cod>
+  <cod rev="3" value="1423">Fabricarea de articole de imbracaminte pentru lucru</cod>
+  <cod rev="3" value="1424">Fabricarea articolelor de imbracaminte din piele si blana</cod>
+  <cod rev="3" value="1429">Fabricarea altor articole de imbracaminte si accesorii n.c.a.</cod>
+  <cod rev="2" value="1431">Fabricarea prin tricotare sau crosetare a ciorapilor si articolelor de galanterie</cod>
+  <cod rev="2" value="1439">Fabricarea prin tricotare sau crosetare a altor articole de imbracaminte</cod>
+  <cod rev="3" value="1511">Tabacirea si finisarea pieilor; prepararea si vopsirea blanurilor</cod>
+  <cod rev="3" value="1512">Fabricarea articolelor de voiaj si marochinarie si a articolelor de harnasament</cod>
+  <cod rev="3" value="1520">Fabricarea incaltamintei</cod>
+  <cod rev="2" value="1610">Taierea si rindeluirea lemnului</cod>
+  <cod rev="3" value="1611">Taierea si rindeluirea lemnului</cod>
+  <cod rev="3" value="1612">Prelucrarea si finisarea lemnului</cod>
+  <cod rev="3" value="1621">Fabricarea de furnire si a panourilor din lemn</cod>
+  <cod rev="3" value="1622">Fabricarea parchetului asamblat in panouri</cod>
+  <cod rev="3" value="1623">Fabricarea altor elemente de dulgherie si tamplarie, pentru constructii</cod>
+  <cod rev="3" value="1624">Fabricarea ambalajelor din lemn</cod>
+  <cod rev="3" value="1625">Fabricarea de usi si ferestre din lemn</cod>
+  <cod rev="3" value="1626">Fabricarea de combustibili solizi din biomasa vegetala</cod>
+  <cod rev="3" value="1627">Finisarea articolelor din lemn</cod>
+  <cod rev="3" value="1628">Fabricarea altor produse din lemn; fabricarea articolelor din pluta, paie si din alte materiale vegetale impletite</cod>
+  <cod rev="2" value="1629">Fabricarea altor produse din lemn; fabricarea articolelor din pluta, paie si din alte materiale vegetale impletite</cod>
+  <cod rev="3" value="1711">Fabricarea celulozei</cod>
+  <cod rev="3" value="1712">Fabricarea hartiei si cartonului</cod>
+  <cod rev="3" value="1721">Fabricarea hartiei si cartonului ondulat si a ambalajelor din hartie si carton</cod>
+  <cod rev="3" value="1722">Fabricarea produselor de uz gospodaresc si sanitar, din hartie sau carton</cod>
+  <cod rev="3" value="1723">Fabricarea articolelor de papetarie</cod>
+  <cod rev="3" value="1724">Fabricarea tapetului</cod>
+  <cod rev="3" value="1725">Fabricarea altor articole din hartie si carton n.c.a.</cod>
+  <cod rev="2" value="1729">Fabricarea altor articole din hartie si carton n.c.a.</cod>
+  <cod rev="3" value="1811">Tiparirea ziarelor</cod>
+  <cod rev="3" value="1812">Alte activitati de tiparire n.c.a.</cod>
+  <cod rev="3" value="1813">Servicii pregatitoare pentru pretiparire</cod>
+  <cod rev="3" value="1814">Legatorie si servicii conexe</cod>
+  <cod rev="3" value="1820">Reproducerea inregistrarilor</cod>
+  <cod rev="3" value="1910">Fabricarea produselor de cocserie</cod>
+  <cod rev="3" value="1920">Fabricarea produselor obtinute din prelucrarea titeiului</cod>
+  <cod rev="3" value="2011">Fabricarea gazelor industriale</cod>
+  <cod rev="3" value="2012">Fabricarea colorantilor si a pigmentilor</cod>
+  <cod rev="3" value="2013">Fabricarea altor produse chimice anorganice, de baza</cod>
+  <cod rev="3" value="2014">Fabricarea altor produse chimice organice, de baza</cod>
+  <cod rev="3" value="2015">Fabricarea ingrasamintelor si produselor azotoase</cod>
+  <cod rev="3" value="2016">Fabricarea materialelor plastice in forme primare</cod>
+  <cod rev="3" value="2017">Fabricarea cauciucului sintetic in forme primare</cod>
+  <cod rev="3" value="2020">Fabricarea pesticidelor si a altor produse agrochimice</cod>
+  <cod rev="3" value="2030">Fabricarea vopselelor, lacurilor, cernelii tipografice si masticurilor</cod>
+  <cod rev="3" value="2041">Fabricarea sapunurilor, detergentilor si a produselor de intretinere</cod>
+  <cod rev="3" value="2042">Fabricarea parfumurilor si a produselor cosmetice (de toaleta)</cod>
+  <cod rev="3" value="2051">Fabricarea biocombustibililor lichizi</cod>
+  <cod rev="2" value="2052">Fabricarea cleiurilor</cod>
+  <cod rev="2" value="2053">Fabricarea uleiurilor esentiale</cod>
+  <cod rev="3" value="2059">Fabricarea altor produse chimice n.c.a.</cod>
+  <cod rev="3" value="2060">Fabricarea fibrelor sintetice si artificiale</cod>
+  <cod rev="3" value="2110">Fabricarea produselor farmaceutice de baza</cod>
+  <cod rev="3" value="2120">Fabricarea preparatelor farmaceutice</cod>
+  <cod rev="3" value="2211">Fabricarea anvelopelor si a camerelor de aer; resaparea si refacerea anvelopelor</cod>
+  <cod rev="3" value="2212">Fabricarea altor produse din cauciuc</cod>
+  <cod rev="2" value="2219">Fabricarea altor produse din cauciuc</cod>
+  <cod rev="3" value="2221">Fabricarea placilor, foliilor, tuburilor si profilelor din material plastic</cod>
+  <cod rev="3" value="2222">Fabricarea articolelor de ambalaj din material plastic</cod>
+  <cod rev="3" value="2223">Fabricarea de usi si ferestre din material plastic</cod>
+  <cod rev="3" value="2224">Fabricarea articolelor din material plastic pentru constructii</cod>
+  <cod rev="3" value="2225">Prelucrarea si finisarea articolelor din material plastic</cod>
+  <cod rev="3" value="2226">Fabricarea altor produse din material plastic</cod>
+  <cod rev="2" value="2229">Fabricarea altor produse din material plastic</cod>
+  <cod rev="3" value="2311">Fabricarea sticlei plate</cod>
+  <cod rev="3" value="2312">Prelucrarea si fasonarea sticlei plate</cod>
+  <cod rev="3" value="2313">Fabricarea articolelor din sticla</cod>
+  <cod rev="3" value="2314">Fabricarea fibrelor din sticla</cod>
+  <cod rev="3" value="2315">Fabricarea de sticlarie tehnica</cod>
+  <cod rev="2" value="2319">Fabricarea de sticlarie tehnica</cod>
+  <cod rev="3" value="2320">Fabricarea de produse refractare</cod>
+  <cod rev="3" value="2331">Fabricarea placilor si dalelor din ceramica</cod>
+  <cod rev="3" value="2332">Fabricarea caramizilor, tiglelor si altor produse pentru constructii, din argila arsa</cod>
+  <cod rev="3" value="2341">Fabricarea articolelor ceramice pentru uz gospodaresc si ornamental</cod>
+  <cod rev="3" value="2342">Fabricarea de obiecte sanitare din ceramica</cod>
+  <cod rev="3" value="2343">Fabricarea izolatorilor si pieselor izolante din ceramica</cod>
+  <cod rev="3" value="2344">Fabricarea altor produse tehnice din ceramica</cod>
+  <cod rev="3" value="2345">Fabricarea altor produse ceramice n.c.a.</cod>
+  <cod rev="2" value="2349">Fabricarea altor produse ceramice n.c.a.</cod>
+  <cod rev="3" value="2351">Fabricarea cimentului</cod>
+  <cod rev="3" value="2352">Fabricarea varului si ipsosului</cod>
+  <cod rev="3" value="2361">Fabricarea produselor din beton pentru constructii</cod>
+  <cod rev="3" value="2362">Fabricarea produselor din ipsos pentru constructii</cod>
+  <cod rev="3" value="2363">Fabricarea betonului</cod>
+  <cod rev="3" value="2364">Fabricarea mortarului</cod>
+  <cod rev="3" value="2365">Fabricarea produselor din azbociment</cod>
+  <cod rev="3" value="2366">Fabricarea altor articole din beton, ciment si ipsos</cod>
+  <cod rev="2" value="2369">Fabricarea altor articole din beton, ciment si ipsos</cod>
+  <cod rev="3" value="2370">Taierea, fasonarea si finisarea pietrei</cod>
+  <cod rev="3" value="2391">Fabricarea de produse abrazive</cod>
+  <cod rev="3" value="2399">Fabricarea altor produse din minerale nemetalice, n.c.a.</cod>
+  <cod rev="3" value="2410">Productia de metale feroase sub forme primare si de feroaliaje</cod>
+  <cod rev="3" value="2420">Productia de tuburi, tevi, profile tubulare si accesorii pentru acestea, din otel</cod>
+  <cod rev="3" value="2431">Tragere la rece a barelor</cod>
+  <cod rev="3" value="2432">Laminare la rece a benzilor inguste</cod>
+  <cod rev="3" value="2433">Productia de profile obtinute la rece</cod>
+  <cod rev="3" value="2434">Trefilarea firelor la rece</cod>
+  <cod rev="3" value="2441">Productia metalelor pretioase</cod>
+  <cod rev="3" value="2442">Metalurgia aluminiului</cod>
+  <cod rev="3" value="2443">Productia plumbului, zincului si cositorului</cod>
+  <cod rev="3" value="2444">Metalurgia cuprului</cod>
+  <cod rev="3" value="2445">Productia altor metale neferoase</cod>
+  <cod rev="3" value="2446">Prelucrarea combustibililor nucleari</cod>
+  <cod rev="3" value="2451">Turnarea fontei</cod>
+  <cod rev="3" value="2452">Turnarea otelului</cod>
+  <cod rev="3" value="2453">Turnarea metalelor neferoase usoare</cod>
+  <cod rev="3" value="2454">Turnarea altor metale neferoase</cod>
+  <cod rev="3" value="2511">Fabricarea de constructii metalice si parti componente ale structurilor metalice</cod>
+  <cod rev="3" value="2512">Fabricarea de usi si ferestre din metal</cod>
+  <cod rev="3" value="2521">Productia de radiatoare si cazane pentru incalzire centrala; productia de generatoare de abur si boilere</cod>
+  <cod rev="3" value="2522">Productia de rezervoare, cisterne si containere metalice</cod>
+  <cod rev="2" value="2529">Productia de rezervoare, cisterne si containere metalice</cod>
+  <cod rev="3" value="2530">Fabricarea armamentului si munitiilor</cod>
+  <cod rev="3" value="2540">Fabricarea produselor metalice obtinute prin deformare plastica; metalurgia pulberilor</cod>
+  <cod rev="2" value="2550">Fabricarea produselor metalice obtinute prin deformare plastica; metalurgia pulberilor</cod>
+  <cod rev="3" value="2551">Acoperirea metalelor</cod>
+  <cod rev="3" value="2552">Tratamente termice ale metalelor</cod>
+  <cod rev="3" value="2553">Operatiuni de mecanica generala</cod>
+  <cod rev="3" value="2561">Fabricarea produselor de tratament al metalelor prin acoperire</cod>
+  <cod rev="3" value="2562">Fabricarea articolelor de feronerie</cod>
+  <cod rev="3" value="2563">Fabricarea uneltelor</cod>
+  <cod rev="2" value="2571">Fabricarea produselor de taiere, rindeluire si prelucrare a metalelor</cod>
+  <cod rev="2" value="2572">Fabricarea articolelor de feronerie</cod>
+  <cod rev="2" value="2573">Fabricarea uneltelor</cod>
+  <cod rev="3" value="2591">Fabricarea de recipien ti, containere si alte produse similare din otel</cod>
+  <cod rev="3" value="2592">Fabricarea ambalajelor metalice usoare</cod>
+  <cod rev="3" value="2593">Fabricarea articolelor din fire metalice; fabricarea de lanturi si arcuri</cod>
+  <cod rev="3" value="2594">Fabricarea de suruburi, buloane si alte articole filetate; fabricarea de nituri si saibe</cod>
+  <cod rev="3" value="2599">Fabricarea altor articole din metal n.c.a.</cod>
+  <cod rev="3" value="2611">Fabricarea componentelor electronice</cod>
+  <cod rev="3" value="2612">Fabricarea subansamblurilor electronice (module)</cod>
+  <cod rev="3" value="2620">Fabricarea calculatoarelor si a echipamentelor periferice</cod>
+  <cod rev="3" value="2630">Fabricarea echipamentelor de comunicatii</cod>
+  <cod rev="3" value="2640">Fabricarea produselor electronice de larg consum</cod>
+  <cod rev="3" value="2651">Fabricarea de instrumente si dispozitive pentru masura, verificare, control, navigatie</cod>
+  <cod rev="3" value="2652">Productia de ceasuri</cod>
+  <cod rev="3" value="2660">Fabricarea de echipamente pentru radiologie, electrodiagnostic si electroterapie</cod>
+  <cod rev="3" value="2670">Fabricarea de instrumente optice, suporti magnetici si optici; fabricarea de echipamente fotografice</cod>
+  <cod rev="2" value="2680">Fabricarea suportilor magnetici si optici destinati inregistrarilor</cod>
+  <cod rev="3" value="2711">Fabricarea motoarelor, generatoarelor si transformatoarelor electrice</cod>
+  <cod rev="3" value="2712">Fabricarea aparatelor de distributie si control a electricitatii</cod>
+  <cod rev="3" value="2720">Fabricarea de acumulatori si baterii</cod>
+  <cod rev="3" value="2731">Fabricarea de cabluri cu fibra optica</cod>
+  <cod rev="3" value="2732">Fabricarea altor fire si cabluri electrice si electronice</cod>
+  <cod rev="3" value="2733">Fabricarea dispozitivelor de conexiune pentru fire si cabluri electrice si electronice</cod>
+  <cod rev="3" value="2740">Fabricarea de echipamente electrice de iluminat</cod>
+  <cod rev="3" value="2751">Fabricarea de aparate electrocasnice</cod>
+  <cod rev="3" value="2752">Fabricarea de echipamente casnice neelectrice</cod>
+  <cod rev="3" value="2790">Fabricarea altor echipamente electrice</cod>
+  <cod rev="3" value="2811">Fabricarea de motoare si turbine (cu exceptia celor pentru avioane, autovehicule si motociclete)</cod>
+  <cod rev="3" value="2812">Fabricarea de motoare hidraulice</cod>
+  <cod rev="3" value="2813">Fabricarea de pompe si compresoare</cod>
+  <cod rev="3" value="2814">Fabricarea de articole de robinetrie</cod>
+  <cod rev="3" value="2815">Fabricarea lagarelor, angrenajelor, cutiilor de viteze si a elementelor mecanice de transmisie</cod>
+  <cod rev="3" value="2821">Fabricarea cuptoarelor, furnalelor si arzatoarelor</cod>
+  <cod rev="3" value="2822">Fabricarea echipamentelor de ridicat si manipulat</cod>
+  <cod rev="3" value="2823">Fabricarea masinilor si echipamentelor de birou (exceptand fabricarea calculatoarelor si a echipamentelor periferice)</cod>
+  <cod rev="3" value="2824">Fabricarea masinilor-unelte portabile actionate electric</cod>
+  <cod rev="3" value="2825">Fabricarea echipamentelor de ventilatie si frigorifice, exceptand echipamentele de uz casnic</cod>
+  <cod rev="3" value="2829">Fabricarea altor masini si utilaje de utilizare generala n.c.a.</cod>
+  <cod rev="3" value="2830">Fabricarea masinilor si utilajelor pentru agricultura si exploatari forestiere</cod>
+  <cod rev="3" value="2841">Fabricarea utilajelor si a masinilor-unelte pentru prelucrarea metalului</cod>
+  <cod rev="3" value="2842">Fabricarea altor masini-unelte n.c.a.</cod>
+  <cod rev="2" value="2849">Fabricarea altor masini-unelte n.c.a.</cod>
+  <cod rev="3" value="2891">Fabricarea utilajelor pentru metalurgie</cod>
+  <cod rev="3" value="2892">Fabricarea utilajelor pentru extractie si constructii</cod>
+  <cod rev="3" value="2893">Fabricarea utilajelor pentru prelucrarea produselor alimentare, bauturilor si tutunului</cod>
+  <cod rev="3" value="2894">Fabricarea utilajelor pentru industria textila, a imbracamintei si a pielariei</cod>
+  <cod rev="3" value="2895">Fabricarea utilajelor pentru industria hartiei si cartonului</cod>
+  <cod rev="3" value="2896">Fabricarea utilajelor pentru prelucrarea maselor plastice si a cauciucului</cod>
+  <cod rev="3" value="2897">Fabricarea masinilor si utilajelor pentru fabricatie aditiva (care utilizeaza tehnologia de fabricatie aditiva)</cod>
+  <cod rev="3" value="2899">Fabricarea altor masini si utilaje specifice n.c.a.</cod>
+  <cod rev="3" value="2910">Fabricarea autovehiculelor de transport rutier</cod>
+  <cod rev="3" value="2920">Productia de caroserii pentru autovehicule; fabricarea de remorci si semiremorci</cod>
+  <cod rev="3" value="2931">Fabricarea de echipamente electrice si electronice pentru autovehicule si pentru motoare de autovehicule</cod>
+  <cod rev="3" value="2932">Fabricarea altor piese si accesorii pentru autovehicule si pentru motoare de autovehicule</cod>
+  <cod rev="3" value="3011">Constructia de nave civile si structuri plutitoare</cod>
+  <cod rev="3" value="3012">Constructia de ambarcatiuni sportive si de agrement</cod>
+  <cod rev="3" value="3013">Constructia de nave si vase militare</cod>
+  <cod rev="3" value="3020">Fabricarea materialului rulant</cod>
+  <cod rev="2" value="3030">Fabricarea de aeronave si nave spatiale</cod>
+  <cod rev="3" value="3031">Fabricarea de aeronave si nave spatiale, civile</cod>
+  <cod rev="3" value="3032">Fabricarea de aeronave si nave spatiale, militare</cod>
+  <cod rev="3" value="3040">Fabricarea vehiculelor militare de lupta</cod>
+  <cod rev="3" value="3091">Fabricarea de motociclete</cod>
+  <cod rev="3" value="3092">Fabricarea de biciclete si de vehicule pentru invalizi</cod>
+  <cod rev="3" value="3099">Fabricarea altor mijloace de transport n.c.a.</cod>
+  <cod rev="3" value="3100">Fabricarea de mobila</cod>
+  <cod rev="2" value="3101">Fabricarea de mobila pentru birouri si magazine</cod>
+  <cod rev="2" value="3102">Fabricarea de mobila pentru bucatarii</cod>
+  <cod rev="2" value="3103">Fabricarea de saltele si somiere</cod>
+  <cod rev="2" value="3109">Fabricarea de mobila n.c.a.</cod>
+  <cod rev="3" value="3211">Baterea monedelor</cod>
+  <cod rev="3" value="3212">Fabricarea bijuteriilor si articolelor similare din metale si pietre pretioase</cod>
+  <cod rev="3" value="3213">Fabricarea imitatiilor de bijuterii si articole similare</cod>
+  <cod rev="3" value="3220">Fabricarea instrumentelor muzicale</cod>
+  <cod rev="3" value="3230">Fabricarea articolelor pentru sport</cod>
+  <cod rev="3" value="3240">Fabricarea jocurilor si jucariilor</cod>
+  <cod rev="3" value="3250">Fabricarea de dispozitive, aparate si instrumente medicale si stomatologice</cod>
+  <cod rev="3" value="3291">Fabricarea maturilor si periilor</cod>
+  <cod rev="3" value="3299">Fabricarea altor produse manufacturiere n.c.a.</cod>
+  <cod rev="3" value="3311">Repararea si intretinerea articolelor fabricate din metal</cod>
+  <cod rev="3" value="3312">Repararea si intretinerea masinilor</cod>
+  <cod rev="3" value="3313">Repararea si intretinerea echipamentelor electronice si optice</cod>
+  <cod rev="3" value="3314">Repararea si intretinerea echipamentelor electrice</cod>
+  <cod rev="3" value="3315">Repararea si intretinerea navelor si barcilor, civile</cod>
+  <cod rev="3" value="3316">Repararea si intretinerea aeronavelor si navelor spatiale, civile</cod>
+  <cod rev="3" value="3317">Repararea si intretinerea altor echipamente civile de transport n.c.a.</cod>
+  <cod rev="3" value="3318">Repararea si intretinerea vehiculelor militare de lupta, a navelor, vaselor, aeronavelor si navelor spatiale, militare</cod>
+  <cod rev="3" value="3319">Repararea si intretinerea altor echipamente</cod>
+  <cod rev="3" value="3320">Instalarea masinilor si echipamentelor industriale</cod>
+  <cod rev="3" value="3511">Productia de energie electrica din resurse neregenerabile</cod>
+  <cod rev="3" value="3512">Productia de energie electrica din resurse regenerabile</cod>
+  <cod rev="3" value="3513">Transportul energiei electrice</cod>
+  <cod rev="3" value="3514">Distributia energiei electrice</cod>
+  <cod rev="3" value="3515">Comercializarea energiei electrice</cod>
+  <cod rev="3" value="3516">Depozitarea energiei electrice</cod>
+  <cod rev="3" value="3521">Productia gazelor</cod>
+  <cod rev="3" value="3522">Distributia combustibililor gazosi, prin conducte</cod>
+  <cod rev="3" value="3523">Comercializarea combustibililor gazosi, prin conducte</cod>
+  <cod rev="3" value="3524">Depozitarea gazelor, ca parte a serviciilor de furnizare</cod>
+  <cod rev="3" value="3530">Furnizarea de abur si aer conditionat</cod>
+  <cod rev="3" value="3540">Activitati ale agentilor si brokerilor din domeniul energiei electrice si al gazelor naturale</cod>
+  <cod rev="3" value="3600">Captarea, tratarea si distributia apei</cod>
+  <cod rev="3" value="3700">Colectarea si epurarea apelor uzate</cod>
+  <cod rev="3" value="3811">Colectarea deseurilor nepericuloase</cod>
+  <cod rev="3" value="3812">Colectarea deseurilor periculoase</cod>
+  <cod rev="3" value="3821">Recuperarea materialelor reciclabile</cod>
+  <cod rev="3" value="3822">Productia de energie (electrica sau termica) prin tratarea deseurilor (inclusiv prin incinerare)</cod>
+  <cod rev="3" value="3823">Alte activitati de tratare a deseurilor</cod>
+  <cod rev="3" value="3831">Incinerarea deseurilor fara productie de energie</cod>
+  <cod rev="3" value="3832">Activitati ale gropilor de gunoi sau ale depozitelor permanente de deseuri</cod>
+  <cod rev="3" value="3833">Alte activitati de eliminare a deseurilor</cod>
+  <cod rev="3" value="3900">Activitati si servicii de decontaminare</cod>
+  <cod rev="3" value="4100">Lucrari de constructii a cladirilor rezidentiale si nerezidentiale</cod>
+  <cod rev="2" value="4110">Dezvoltare (promovare) imobiliara</cod>
+  <cod rev="2" value="4120">Lucrari de constructii a cladirilor rezidentiale si nerezidentiale</cod>
+  <cod rev="3" value="4211">Lucrari de constructii a drumurilor si autostrazilor</cod>
+  <cod rev="3" value="4212">Lucrari de constructii a cailor ferate de suprafata si subterane</cod>
+  <cod rev="3" value="4213">Constructia de poduri si tuneluri</cod>
+  <cod rev="3" value="4221">Lucrari de constructii a proiectelor utilitare pentru fluide</cod>
+  <cod rev="3" value="4222">Lucrari de constructii a proiectelor utilitare pentru electricitate si telecomunicatii</cod>
+  <cod rev="3" value="4291">Constructii hidrotehnice</cod>
+  <cod rev="3" value="4299">Lucrari de constructii a altor proiecte ingineresti n.c.a.</cod>
+  <cod rev="3" value="4311">Lucrari de demolare a constructiilor</cod>
+  <cod rev="3" value="4312">Lucrari de pregatire a terenului</cod>
+  <cod rev="3" value="4313">Lucrari de foraj si sondaj pentru constructii</cod>
+  <cod rev="3" value="4321">Lucrari de instalatii electrice</cod>
+  <cod rev="3" value="4322">Lucrari de instalatii sanitare, de incalzire si de aer conditionat</cod>
+  <cod rev="3" value="4323">Lucrari de izolatii</cod>
+  <cod rev="3" value="4324">Alte lucrari de instalatii pentru constructii</cod>
+  <cod rev="2" value="4329">Alte lucrari de instalatii pentru constructii</cod>
+  <cod rev="3" value="4331">Lucrari de ipsoserie</cod>
+  <cod rev="3" value="4332">Lucrari de tamplarie si dulgherie</cod>
+  <cod rev="3" value="4333">Lucrari de pardosire si placare a peretilor</cod>
+  <cod rev="3" value="4334">Lucrari de vopsitorie, zugraveli si montari de geamuri</cod>
+  <cod rev="3" value="4335">Alte lucrari de finisare</cod>
+  <cod rev="2" value="4339">Alte lucrari de finisare</cod>
+  <cod rev="3" value="4341">Lucrari de invelitori, sarpante si terase la constructii</cod>
+  <cod rev="3" value="4342">Alte lucrari speciale de constructii pentru cladiri</cod>
+  <cod rev="3" value="4350">Lucrari speciale de constructii pentru proiecte de geniu civil</cod>
+  <cod rev="3" value="4360">Servicii de intermediere pentru lucrari speciale de constructii</cod>
+  <cod rev="3" value="4391">Activitati de zidarie</cod>
+  <cod rev="3" value="4399">Alte lucrari speciale de constructii n.c.a.</cod>
+  <cod rev="2" value="4511">Comert cu autoturisme si autovehicule usoare (sub 3,5 tone)</cod>
+  <cod rev="2" value="4519">Comert cu alte autovehicule</cod>
+  <cod rev="2" value="4520">Intretinerea si repararea autovehiculelor</cod>
+  <cod rev="2" value="4531">Comert cu ridicata de piese si accesorii pentru autovehicule</cod>
+  <cod rev="2" value="4532">Comert cu amanuntul de piese si accesorii pentru autovehicule</cod>
+  <cod rev="2" value="4540">Comert cu motociclete, piese si accesorii aferente; intretinerea si repararea motocicletelor</cod>
+  <cod rev="3" value="4611">Intermedieri in comertul cu materii prime agricole, animale vii, materii prime textile si cu semifabricate</cod>
+  <cod rev="3" value="4612">Intermedieri in comertul cu combustibili, minereuri, metale si produse chimice pentru industrie</cod>
+  <cod rev="3" value="4613">Intermedieri in comertul cu material lemnos si materiale de constructii</cod>
+  <cod rev="3" value="4614">Intermedieri in comertul cu masini, echipamente industriale, nave si avioane</cod>
+  <cod rev="3" value="4615">Intermedieri in comertul cu mobila, articole de menaj si de fierarie</cod>
+  <cod rev="3" value="4616">Intermedieri in comertul cu textile, confectii din blana, imbracaminte si articole din piele</cod>
+  <cod rev="3" value="4617">Intermedieri in comertul cu produse alimentare, bauturi si tutun</cod>
+  <cod rev="3" value="4618">Intermedieri in comertul specializat in vanzarea produselor cu caracter specific, n.c.a.</cod>
+  <cod rev="3" value="4619">Intermedieri in comertul cu produse diverse</cod>
+  <cod rev="3" value="4621">Comert cu ridicata al cerealelor, semintelor, furajelor si tutunului neprelucrat</cod>
+  <cod rev="3" value="4622">Comert cu ridicata al florilor si al plantelor</cod>
+  <cod rev="3" value="4623">Comert cu ridicata al animalelor vii</cod>
+  <cod rev="3" value="4624">Comert cu ridicata al blanurilor, pieilor brute si al pieilor prelucrate</cod>
+  <cod rev="3" value="4631">Comert cu ridicata al fructelor si legumelor</cod>
+  <cod rev="3" value="4632">Comert cu ridicata al carnii si produselor din carne, peste si produse din peste, crustacee si moluste</cod>
+  <cod rev="3" value="4633">Comert cu ridicata al produselor lactate, oualor, uleiurilor si grasimilor comestibile</cod>
+  <cod rev="3" value="4634">Comert cu ridicata al bauturilor</cod>
+  <cod rev="3" value="4635">Comert cu ridicata al produselor din tutun</cod>
+  <cod rev="3" value="4636">Comert cu ridicata al zaharului, ciocolatei si produselor zaharoase</cod>
+  <cod rev="3" value="4637">Comert cu ridicata cu cafea, ceai, cacao si condimente</cod>
+  <cod rev="3" value="4638">Comert cu ridicata specializat al altor alimente</cod>
+  <cod rev="3" value="4639">Comert cu ridicata nespecializat de produse alimentare, bauturi si tutun</cod>
+  <cod rev="3" value="4641">Comert cu ridicata al produselor textile</cod>
+  <cod rev="3" value="4642">Comert cu ridicata al imbracamintei si incaltamintei</cod>
+  <cod rev="3" value="4643">Comert cu ridicata al aparatelor electrice de uz gospodaresc, al aparatelor de radio si televizoarelor</cod>
+  <cod rev="3" value="4644">Comert cu ridicata al produselor din ceramica, sticlarie si produse de intretinere</cod>
+  <cod rev="3" value="4645">Comert cu ridicata al produselor cosmetice si de parfumerie</cod>
+  <cod rev="3" value="4646">Comert cu ridicata al produselor farmaceutice si medicale</cod>
+  <cod rev="3" value="4647">Comert cu ridicata al mobilei (inclusiv de birou si pentru magazine), covoarelor si al articolelor de iluminat</cod>
+  <cod rev="3" value="4648">Comert cu ridicata al ceasurilor si bijuteriilor</cod>
+  <cod rev="3" value="4649">Comert cu ridicata al altor bunuri de uz gospodaresc</cod>
+  <cod rev="3" value="4650">Comert cu ridicata al echipamentului informatic si de telecomunicatii</cod>
+  <cod rev="2" value="4651">Comert cu ridicata al calculatoarelor, echipamentelor periferice si software-ului</cod>
+  <cod rev="2" value="4652">Comert cu ridicata de componente si echipamente electronice si de telecomunicatii</cod>
+  <cod rev="3" value="4661">Comert cu ridicata al masinilor agricole, echipamentelor si furniturilor</cod>
+  <cod rev="3" value="4662">Comert cu ridicata al masinilor-unelte</cod>
+  <cod rev="3" value="4663">Comert cu ridicata al masinilor pentru industria miniera si constructii</cod>
+  <cod rev="3" value="4664">Comert cu ridicata al altor masini si echipamente</cod>
+  <cod rev="2" value="4665">Comert cu ridicata al mobilei de birou</cod>
+  <cod rev="2" value="4666">Comert cu ridicata al altor masini si echipamente de birou</cod>
+  <cod rev="2" value="4669">Comert cu ridicata al altor masini si echipamente</cod>
+  <cod rev="3" value="4671">Comert cu ridicata al autovehiculelor</cod>
+  <cod rev="3" value="4672">Comert cu ridicata al pieselor si accesoriilor pentru autovehicule</cod>
+  <cod rev="3" value="4673">Comert cu ridicata al motocicletelor; comert cu ridicata al pieselor si accesoriilor pentru motociclete</cod>
+  <cod rev="2" value="4674">Comert cu ridicata al echipamentelor si furniturilor de fierarie pentru instalatii sanitare si de incalzire</cod>
+  <cod rev="2" value="4675">Comert cu ridicata al produselor chimice</cod>
+  <cod rev="2" value="4676">Comert cu ridicata al altor produse intermediare</cod>
+  <cod rev="2" value="4677">Comert cu ridicata al deseurilor si resturilor</cod>
+  <cod rev="3" value="4681">Comert cu ridicata al combustibililor solizi, lichizi si gazosi si al produselor derivate</cod>
+  <cod rev="3" value="4682">Comert cu ridicata al metalelor si minereurilor metalice</cod>
+  <cod rev="3" value="4683">Comert cu ridicata al materialului lemnos si al materialelor de constructie si echipamentelor sanitare</cod>
+  <cod rev="3" value="4684">Comert cu ridicata al echipamentelor si furniturilor de fierarie pentru instalatii sanitare si de incalzire</cod>
+  <cod rev="3" value="4685">Comert cu ridicata al produselor chimice</cod>
+  <cod rev="3" value="4686">Comert cu ridicata al altor produse intermediare</cod>
+  <cod rev="3" value="4687">Comert cu ridicata al deseurilor si resturilor</cod>
+  <cod rev="3" value="4689">Comert cu ridicata specializat al altor produse n.c.a.</cod>
+  <cod rev="3" value="4690">Comert cu ridicata nespecializat</cod>
+  <cod rev="3" value="4711">Comert cu amanuntul nespecializat, cu vanzare predominant de produse alimentare, bauturi si tutun</cod>
+  <cod rev="3" value="4712">Comert cu amanuntul nespecializat, cu vanzare predominant de produse nealimentare</cod>
+  <cod rev="2" value="4719">Comert cu amanuntul in magazine nespecializate, cu vanzare predominant de produse nealimentare</cod>
+  <cod rev="3" value="4721">Comert cu amanuntul al fructelor si legumelor proaspete</cod>
+  <cod rev="3" value="4722">Comert cu amanuntul al carnii si al produselor din carne</cod>
+  <cod rev="3" value="4723">Comert cu amanuntul al pestelui, crustaceelor si molustelor</cod>
+  <cod rev="3" value="4724">Comert cu amanuntul al painii, produselor de patiserie si produselor zaharoase</cod>
+  <cod rev="3" value="4725">Comert cu amanuntul al bauturilor</cod>
+  <cod rev="3" value="4726">Comert cu amanuntul al produselor din tutun</cod>
+  <cod rev="3" value="4727">Comert cu amanuntul al altor produse alimentare</cod>
+  <cod rev="2" value="4729">Comert cu amanuntul al altor produse alimentare, in magazine specializate</cod>
+  <cod rev="3" value="4730">Comert cu amanuntul al carburan tilor pentru autovehicule</cod>
+  <cod rev="3" value="4740">Comert cu amanuntul al echipamentului informatic si de telecomunicatii</cod>
+  <cod rev="2" value="4741">Comert cu amanuntul al calculatoarelor, unitatilor periferice si software-ului in magazine specializate</cod>
+  <cod rev="2" value="4742">Comert cu amanuntul al echipamentului pentru telecomunicatii in magazine specializate</cod>
+  <cod rev="2" value="4743">Comert cu amanuntul al echipamentului audio/video in magazine specializate</cod>
+  <cod rev="3" value="4751">Comert cu amanuntul al textilelor</cod>
+  <cod rev="3" value="4752">Comert cu amanuntul al articolelor de fierarie, al materialelor de constructii, al articolelor din sticla si a celor pentru vopsit</cod>
+  <cod rev="3" value="4753">Comert cu amanuntul al covoarelor, carpetelor, tapetelor si al altor acoperitoare de podea</cod>
+  <cod rev="3" value="4754">Comert cu amanuntul al articolelor si aparatelor electrocasnice</cod>
+  <cod rev="3" value="4755">Comert cu amanuntul al mobilei, al articolelor de iluminat si al altor articole de uz casnic n.c.a.</cod>
+  <cod rev="2" value="4759">Comert cu amanuntul al mobilei, al articolelor de iluminat si al articolelor de uz casnic n.c.a., in magazine specializate</cod>
+  <cod rev="3" value="4761">Comert cu amanuntul al cartilor</cod>
+  <cod rev="3" value="4762">Comert cu amanuntul al ziarelor si articolelor de papetarie</cod>
+  <cod rev="3" value="4763">Comert cu amanuntul al echipamentelor sportive</cod>
+  <cod rev="3" value="4764">Comert cu amanuntul al jocurilor si jucariilor</cod>
+  <cod rev="2" value="4765">Comert cu amanuntul al jocurilor si jucariilor, in magazine specializate</cod>
+  <cod rev="3" value="4769">Comert cu amanuntul de bunuri culturale si recreative n.c.a.</cod>
+  <cod rev="3" value="4771">Comert cu amanuntul al imbracamintei</cod>
+  <cod rev="3" value="4772">Comert cu amanuntul al incaltamintei si articolelor din piele</cod>
+  <cod rev="3" value="4773">Comert cu amanuntul al produselor farmaceutice</cod>
+  <cod rev="3" value="4774">Comert cu amanuntul al articolelor medicale si ortopedice</cod>
+  <cod rev="3" value="4775">Comert cu amanuntul al produselor cosmetice si de parfumerie</cod>
+  <cod rev="3" value="4776">Comert cu amanuntul al florilor, plantelor si semintelor; comert cu amanuntul al animalelor de companie si a hranei pentru acestea</cod>
+  <cod rev="3" value="4777">Comert cu amanuntul al ceasurilor si bijuteriilor</cod>
+  <cod rev="3" value="4778">Comert cu amanuntul al altor bunuri noi</cod>
+  <cod rev="3" value="4779">Comert cu amanuntul al bunurilor de ocazie</cod>
+  <cod rev="3" value="4781">Comert cu amanuntul al autovehiculelor</cod>
+  <cod rev="3" value="4782">Comert cu amanuntul al pieselor si accesoriilor pentru autovehicule</cod>
+  <cod rev="3" value="4783">Comert cu amanuntul al motocicletelor; comert cu amanuntul al pieselor si accesoriilor pentru motociclete</cod>
+  <cod rev="2" value="4789">Comert cu amanuntul prin standuri, chioscuri si piete al altor produse</cod>
+  <cod rev="3" value="4791">Intermedieri in comertul cu amanuntul nespecializat</cod>
+  <cod rev="3" value="4792">Intermedieri in comertul cu amanuntul specializat</cod>
+  <cod rev="2" value="4799">Comert cu amanuntul altfel efectuat in afara magazinelor, standurilor, chioscurilor si pietelor</cod>
+  <cod rev="2" value="4910">Transporturi interurbane de calatori pe calea ferata</cod>
+  <cod rev="3" value="4911">Transport de pasageri pe cai ferate grele/magistrale</cod>
+  <cod rev="3" value="4912">Alte transporturi de pasageri pe cai ferate usoare</cod>
+  <cod rev="3" value="4920">Transporturi de marfuri pe calea ferata</cod>
+  <cod rev="3" value="4931">Transporturi terestre de pasageri, pe baza de grafic</cod>
+  <cod rev="3" value="4932">Transporturi terestre de pasageri, ocazionale</cod>
+  <cod rev="3" value="4933">Transporturi terestre de pasageri cu vehicule cu sofer, pe baza de comanda</cod>
+  <cod rev="3" value="4934">Transporturi de pasageri cu funiculare, teleferice si schilifturi</cod>
+  <cod rev="3" value="4939">Alte transporturi terestre de calatori n.c.a.</cod>
+  <cod rev="3" value="4941">Transporturi rutiere de marfuri</cod>
+  <cod rev="3" value="4942">Servicii de mutare</cod>
+  <cod rev="3" value="4950">Transporturi prin conducte</cod>
+  <cod rev="3" value="5010">Transporturi maritime si costiere de pasageri</cod>
+  <cod rev="3" value="5020">Transporturi maritime si costiere de marfuri</cod>
+  <cod rev="3" value="5030">Transportul de pasageri pe cai navigabile interioare</cod>
+  <cod rev="3" value="5040">Transportul de marfuri pe cai navigabile interioare</cod>
+  <cod rev="3" value="5110">Transporturi aeriene de pasageri</cod>
+  <cod rev="3" value="5121">Transporturi aeriene de marfuri</cod>
+  <cod rev="3" value="5122">Transporturi spatiale</cod>
+  <cod rev="3" value="5210">Depozitari</cod>
+  <cod rev="3" value="5221">Activitati de servicii anexe pentru transporturi terestre</cod>
+  <cod rev="3" value="5222">Activitati de servicii anexe transporturilor pe apa</cod>
+  <cod rev="3" value="5223">Activitati de servicii anexe transporturilor aeriene</cod>
+  <cod rev="3" value="5224">Manipulari</cod>
+  <cod rev="3" value="5225">Activitati de servicii logistice pentru transporturi</cod>
+  <cod rev="3" value="5226">Alte activitati anexe transporturilor</cod>
+  <cod rev="2" value="5229">Alte activitati anexe transporturilor</cod>
+  <cod rev="3" value="5231">Activitati de intermediere pentru transportul de marfuri</cod>
+  <cod rev="3" value="5232">Activitati de intermediere pentru transportul de pasageri</cod>
+  <cod rev="3" value="5310">Activitati postale desfasurate sub obligativitatea serviciului universal</cod>
+  <cod rev="3" value="5320">Alte activitati postale si de curierat</cod>
+  <cod rev="3" value="5330">Servicii de intermediere pentru activitati postale si de curierat</cod>
+  <cod rev="3" value="5510">Hoteluri si alte facilitati de cazare similare</cod>
+  <cod rev="3" value="5520">Facilitati de cazare pentru vacante si perioade de scurta durata</cod>
+  <cod rev="3" value="5530">Parcuri pentru rulote, campinguri si tabere</cod>
+  <cod rev="3" value="5540">Intermedieri pentru servicii de cazare</cod>
+  <cod rev="3" value="5590">Alte servicii de cazare</cod>
+  <cod rev="2" value="5610">Restaurante</cod>
+  <cod rev="3" value="5611">Restaurante</cod>
+  <cod rev="3" value="5612">Activitati ale unitatilor mobile de alimentatie</cod>
+  <cod rev="3" value="5621">Activitati de alimentatie (catering) pentru evenimente</cod>
+  <cod rev="3" value="5622">Alte servicii de alimentatie n.c.a.</cod>
+  <cod rev="2" value="5629">Alte activitati de alimentatie n.c.a.</cod>
+  <cod rev="3" value="5630">Baruri si alte activitati de servire a bauturilor</cod>
+  <cod rev="3" value="5640">Intermedieri pentru servicii de alimentatie si de servire a bauturilor</cod>
+  <cod rev="3" value="5811">Activitati de editare a cartilor</cod>
+  <cod rev="3" value="5812">Activitati de editare a ziarelor</cod>
+  <cod rev="3" value="5813">Activitati de editare a revistelor si periodicelor</cod>
+  <cod rev="2" value="5814">Activitati de editare a revistelor si periodicelor</cod>
+  <cod rev="3" value="5819">Alte activitati de editare</cod>
+  <cod rev="3" value="5821">Activitati de editare a jocurilor de calculator</cod>
+  <cod rev="3" value="5829">Activitati de editare a altor produse software</cod>
+  <cod rev="3" value="5911">Activitati de productie cinematografica, video si de programe de televiziune</cod>
+  <cod rev="3" value="5912">Activitati post-productie cinematografica, video si de programe de televiziune</cod>
+  <cod rev="3" value="5913">Activitati de distributie a filmelor cinematografice, video si a programelor de televiziune</cod>
+  <cod rev="3" value="5914">Proiectia de filme cinematografice</cod>
+  <cod rev="3" value="5920">Activitati de realizare a inregistrarilor audio si activitati de editare muzicala</cod>
+  <cod rev="3" value="6010">Activitati de radiodifuziune; activitati de distributie de programe audio</cod>
+  <cod rev="3" value="6020">Activitati de difuzare a programelor de televiziune; activitati de distributie de programe video</cod>
+  <cod rev="3" value="6031">Activitati ale agentiilor de stiri</cod>
+  <cod rev="3" value="6039">Activitati de distributie a altor continuturi</cod>
+  <cod rev="3" value="6110">Activitati de telecomunicatii prin retele cu cablu, prin retele fara cablu si prin satelit</cod>
+  <cod rev="3" value="6120">Activitati de revanzare a serviciilor de telecomunicatii si servicii de intermediere pentru telecomunicatii</cod>
+  <cod rev="2" value="6130">Activitati de telecomunicatii prin satelit</cod>
+  <cod rev="3" value="6190">Alte activitati de telecomunicatii</cod>
+  <cod rev="2" value="6201">Activitati de realizare a soft-ului la comanda (software orientat client)</cod>
+  <cod rev="2" value="6202">Activitati de consultanta in tehnologia informatiei</cod>
+  <cod rev="2" value="6203">Activitati de management (gestiune si exploatare) a mijloacelor de calcul</cod>
+  <cod rev="2" value="6209">Alte activitati de servicii privind tehnologia informatiei</cod>
+  <cod rev="3" value="6210">Activitati de realizare a soft-ului la comanda (software orientat client)</cod>
+  <cod rev="3" value="6220">Activitati de consultanta in tehnologia informatiei si de management (gestiune si exploatare) a mijloacelor de calcul</cod>
+  <cod rev="3" value="6290">Alte activitati de servicii privind tehnologia informatiei</cod>
+  <cod rev="3" value="6310">Prelucrarea datelor, administrarea paginilor web si activitati conexe</cod>
+  <cod rev="2" value="6311">Prelucrarea datelor, administrarea paginilor web si activitati conexe</cod>
+  <cod rev="2" value="6312">Activitati ale portalurilor web</cod>
+  <cod rev="3" value="6391">Activitati ale portalurilor web</cod>
+  <cod rev="3" value="6392">Alte activitati de servicii informationale n.c.a.</cod>
+  <cod rev="2" value="6399">Alte activitati de servicii informationale n.c.a.</cod>
+  <cod rev="3" value="6411">Activitati ale bancii centrale (nationale)</cod>
+  <cod rev="3" value="6419">Alte activitati de intermedieri monetare</cod>
+  <cod rev="2" value="6420">Activitati ale holdingurilor</cod>
+  <cod rev="3" value="6421">Activitati ale holding-urilor</cod>
+  <cod rev="3" value="6422">Activitati ale canalelor de finantare</cod>
+  <cod rev="2" value="6430">Fonduri mutuale si alte entitati financiare similare</cod>
+  <cod rev="3" value="6431">Activitati ale fondurilor de investitii de pe piata monetara si ale fondurilor de investitii din afara pietei monetare</cod>
+  <cod rev="3" value="6432">Fonduri mutuale si alte entitati financiare similare</cod>
+  <cod rev="3" value="6491">Leasing financiar</cod>
+  <cod rev="3" value="6492">Alte activitati de creditare</cod>
+  <cod rev="3" value="6499">Alte intermedieri financiare n.c.a., exceptand activitati de asigurari si fonduri de pensii</cod>
+  <cod rev="3" value="6511">Activitati de asigurari de viata</cod>
+  <cod rev="3" value="6512">Alte activitati de asigurari (exceptand asigurarile de viata)</cod>
+  <cod rev="3" value="6520">Activitati de reasigurare</cod>
+  <cod rev="3" value="6530">Activitati ale fondurilor de pensii (cu exceptia celor din sistemul public de asigurari sociale)</cod>
+  <cod rev="3" value="6611">Administrarea pietelor financiare</cod>
+  <cod rev="3" value="6612">Activitati de intermediere a tranzactiilor financiare</cod>
+  <cod rev="3" value="6619">Activitati auxiliare intermedierilor financiare, exceptand activitati de asigurari si fonduri de pensii</cod>
+  <cod rev="3" value="6621">Activitati de evaluare a riscului de asigurare si a pagubelor</cod>
+  <cod rev="3" value="6622">Activitati ale agentilor si brokerilor de asigurari</cod>
+  <cod rev="3" value="6629">Alte activitati auxiliare de asigurari si fonduri de pensii</cod>
+  <cod rev="3" value="6630">Activitati de administrare a fondurilor</cod>
+  <cod rev="2" value="6810">Cumpararea si vanzarea de bunuri imobiliare proprii</cod>
+  <cod rev="3" value="6811">Cumpararea si vanzarea de bunuri imobiliare proprii</cod>
+  <cod rev="3" value="6812">Dezvoltare (promovare) imobiliara</cod>
+  <cod rev="3" value="6820">Inchirierea si subinchirierea bunurilor imobiliare proprii sau inchiriate</cod>
+  <cod rev="3" value="6831">Servicii de intermediere a tranzactiilor imobiliare</cod>
+  <cod rev="3" value="6832">Alte activitati pentru tranzactii imobiliare pe baza de comision sau contract</cod>
+  <cod rev="3" value="6910">Activitati juridice</cod>
+  <cod rev="3" value="6920">Activitati de contabilitate si audit financiar; consultanta in domeniul fiscal</cod>
+  <cod rev="3" value="7010">Activitati ale directiilor (centralelor), birourilor administrative centralizate</cod>
+  <cod rev="3" value="7020">Activitati de consultanta in afaceri si management</cod>
+  <cod rev="2" value="7021">Activitati de consultanta in domeniul relatiilor publice si al comunicarii</cod>
+  <cod rev="2" value="7022">Activitati de consultanta pentru afaceri si management</cod>
+  <cod rev="3" value="7111">Activitati de arhitectura</cod>
+  <cod rev="3" value="7112">Activitati de inginerie si consultanta tehnica legate de acestea</cod>
+  <cod rev="3" value="7120">Activitati de testari si analize tehnice</cod>
+  <cod rev="3" value="7210">Cercetare-dezvoltare in stiinte naturale si inginerie</cod>
+  <cod rev="2" value="7211">Cercetare-dezvoltare in biotehnologie</cod>
+  <cod rev="2" value="7219">Cercetare-dezvoltare in alte stiinte naturale si inginerie</cod>
+  <cod rev="3" value="7220">Cercetare-dezvoltare in stiinte sociale si umaniste</cod>
+  <cod rev="3" value="7311">Activitati ale agentiilor de publicitate</cod>
+  <cod rev="3" value="7312">Servicii de reprezentare media</cod>
+  <cod rev="3" value="7320">Activitati de studiere a pietei si de sondare a opiniei publice</cod>
+  <cod rev="3" value="7330">Activitati in domeniul relatiilor publice si al comunicarii</cod>
+  <cod rev="2" value="7410">Activitati de design specializat</cod>
+  <cod rev="3" value="7411">Activitati de design industrial si vestimentar</cod>
+  <cod rev="3" value="7412">Design grafic si activitati de comunicare vizuala</cod>
+  <cod rev="3" value="7413">Activitati de design de interior</cod>
+  <cod rev="3" value="7414">Alte activitati de design specializat</cod>
+  <cod rev="3" value="7420">Activitati fotografice</cod>
+  <cod rev="3" value="7430">Activitati de traducere scrisa si oral (interpreti)</cod>
+  <cod rev="2" value="7490">Alte activitati profesionale, stiintifice si tehnice n.c.a.</cod>
+  <cod rev="3" value="7491">Activitati de brokeraj in materie de brevete si servicii de marketing</cod>
+  <cod rev="3" value="7499">Alte activitati profesionale, stiintifice si tehnice n.c.a.</cod>
+  <cod rev="3" value="7500">Activitati veterinare</cod>
+  <cod rev="3" value="7711">Activitati de inchiriere si leasing cu autoturisme si autovehicule rutiere usoare</cod>
+  <cod rev="3" value="7712">Activitati de inchiriere si leasing cu autovehicule rutiere grele</cod>
+  <cod rev="3" value="7721">Activitati de inchiriere si leasing cu bunuri recreationale si echipament sportiv</cod>
+  <cod rev="3" value="7722">Activitati de inchiriere si leasing cu alte bunuri personale si gospodaresti n.c.a.</cod>
+  <cod rev="2" value="7729">Activitati de inchiriere si leasing cu alte bunuri personale si gospodaresti n.c.a.</cod>
+  <cod rev="3" value="7731">Activitati de inchiriere si leasing cu masini si echipamente agricole</cod>
+  <cod rev="3" value="7732">Activitati de inchiriere si leasing cu masini si echipamente pentru constructii</cod>
+  <cod rev="3" value="7733">Activitati de inchiriere si leasing cu masini si echipamente de birou (inclusiv calculatoare)</cod>
+  <cod rev="3" value="7734">Activitati de inchiriere si leasing cu echipamente de transport pe apa</cod>
+  <cod rev="3" value="7735">Activitati de inchiriere si leasing cu echipamente de transport aerian</cod>
+  <cod rev="3" value="7739">Activitati de inchiriere si leasing cu alte masini, echipamente si bunuri tangibile n.c.a.</cod>
+  <cod rev="3" value="7740">Leasing cu bunuri intangibile (cu exceptia lucrarilor care fac obiectul drepturilor de autor)</cod>
+  <cod rev="3" value="7751">Servicii de intermediere pentru inchirierea si leasingul autoturismelor, autorulotelor si remorcilor</cod>
+  <cod rev="3" value="7752">Servicii de intermediere pentru inchirierea si leasingul altor bunuri corporale si bunuri intangibile (exceptand cele financiare)</cod>
+  <cod rev="3" value="7810">Activitati ale agentiilor de plasare a fortei de munca</cod>
+  <cod rev="3" value="7820">Activitati ale agentiilor de plasare temporara a fortei de munca si furnizarea altor resurse umane</cod>
+  <cod rev="2" value="7830">Servicii de furnizare si management al fortei de munca</cod>
+  <cod rev="3" value="7911">Activitati ale agentiilor turistice</cod>
+  <cod rev="3" value="7912">Activitati ale tur-operatorilor</cod>
+  <cod rev="3" value="7990">Alte servicii de rezervare si asistenta turistica</cod>
+  <cod rev="3" value="8001">Activitati de investigatii si servicii private de protectie</cod>
+  <cod rev="3" value="8009">Alte activitati de protectie n.c.a.</cod>
+  <cod rev="2" value="8010">Activitati de protectie si garda</cod>
+  <cod rev="2" value="8020">Activitati de servicii privind sistemele de securizare</cod>
+  <cod rev="2" value="8030">Activitati de investigatii</cod>
+  <cod rev="3" value="8110">Activitati de servicii suport combinate</cod>
+  <cod rev="3" value="8121">Activitati generale de curatenie a cladirilor</cod>
+  <cod rev="3" value="8122">Activitati specializate de curatenie</cod>
+  <cod rev="3" value="8123">Alte activitati de curatenie</cod>
+  <cod rev="2" value="8129">Alte activitati de curatenie</cod>
+  <cod rev="3" value="8130">Activitati de intretinere peisagistica</cod>
+  <cod rev="3" value="8210">Activitati de secretariat si servicii suport</cod>
+  <cod rev="2" value="8211">Activitati combinate de secretariat</cod>
+  <cod rev="2" value="8219">Activitati de fotocopiere, de pregatire a documentelor si alte activitati specializate de secretariat</cod>
+  <cod rev="3" value="8220">Activitati ale centrelor de intermediere telefonica (call center)</cod>
+  <cod rev="3" value="8230">Activitati de organizare a expozitiilor, targurilor si congreselor</cod>
+  <cod rev="3" value="8240">Activitati de intermediere pentru servicii suport pentru intreprinderi n.c.a.</cod>
+  <cod rev="3" value="8291">Activitati ale agentiilor de colectare si a birourilor (oficiilor) de raportare a creditului</cod>
+  <cod rev="3" value="8292">Activitati de ambalare</cod>
+  <cod rev="3" value="8299">Alte activitati de servicii suport pentru intreprinderi n.c.a.</cod>
+  <cod rev="3" value="8411">Activitati de administratie publica generala</cod>
+  <cod rev="3" value="8412">Reglementarea activitatilor organismelor care presteaza servicii in domeniul ingrijirii sanatatii, invatamantului, culturii si al altor activitati sociale, exceptand protectia sociala</cod>
+  <cod rev="3" value="8413">Reglementarea si eficientizarea activitatilor economice</cod>
+  <cod rev="3" value="8421">Activitati de afaceri externe</cod>
+  <cod rev="3" value="8422">Activitati de aparare nationala</cod>
+  <cod rev="3" value="8423">Activitati de justitie</cod>
+  <cod rev="3" value="8424">Activitati de ordine publica si de protectie civila</cod>
+  <cod rev="3" value="8425">Activitati de lupta impotriva incendiilor si de prevenire a acestora</cod>
+  <cod rev="3" value="8430">Activitati de protectie sociala obligatorie</cod>
+  <cod rev="3" value="8510">Invatamant prescolar</cod>
+  <cod rev="3" value="8520">Invatamant primar</cod>
+  <cod rev="3" value="8531">Invatamant secundar general</cod>
+  <cod rev="3" value="8532">Invatamant secundar, tehnic sau profesional</cod>
+  <cod rev="3" value="8533">Invatamant post-secundar, non-universitar</cod>
+  <cod rev="3" value="8540">Invatamant superior universitar</cod>
+  <cod rev="2" value="8541">Invatamant superior non-universitar</cod>
+  <cod rev="2" value="8542">Invatamant superior universitar</cod>
+  <cod rev="3" value="8551">Invatamant in domeniul sportiv si recreational</cod>
+  <cod rev="3" value="8552">Invatamant in domeniul cultural (muzica, teatru, dans, arte plastice, etc.)</cod>
+  <cod rev="3" value="8553">Scoli de conducere (pilotaj)</cod>
+  <cod rev="3" value="8559">Alte forme de invatamant n.c.a.</cod>
+  <cod rev="2" value="8560">Activitati de servicii suport pentru invatamant</cod>
+  <cod rev="3" value="8561">Activitati de intermediere pentru cursuri si tutori (indrumatori, profesori)</cod>
+  <cod rev="3" value="8569">Activitati de servicii suport pentru invatamant</cod>
+  <cod rev="3" value="8610">Activitati de asistenta spitaliceasca</cod>
+  <cod rev="3" value="8621">Activitati de asistenta medicala generala</cod>
+  <cod rev="3" value="8622">Activitati de asistenta medicala specializata</cod>
+  <cod rev="3" value="8623">Activitati de asistenta stomatologica</cod>
+  <cod rev="2" value="8690">Alte activitati referitoare la sanatatea umana</cod>
+  <cod rev="3" value="8691">Servicii de diagnostic imagistic si activitati ale laboratoarelor medicale</cod>
+  <cod rev="3" value="8692">Transportul pacientilor cu ambulanta</cod>
+  <cod rev="3" value="8693">Activitati ale psihologilor si psihoterapeutilor, cu exceptia medicilor</cod>
+  <cod rev="3" value="8694">Activitati ale infirmierelor si moaselor</cod>
+  <cod rev="3" value="8695">Activitati de fizioterapie</cod>
+  <cod rev="3" value="8696">Activitati de medicina traditionala, complementara si alternativa</cod>
+  <cod rev="3" value="8697">Servicii de intermediere pentru servicii medicale, stomatologice si pentru alte servicii referitoare la sanatatea umana</cod>
+  <cod rev="3" value="8699">Alte activitati referitoare la sanatatea umana n.c.a.</cod>
+  <cod rev="3" value="8710">Activitati ale centrelor de ingrijire medicala</cod>
+  <cod rev="3" value="8720">Activitati ale centrelor de recuperare psihica si de dezintoxicare, exclusiv spitale</cod>
+  <cod rev="3" value="8730">Activitati ale caminelor de batrani si ale caminelor pentru persoane cu dizabilitati aflate in incapacitate de a se ingriji singure</cod>
+  <cod rev="2" value="8790">Alte activitati de asistenta sociala, cu cazare n.c.a.</cod>
+  <cod rev="3" value="8791">Activitati de intermediere pentru servicii de ingrijire la domiciliu</cod>
+  <cod rev="3" value="8799">Alte activitati de asistenta sociala, cu cazare n.c.a.</cod>
+  <cod rev="3" value="8810">Activitati de asistenta sociala, fara cazare, pentru batrani si pentru persoane cu dizabilitati aflate in incapacitate de a se ingriji singure</cod>
+  <cod rev="3" value="8891">Activitati de ingrijire zilnica pentru copii</cod>
+  <cod rev="3" value="8899">Alte activitati de asistenta sociala, fara cazare, n.c.a.</cod>
+  <cod rev="2" value="9001">Activitati de interpretare artistica (spectacole)</cod>
+  <cod rev="2" value="9002">Activitati suport pentru interpretarea artistica (spectacole)</cod>
+  <cod rev="2" value="9003">Activitati de creatie artistica</cod>
+  <cod rev="2" value="9004">Activitati de gestionare a salilor de spectacole</cod>
+  <cod rev="3" value="9011">Activitati de creatie literara si compozitie muzicala</cod>
+  <cod rev="3" value="9012">Activitati de creatie in domeniul artelor vizuale</cod>
+  <cod rev="3" value="9013">Alte activitati de creatie artistica</cod>
+  <cod rev="3" value="9020">Activitati de interpretare artistica (spectacole)</cod>
+  <cod rev="3" value="9031">Activitati de gestionare a salilor si amplasamentelor de spectacole</cod>
+  <cod rev="3" value="9039">Alte activitati suport pentru creatie si interpretare artistica</cod>
+  <cod rev="2" value="9101">Activitati ale bibliotecilor si arhivelor</cod>
+  <cod rev="2" value="9102">Activitati ale muzeelor</cod>
+  <cod rev="2" value="9103">Gestionarea monumentelor, cladirilor istorice si a altor obiective de interes turistic</cod>
+  <cod rev="2" value="9104">Activitati ale gradinilor zoologice, botanice si ale rezervatiilor naturale</cod>
+  <cod rev="3" value="9111">Activitati ale bibliotecilor</cod>
+  <cod rev="3" value="9112">Activitati ale arhivelor</cod>
+  <cod rev="3" value="9121">Activitati ale muzeelor si colectiilor</cod>
+  <cod rev="3" value="9122">Activitati ale siturilor si monumentelor istorice</cod>
+  <cod rev="3" value="9130">Activitati de conservare, restaurare si alte activitati suport pentru patrimoniul cultural</cod>
+  <cod rev="3" value="9141">Activitati ale gradinilor botanice si zoologice</cod>
+  <cod rev="3" value="9142">Activitati ale rezervatiilor naturale</cod>
+  <cod rev="3" value="9200">Activitati de jocuri de noroc si pariuri</cod>
+  <cod rev="3" value="9311">Activitati ale bazelor sportive</cod>
+  <cod rev="3" value="9312">Activitati ale cluburilor sportive</cod>
+  <cod rev="3" value="9313">Activitati ale centrelor de fitness</cod>
+  <cod rev="3" value="9319">Alte activitati sportive n.c.a.</cod>
+  <cod rev="3" value="9321">Activitati ale parcurilor tematice si de distractii</cod>
+  <cod rev="3" value="9329">Alte activitati recreative si distractive n.c.a.</cod>
+  <cod rev="3" value="9411">Activitati ale organizatiilor economice si patronale</cod>
+  <cod rev="3" value="9412">Activitati ale organizatiilor profesionale</cod>
+  <cod rev="3" value="9420">Activitati ale sindicatelor salariatilor</cod>
+  <cod rev="3" value="9491">Activitati ale organizatiilor religioase</cod>
+  <cod rev="3" value="9492">Activitati ale organizatiilor politice</cod>
+  <cod rev="3" value="9499">Activitati ale altor organizatii n.c.a.</cod>
+  <cod rev="3" value="9510">Repararea si intretinerea calculatoarelor si a echipamentelor de comunicatii</cod>
+  <cod rev="2" value="9511">Repararea calculatoarelor si a echipamentelor periferice</cod>
+  <cod rev="2" value="9512">Repararea echipamentelor de comunicatii</cod>
+  <cod rev="3" value="9521">Repararea si intretinerea aparatelor electronice de uz casnic</cod>
+  <cod rev="3" value="9522">Repararea si intretinerea dispozitivelor de uz gospodaresc si a echipamentelor pentru casa si gradina</cod>
+  <cod rev="3" value="9523">Repararea si intretinerea incaltamintei si a articolelor din piele</cod>
+  <cod rev="3" value="9524">Repararea si intretinerea mobilei si a furniturilor casnice</cod>
+  <cod rev="3" value="9525">Repararea si intretinerea ceasurilor si a bijuteriilor</cod>
+  <cod rev="3" value="9529">Repararea si intretinerea articolelor de uz personal si gospodaresc n.c.a.</cod>
+  <cod rev="3" value="9531">Repararea si intretinerea autovehiculelor</cod>
+  <cod rev="3" value="9532">Repararea si intretinerea motocicletelor</cod>
+  <cod rev="3" value="9540">Servicii de intermediere pentru repararea si intretinerea calculatoarelor, a articolelor personale si de uz gospodaresc, a autovehiculelor si motocicletelor</cod>
+  <cod rev="2" value="9601">Spalarea si curatarea (uscat) a articolelor textile si a produselor din blana</cod>
+  <cod rev="2" value="9602">Coafura si alte activitati de infrumusetare</cod>
+  <cod rev="2" value="9603">Activitati de pompe funebre si similare</cod>
+  <cod rev="2" value="9604">Activitati de intretinere corporala</cod>
+  <cod rev="2" value="9609">Alte activitati de servicii n.c.a.</cod>
+  <cod rev="3" value="9610">Spalarea si curatarea articolelor textile si a produselor din blana</cod>
+  <cod rev="3" value="9621">Activitati de coafura si frizerie</cod>
+  <cod rev="3" value="9622">Activitati de tratament si infrumusetare</cod>
+  <cod rev="3" value="9623">Activitati ale centrelor spa, saunelor si bailor de abur</cod>
+  <cod rev="3" value="9630">Activitati de pompe funebre si similare</cod>
+  <cod rev="3" value="9640">Activitati de intermediere pentru servicii personale</cod>
+  <cod rev="3" value="9691">Activitati de servicii personale la domiciliu</cod>
+  <cod rev="3" value="9699">Alte servicii personale n.c.a.</cod>
+  <cod rev="3" value="9700">Activitati ale gospodariilor private in calitate de angajator de personal casnic</cod>
+  <cod rev="3" value="9810">Activitati ale gospodariilor private de producere de bunuri destinate consumului propriu</cod>
+  <cod rev="3" value="9820">Activitati ale gospodariilor private de producere de servicii pentru scopuri proprii</cod>
+  <cod rev="3" value="9900">Activitati ale organizatiilor si organismelor extrateritoriale</cod>
+</CAEN>

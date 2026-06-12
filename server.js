@@ -8,6 +8,13 @@ const { execFile } = require('child_process');
 const ledger = require('./ledger');
 const db = require('./db');
 let Tesseract = null; // lazy-loaded on first OCR use
+const { BNR_EXCHANGE_RATES, parseNumber } = require('./lib/rates');
+const { parseXtbDividends, parseXtbPortfolio } = require('./lib/parsers/xtb');
+const { parseBtDividends, parseBtPortfolio } = require('./lib/parsers/bt');
+const { parseRevolutStatement } = require('./lib/parsers/revolut');
+const { buildD212Xml } = require('./lib/d212-xml-builder');
+const { buildAuditPack } = require('./lib/audit-pack-builder');
+const { parseD212Xml } = require('./lib/d212-xml-parser');
 
 // ============ PaddleOCR CONFIGURATION ============
 const PADDLEOCR_SCRIPT = path.join(__dirname, 'ocr_service.py');
@@ -196,6 +203,25 @@ app.use(express.static(path.join(__dirname, 'public'), {
   }
 }));
 
+// Expose specific lib/ modules to the browser so the calc engine in app.js
+// can consume the SAME code path the server-side tests cover (no inline
+// mirror to keep in sync). Whitelisted to known dual-target modules — any
+// new lib/ module that should be browser-callable must be added here AND
+// gain a guarded `if (typeof window !== 'undefined') window.X = ...` shim.
+const BROWSER_LIB_FILES = new Set([
+  'source-resolver.js',
+  'income-resolvers.js',
+  'rules-catalog.js',
+]);
+app.get('/lib/:filename', (req, res) => {
+  const filename = path.basename(req.params.filename);
+  if (!BROWSER_LIB_FILES.has(filename)) {
+    return res.status(404).end();
+  }
+  res.setHeader('Cache-Control', 'no-cache');
+  res.sendFile(path.join(__dirname, 'lib', filename));
+});
+
 // File upload config - accept PDFs and images
 const upload = multer({
   dest: UPLOADS_DIR,
@@ -306,10 +332,17 @@ app.put('/api/data/:year', (req, res) => {
     const manualFields = [
       'usBroker', 'roBroker', 'fidelityDividends', 'usDivTaxPaid',
       'xtbDividends', 'roDivTaxPaid', 'fidelityGains', 'fidelityCost',
-      'interestIncome', 'rentalIncome', 'rentalTaxPaid', 'royaltyIncome',
+      'roEurDividends', 'roEurDivTaxPaid', 'roUsdDividends', 'roUsdDivTaxPaid',
+      'roEurInterest', 'roEurInterestTaxPaid', 'roUsdInterest', 'roUsdInterestTaxPaid',
+      'interestIncome', 'interestTaxPaid', 'rentalIncome', 'rentalTaxPaid', 'royaltyIncome',
       'royaltyTaxPaid', 'gamblingIncome', 'gamblingTaxPaid', 'otherIncome',
-      'otherTaxPaid', 'stockWithholdingPaid', 'exchangeRate', 'minSalary',
-      'd212Deadline', 'roGainsCountries', 'priorLosses'
+      'otherTaxPaid', 'stockWithholdingPaid', 'exchangeRate', 'eurRate', 'minSalary',
+      'd212Deadline', 'roGainsCountries', 'priorLosses', 'pfaNetIncome', 'pfaOptInCASS',
+      // Inline-edit correction reasons (paired with the manual-override fields above).
+      // Persisted so the manual_data_*_raw.txt audit trail records WHY a value was overridden.
+      'fidelityDividendsReason', 'usDivTaxPaidReason', 'xtbDividendsReason',
+      'roDivTaxPaidReason', 'fidelityGainsReason', 'interestIncomeReason',
+      'interestTaxPaidReason'
     ];
     const hasManualData = manualFields.some(f => {
       const v = req.body[f];
@@ -324,7 +357,8 @@ app.put('/api/data/:year', (req, res) => {
         if (f === 'roGainsCountries' && Array.isArray(v)) {
           lines.push(`${f}:`);
           for (const c of v) {
-            lines.push(`  ${c.country || '?'}\t≥1yr: ${c.longGain || 0}\t<1yr: ${c.shortGain || 0}\tTax: ${c.taxWithheld || 0}`);
+            const cur = c.currency || 'RON';
+            lines.push(`  ${c.country || '?'}\t[${cur}]\t≥1yr: ${c.longGain || 0}\t<1yr: ${c.shortGain || 0}\tTax: ${c.taxWithheld || 0}`);
           }
         } else {
           lines.push(`${f}\t${v}`);
@@ -335,6 +369,50 @@ app.put('/api/data/:year', (req, res) => {
     }
 
     res.json({ success: true, data: merged });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/duf-parse — accepts a raw D212 XML (e.g. downloaded from the
+// ANAF DUF portal) as `text/xml` or `application/xml` body, runs it through
+// lib/d212-xml-parser, and returns the structured payload. STATELESS: the
+// XML body is parsed in memory and the response goes back; nothing is
+// written to disk. PII handling stays with the client.
+//
+// The client (public/js/app.js) calls this endpoint when the user drops an
+// XML onto the DUF import dropzone in the Submission Guide tab. The
+// structured response feeds the side-by-side comparison against what
+// computeYearData has locally.
+app.post('/api/duf-parse', express.text({ type: ['application/xml', 'text/xml', 'text/plain'], limit: '5mb' }), (req, res) => {
+  try {
+    const xml = typeof req.body === 'string' ? req.body : '';
+    if (!xml.trim()) {
+      return res.status(400).json({ error: 'Empty XML body' });
+    }
+    const parsed = parseD212Xml(xml);
+    res.json({ success: true, parsed });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /api/d212-xml/:year - Build a D212 XML for the year using precomputed
+// row data sent in the request body. The client (computeYearData in app.js)
+// already produces cap11Rows / cap14Rows; we just package them into the
+// schema-conforming XML envelope. Personal data is optional — see
+// lib/d212-xml-builder.js for the placeholder behavior.
+app.post('/api/d212-xml/:year', (req, res) => {
+  try {
+    const year = parseInt(req.params.year, 10);
+    if (isNaN(year) || year < 2000 || year > 2100) {
+      return res.status(400).json({ error: 'Invalid year' });
+    }
+    const { cap11Rows = [], cap14Rows = [], obligRealizat = null, personalData = null } = req.body || {};
+    const xml = buildD212Xml({ year, cap11Rows, cap14Rows, obligRealizat, personalData });
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="D212_${year}_skeleton.xml"`);
+    res.send(xml);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -351,6 +429,163 @@ app.get('/api/raw', (req, res) => {
     res.json(result);
   } catch (err) {
     res.json([]);
+  }
+});
+
+// POST /api/export/audit-pack/:year
+//
+// Build a ZIP archive containing every supporting document needed to
+// reproduce the D212 declaration for the given year. The pack is
+// deterministic — same inputs produce byte-identical output — and is
+// streamed directly back to the browser, NEVER persisted on disk or
+// posted to any external service (P3 spec).
+//
+// Optional body: { computed: { ... computeYearData output ... }, generatedXml: '...' }
+// (UI passes these because they only exist client-side.)
+app.post('/api/export/audit-pack/:year', (req, res) => {
+  try {
+    const year = parseInt(req.params.year, 10);
+    if (!year || year < 2019 || year > 2099) {
+      return res.status(400).json({ error: 'Invalid year' });
+    }
+    const yearData = db.getYearData(year) || {};
+    const computed = req.body && req.body.computed ? req.body.computed : null;
+    const generatedXml = req.body && req.body.generatedXml ? String(req.body.generatedXml) : null;
+
+    // Collect raw broker text files for this year. We keep the filename
+    // as the broker emitted it (matches the data/ folder convention),
+    // sorted for deterministic ordering.
+    const rawSuffix = `_${year}_raw.txt`;
+    const rawFiles = [];
+    try {
+      const names = fs.readdirSync(DATA_DIR)
+        // Defense-in-depth: ignore anything that looks like a path traversal
+        // attempt or subdirectory navigation. The endsWith check already
+        // excludes most files, but a symlink/junction with the right suffix
+        // could still slip through and have the system read an unrelated file.
+        .filter(f => f.endsWith(rawSuffix) && !f.includes('..') && !f.includes('/') && !f.includes('\\'))
+        .sort();
+      for (const name of names) {
+        const fullPath = path.join(DATA_DIR, name);
+        // Skip symlinks/junctions whose target resolves outside DATA_DIR.
+        try {
+          const real = fs.realpathSync(fullPath);
+          if (!real.startsWith(DATA_DIR)) continue;
+        } catch (e) { continue; }
+        const content = fs.readFileSync(fullPath, 'utf8');
+        rawFiles.push({ name, content });
+      }
+    } catch (e) {
+      // Best-effort — if data dir read fails, ship the pack without raw files.
+    }
+
+    let appVersion = '';
+    try {
+      const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+      appVersion = pkg.version || '';
+    } catch (e) { /* ignore */ }
+
+    const buf = buildAuditPack({ year, yearData, computed, rawFiles, generatedXml, appVersion });
+
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const filename = `D212-audit-pack-${year}-${today}.zip`;
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', String(buf.length));
+    res.send(buf);
+  } catch (err) {
+    console.error('[audit-pack]', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/year/:year/reset-preview
+//
+// Returns a manifest of EVERYTHING that the "Reset year" action would wipe,
+// without actually changing any state. Used by the confirmation modal so the
+// user can see exactly what they are about to lose (raw files, trades, ledger
+// entries, assigned stock awards, parsed year_data).
+app.get('/api/year/:year/reset-preview', (req, res) => {
+  try {
+    const year = parseInt(req.params.year, 10);
+    if (!year || year < 2019 || year > 2099) {
+      return res.status(400).json({ error: 'Invalid year' });
+    }
+    const rawSuffix = `_${year}_raw.txt`;
+    let rawFiles = [];
+    try {
+      rawFiles = fs.readdirSync(DATA_DIR).filter(f => f.endsWith(rawSuffix)).sort();
+    } catch (_) { /* DATA_DIR may not exist yet */ }
+    const yearData = db.getYearData(year) || {};
+    const yearDataFields = Object.keys(yearData).filter(k => k !== 'year');
+    const tradeCount = db.getTradesByYear(year).length;
+    const stockAwards = (db.getAllStockAwards() || []).filter(a => a._assignedYear === year);
+    const ledgerEntries = (ledger.load().entries || []).filter(e => !e.deleted && e.year === year);
+    const vestCount = ledgerEntries.filter(e => e.type === 'stock_vest').length;
+    const saleCount = ledgerEntries.filter(e => e.type === 'sale').length;
+    res.json({
+      year,
+      rawFiles,
+      yearDataFields,
+      tradeCount,
+      stockAwardsAssigned: stockAwards.length,
+      ledgerVests: vestCount,
+      ledgerSales: saleCount,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/year/:year
+//
+// "Reset year" action. Wipes every piece of state tied to the year:
+//   1. Removes all data/{type}_{year}_raw.txt files (source-of-truth uploads)
+//   2. Deletes the year_data row (parsed Fidelity, XTB, 1042-S, manual entries)
+//   3. Deletes trades whose intrinsic year matches
+//   4. Soft-deletes ledger vest + sale entries for the year
+//   5. Unassigns stock awards manually assigned to this year (kept in DB so
+//      other years are not affected; user can reassign on Add Data)
+// Stock awards records themselves are NOT deleted because they are global
+// (multi-year). Documents from other years remain untouched.
+app.delete('/api/year/:year', (req, res) => {
+  try {
+    const year = parseInt(req.params.year, 10);
+    if (!year || year < 2019 || year > 2099) {
+      return res.status(400).json({ error: 'Invalid year' });
+    }
+
+    const summary = { rawFilesDeleted: 0, yearDataDeleted: false, tradesDeleted: 0,
+      vestsDeleted: 0, salesDeleted: 0, awardsUnassigned: 0 };
+
+    // 1. Raw files
+    const rawSuffix = `_${year}_raw.txt`;
+    try {
+      const files = fs.readdirSync(DATA_DIR).filter(f => f.endsWith(rawSuffix));
+      for (const f of files) {
+        try { fs.unlinkSync(path.join(DATA_DIR, f)); summary.rawFilesDeleted++; } catch (_) { /* ignore */ }
+      }
+    } catch (_) { /* DATA_DIR missing - nothing to delete */ }
+
+    // 2. year_data
+    const existing = db.getYearData(year);
+    if (existing) {
+      db.deleteYear(year);
+      summary.yearDataDeleted = true;
+    }
+
+    // 3. Trades (intrinsic year)
+    summary.tradesDeleted = db.deleteTradesByYear(year);
+
+    // 4 + 5. Ledger + stock awards
+    const purge = ledger.purgeYear(year);
+    summary.vestsDeleted = purge.vestsDeleted;
+    summary.salesDeleted = purge.salesDeleted;
+    summary.awardsUnassigned = purge.awardsUnassigned;
+
+    res.json({ ok: true, year, ...summary });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -384,10 +619,12 @@ app.delete('/api/raw/:filename', (req, res) => {
           const manualKeys = [
             'usBroker', 'roBroker', 'fidelityDividends', 'usDivTaxPaid',
             'xtbDividends', 'roDivTaxPaid', 'fidelityGains', 'fidelityCost',
+            'roEurDividends', 'roEurDivTaxPaid', 'roUsdDividends', 'roUsdDivTaxPaid',
+            'roEurInterest', 'roEurInterestTaxPaid', 'roUsdInterest', 'roUsdInterestTaxPaid',
             'interestIncome', 'interestTaxPaid', 'rentalIncome', 'rentalTaxPaid', 'royaltyIncome',
             'royaltyTaxPaid', 'gamblingIncome', 'gamblingTaxPaid', 'otherIncome',
-            'otherTaxPaid', 'stockWithholdingPaid', 'salaryTaxedIncome', 'exchangeRate', 'minSalary',
-            'd212Deadline', 'roGainsCountries', 'taxRates', 'priorLosses'
+            'otherTaxPaid', 'stockWithholdingPaid', 'salaryTaxedIncome', 'exchangeRate', 'eurRate', 'minSalary',
+            'd212Deadline', 'roGainsCountries', 'taxRates', 'priorLosses', 'pfaNetIncome', 'pfaOptInCASS'
           ];
           for (const k of manualKeys) {
             delete yearData[k];
@@ -395,6 +632,9 @@ app.delete('/api/raw/:filename', (req, res) => {
         }
         if (type === 'xtb_dividends') delete yearData.xtbDividendsReport;
         if (type === 'xtb_portfolio') delete yearData.xtbPortfolio;
+        if (type === 'bt_dividends') delete yearData.btDividendsReport;
+        if (type === 'bt_portfolio') delete yearData.btPortfolio;
+        if (type === 'revolut_statement') delete yearData.revolutStatement;
         if (type === 'tradeville_portfolio') delete yearData.tradevillePortfolio;
         if (type === 'ms_statement') {
           delete yearData.msStatement;
@@ -525,12 +765,15 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
     const { year, type } = req.body;
+    // dryRun: parse the document and return what WOULD be saved, but persist nothing.
+    // Used by the UI to show an override-confirmation diff before committing.
+    const dryRun = req.query.dryRun === 'true' || req.query.dryRun === '1' || req.body.dryRun === 'true';
     const parsedYear = parseInt(year, 10);
     if (isNaN(parsedYear) || parsedYear < 2000 || parsedYear > 2100) {
       fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: 'Invalid year' });
     }
-    const validTypes = ['declaratie', 'investment', 'adeverinta', 'stock_award', 'trade_confirmation', 'xtb_dividends', 'xtb_portfolio', 'form_1042s', 'ms_statement', 'tradeville_portfolio', 'fidelity_statement'];
+    const validTypes = ['declaratie', 'investment', 'adeverinta', 'stock_award', 'trade_confirmation', 'xtb_dividends', 'xtb_portfolio', 'bt_dividends', 'bt_portfolio', 'revolut_statement', 'form_1042s', 'ms_statement', 'tradeville_portfolio', 'fidelity_statement'];
     if (!validTypes.includes(type)) {
       fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: 'Invalid type. Must be: ' + validTypes.join(', ') });
@@ -588,15 +831,19 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         const xmlData = extractAnafD212Xml(buffer);
         if (xmlData) {
           log('INFO', 'Extracted ANAF D-212 data from embedded XML');
-          // Save raw XML for reference
-          const rawFile = `${type}_${parsedYear}_raw.txt`;
-          fs.writeFileSync(path.join(DATA_DIR, rawFile), '[ANAF D-212 XML]\n' + JSON.stringify(xmlData, null, 2), 'utf8');
-          // Clean up
-          fs.unlinkSync(req.file.path);
-          if (paddleFilePath !== req.file.path && fs.existsSync(paddleFilePath)) fs.unlinkSync(paddleFilePath);
-          // Store parsed data
-          db.mergeYearData(parsedYear, { [type]: xmlData });
-          return res.json({ success: true, year: parsedYear, type, parsed: xmlData, ocrEngine: 'xml' });
+          // Clean up uploaded artifacts regardless of dryRun
+          try { fs.unlinkSync(req.file.path); } catch {}
+          if (paddleFilePath !== req.file.path && fs.existsSync(paddleFilePath)) {
+            try { fs.unlinkSync(paddleFilePath); } catch {}
+          }
+          if (!dryRun) {
+            // Save raw XML for reference
+            const rawFile = `${type}_${parsedYear}_raw.txt`;
+            fs.writeFileSync(path.join(DATA_DIR, rawFile), '[ANAF D-212 XML]\n' + JSON.stringify(xmlData, null, 2), 'utf8');
+            // Store parsed data
+            db.mergeYearData(parsedYear, { [type]: xmlData });
+          }
+          return res.json({ success: true, dryRun, year: parsedYear, type, parsed: xmlData, ocrEngine: 'xml' });
         }
         // If XML extraction failed, fall through to OCR
         log('WARN', 'ANAF D-212 XML extraction failed, trying OCR...');
@@ -651,7 +898,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
     // If OCR fallback was used, check quality for generic document types
     // Types with their own quality checks (tradeville, trade_confirmation, fidelity, etc.) are handled downstream
-    const SELF_VALIDATED_TYPES = ['tradeville_portfolio', 'trade_confirmation', 'form_1042s', 'ms_statement', 'xtb_dividends', 'xtb_portfolio', 'stock_award', 'fidelity_statement'];
+    const SELF_VALIDATED_TYPES = ['tradeville_portfolio', 'trade_confirmation', 'form_1042s', 'ms_statement', 'xtb_dividends', 'xtb_portfolio', 'bt_dividends', 'bt_portfolio', 'revolut_statement', 'stock_award', 'fidelity_statement'];
     if (usedOcrFallback && !SELF_VALIDATED_TYPES.includes(type)) {
       const realizatMatches = text.match(/Realizat\s+\d+/gi) || [];
       if (realizatMatches.length === 0) {
@@ -680,23 +927,28 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     // Save raw text (append for trade confirmations and fidelity statements, overwrite for others)
     const rawFile = `${type}_${parsedYear}_raw.txt`;
     const rawPath = path.join(DATA_DIR, rawFile);
-    if (type === 'trade_confirmation' && fs.existsSync(rawPath)) {
-      fs.appendFileSync(rawPath, '\n\n--- NEW TRADE CONFIRMATION ---\n\n' + text, 'utf8');
-    } else if (type === 'fidelity_statement' && fs.existsSync(rawPath)) {
-      fs.appendFileSync(rawPath, '\n\n--- NEW FIDELITY STATEMENT ---\n\n' + text, 'utf8');
-    } else {
-      fs.writeFileSync(rawPath, text, 'utf8');
+    if (!dryRun) {
+      if (type === 'trade_confirmation' && fs.existsSync(rawPath)) {
+        fs.appendFileSync(rawPath, '\n\n--- NEW TRADE CONFIRMATION ---\n\n' + text, 'utf8');
+      } else if (type === 'fidelity_statement' && fs.existsSync(rawPath)) {
+        fs.appendFileSync(rawPath, '\n\n--- NEW FIDELITY STATEMENT ---\n\n' + text, 'utf8');
+      } else {
+        fs.writeFileSync(rawPath, text, 'utf8');
+      }
     }
 
     // Clean up uploaded file (and PaddleOCR extension copy if created)
-    fs.unlinkSync(req.file.path);
+    try { fs.unlinkSync(req.file.path); } catch {}
     if (paddleFilePath !== req.file.path && fs.existsSync(paddleFilePath)) {
-      fs.unlinkSync(paddleFilePath);
+      try { fs.unlinkSync(paddleFilePath); } catch {}
     }
 
     // Stock award documents get special handling (append, not overwrite)
     if (type === 'stock_award') {
       const stockData = parseStockAward(text, parsedYear);
+      if (dryRun) {
+        return res.json({ success: true, dryRun, year: parsedYear, type, parsed: stockData });
+      }
       // Dedup: skip rows with same datastat date already present
       let added = 0, skipped = 0;
       for (const row of stockData.rows) {
@@ -716,6 +968,9 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     if (type === 'trade_confirmation') {
       const trade = parseTradeConfirmation(text, parsedYear);
       trade.source = 'trade_confirmation';
+      if (dryRun) {
+        return res.json({ success: true, dryRun, year: parsedYear, type, parsed: trade });
+      }
       // Avoid duplicates by checking ref number or cross-source dedup
       const isDuplicate = !db.addTradeIfNotDuplicate(trade);
       // Aggregate trades for this year (separate sales from purchases)
@@ -744,35 +999,101 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     // XTB Dividends & Interest report
     if (type === 'xtb_dividends') {
       const parsed = parseXtbDividends(text, parsedYear);
-      db.mergeYearData(parsedYear, { xtbDividendsReport: parsed });
-      return res.json({ success: true, year: parsedYear, type, parsed });
+      if (!dryRun) db.mergeYearData(parsedYear, { xtbDividendsReport: parsed });
+      return res.json({ success: true, dryRun, year: parsedYear, type, parsed });
     }
 
     // XTB Portfolio (Capital Gains)
     if (type === 'xtb_portfolio') {
       const parsed = parseXtbPortfolio(text, parsedYear);
-      db.mergeYearData(parsedYear, { xtbPortfolio: parsed });
-      return res.json({ success: true, year: parsedYear, type, parsed });
+      if (!dryRun) db.mergeYearData(parsedYear, { xtbPortfolio: parsed });
+      return res.json({ success: true, dryRun, year: parsedYear, type, parsed });
     }
 
-    // Form 1042-S (US tax withholding on foreign person's income)
+    // BT Capital Partners — Fisa Dividende (DIVIDENDE/DOBANZI INCASATE PE
+    // PIETE EXTERNE). Stored under btDividendsReport to keep BT and XTB
+    // visible side-by-side in the resolver and Add Data UI.
+    if (type === 'bt_dividends') {
+      // Symmetric content check (see bt_portfolio handler below for context).
+      const looksLikeDividends = /DIVIDENDE\s*\/\s*DOBANZI\s+INCASATE/i.test(text);
+      const looksLikePortfolio = /FISA\s+DE\s+PORTOFOLIU|Transferul\s+titlurilor/i.test(text);
+      if (!looksLikeDividends && looksLikePortfolio) {
+        if (!dryRun) {
+          try { fs.unlinkSync(path.join(DATA_DIR, `bt_dividends_${parsedYear}_raw.txt`)); } catch (_) {}
+        }
+        return res.status(400).json({
+          error: 'Fișierul încărcat pare să fie BT Fișă de Portofoliu, nu Fișă Dividende. Selectează tipul „Romania (BT Capital Partners) - Portfolio Sheet" în loc de „Fișă Dividende".',
+          contentMismatch: true,
+        });
+      }
+      const parsed = parseBtDividends(text, parsedYear);
+      if (!dryRun) db.mergeYearData(parsedYear, { btDividendsReport: parsed });
+      return res.json({ success: true, dryRun, year: parsedYear, type, parsed });
+    }
+
+    // BT Capital Partners — Fisa de Portofoliu (capital gains per country).
+    if (type === 'bt_portfolio') {
+      // Validate the PDF content actually matches the requested type. The
+      // FisaDividende and FisaPortofoliu share a similar header layout and
+      // are easy to swap — if the user picks the wrong dropdown the parser
+      // silently produces an empty result. Detect the mismatch early.
+      const looksLikePortfolio = /FISA\s+DE\s+PORTOFOLIU|Transferul\s+titlurilor/i.test(text);
+      const looksLikeDividends = /DIVIDENDE\s*\/\s*DOBANZI\s+INCASATE/i.test(text);
+      if (!looksLikePortfolio && looksLikeDividends) {
+        if (!dryRun) {
+          try { fs.unlinkSync(path.join(DATA_DIR, `bt_portfolio_${parsedYear}_raw.txt`)); } catch (_) {}
+        }
+        return res.status(400).json({
+          error: 'Fișierul încărcat pare să fie BT Fișă Dividende, nu Fișă de Portofoliu. Selectează tipul „Romania (BT Capital Partners) - Fișă Dividende" în loc de „Fișă de Portofoliu".',
+          contentMismatch: true,
+        });
+      }
+      const parsed = parseBtPortfolio(text, parsedYear);
+      if (!dryRun) db.mergeYearData(parsedYear, { btPortfolio: parsed });
+      return res.json({ success: true, dryRun, year: parsedYear, type, parsed });
+    }
+
+    // Revolut Securities Europe UAB — consolidated annual statement. Treated
+    // as foreign-source income (D212 cap14, str_categ_venit=2012) because
+    // Revolut UAB is a Lithuanian non-resident broker. Revolut does NOT
+    // withhold tax at source on capital gains → str_credit_fiscal = 0.
+    if (type === 'revolut_statement') {
+      const parsed = parseRevolutStatement(text, parsedYear);
+      if (!dryRun) db.mergeYearData(parsedYear, { revolutStatement: parsed });
+      return res.json({ success: true, dryRun, year: parsedYear, type, parsed });
+    }
+
+    // Form 1042-S (US tax withholding on foreign person's income).
+    // A single PDF can contain multiple distinct forms (one per income code)
+    // each printed across 3 copies (A/B/C). parseForm1042S returns a deduped
+    // {forms: [...]} array; we then dedup again against the year's existing
+    // stored forms by uniqueFormId.
     if (type === 'form_1042s') {
       const parsed = parseForm1042S(text, parsedYear);
+      const forms = (parsed && parsed.forms) || [];
+      if (dryRun) {
+        return res.json({ success: true, dryRun, year: parsedYear, type, parsed });
+      }
       const yearData = db.getYearData(parsedYear) || { year: parsedYear };
       if (!yearData.form1042s) yearData.form1042s = [];
-      // Dedup by unique form identifier
-      const isDuplicate = parsed.uniqueFormId && yearData.form1042s.some(f => f.uniqueFormId === parsed.uniqueFormId);
-      if (!isDuplicate) {
-        yearData.form1042s.push(parsed);
+      let added = 0;
+      let duplicates = 0;
+      for (const f of forms) {
+        const isDup = f.uniqueFormId && yearData.form1042s.some(x => x.uniqueFormId === f.uniqueFormId);
+        if (isDup) { duplicates++; continue; }
+        yearData.form1042s.push(f);
+        added++;
       }
       db.setYearData(parsedYear, yearData);
-      return res.json({ success: true, year: parsedYear, type, parsed, isDuplicate });
+      return res.json({ success: true, year: parsedYear, type, parsed, forms, added, duplicates });
     }
 
     // Morgan Stanley Stock Plan Statement (yearly)
     if (type === 'ms_statement') {
       const parsed = parseMSStatement(text, parsedYear);
-
+      if (dryRun) {
+        return res.json({ success: true, dryRun, year: parsedYear, type, parsed });
+      }
       // Add sales as trades (dedup by date + shares + netProceeds)
       let newTradesAdded = 0;
       let duplicatesSkipped = 0;
@@ -866,6 +1187,9 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       }
 
       // Add sales to trades table (dedup by date + shares + proceeds)
+      if (dryRun) {
+        return res.json({ success: true, dryRun, year: parsedYear, type, parsed });
+      }
       let newTradesAdded = 0, duplicatesSkipped = 0;
       for (const sale of parsed.sales) {
         if (db.addTradeIfNotDuplicate(sale)) {
@@ -981,15 +1305,15 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         });
       }
       parsed.ocrEngine = ocrEngine;
-      db.mergeYearData(parsedYear, { tradevillePortfolio: parsed });
-      return res.json({ success: true, year: parsedYear, type, parsed, ocrEngine });
+      if (!dryRun) db.mergeYearData(parsedYear, { tradevillePortfolio: parsed });
+      return res.json({ success: true, dryRun, year: parsedYear, type, parsed, ocrEngine });
     }
 
     // Parse based on type and update year data
     const parsed = parsePdfText(text, type, parsedYear);
-    db.mergeYearData(parsedYear, { [type]: parsed });
+    if (!dryRun) db.mergeYearData(parsedYear, { [type]: parsed });
 
-    res.json({ success: true, year: parsedYear, type, parsed, ocrEngine });
+    res.json({ success: true, dryRun, year: parsedYear, type, parsed, ocrEngine });
   } catch (err) {
     log('ERROR', 'Upload processing failed', { error: err.message, type: req.body?.type, year: req.body?.year });
     res.status(500).json({ error: err.message });
@@ -1376,6 +1700,9 @@ app.get('/api/doc/:name/:lang', (req, res) => {
   }
 });
 
+// BNR exchange rates + toRON/parseNumber/detectCurrency live in ./lib/rates.js
+// (imported at the top of this file). Keep this file focused on routing.
+
 // GET /api/tax-rates - Romanian tax rates reference
 app.get('/api/tax-rates', (req, res) => {
   res.json({
@@ -1402,16 +1729,7 @@ app.get('/api/tax-rates', (req, res) => {
         { label: '≥24SM (≥97,200)', cass: 9720 },
       ]
     },
-    // BNR exchange rates (annual averages - Serii anuale, valori medii)
-    exchangeRates: {
-      2019: { usdRon: 4.2379, source: 'BNR' },
-      2020: { usdRon: 4.2440, source: 'BNR' },
-      2021: { usdRon: 4.1604, source: 'BNR' },
-      2022: { usdRon: 4.6885, source: 'BNR' },
-      2023: { usdRon: 4.5743, source: 'BNR' },
-      2024: { usdRon: 4.5984, source: 'BNR' },
-      2025: { usdRon: 4.4705, source: 'BNR' },
-    },
+    exchangeRates: BNR_EXCHANGE_RATES,
     notes: {
       ro: 'Starting 2025, stocks transferred to Romania broker. Romania broker withholds capital gains tax (1%/3%) but NOT CASS.',
       cas: 'CAS (pension 25%) does NOT apply for investment income (stocks, dividends, interest).',
@@ -1423,16 +1741,9 @@ app.get('/api/tax-rates', (req, res) => {
 });
 
 // GET /api/exchange-rates - Exchange rates
+// Source: https://www.bnr.ro/1975-cursul-de-schimb-serii-statistice
 app.get('/api/exchange-rates', (req, res) => {
-  res.json({
-    2019: { usdRon: 4.2379, source: 'BNR' },
-    2020: { usdRon: 4.2440, source: 'BNR' },
-    2021: { usdRon: 4.1604, source: 'BNR' },
-    2022: { usdRon: 4.6885, source: 'BNR' },
-    2023: { usdRon: 4.5743, source: 'BNR' },
-    2024: { usdRon: 4.5984, source: 'BNR' },
-    2025: { usdRon: 4.4705, source: 'BNR' }
-  });
+  res.json(BNR_EXCHANGE_RATES);
 });
 
 // Helper: parse PDF text based on type
@@ -1453,10 +1764,7 @@ function parsePdfText(text, type, year) {
   }
 }
 
-function parseNumber(str) {
-  if (!str) return 0;
-  return parseFloat(str.toString().replace(/,/g, ''));
-}
+// parseNumber and other currency helpers come from ./lib/rates.js (imported above).
 
 // Extract structured data from ANAF D-212 XFA PDF (embedded XML in FlateDecode streams)
 function extractAnafD212Xml(pdfBuffer) {
@@ -1931,139 +2239,129 @@ function parseMSStatement(text, year) {
   return result;
 }
 
-// Parse XTB Dividends & Interest Report (RAPORT DIVIDENDE SI DOBANZI)
-function parseXtbDividends(text, year) {
-  const result = {
-    year,
-    source: 'XTB Romania',
-    dividends: { grossRON: 0, taxWithheldRON: 0, netRON: 0, category: '' },
-    interest: { grossRON: 0, taxWithheldRON: 0, netRON: 0, payer: '' }
-  };
+// XTB Romania parsers (parseXtbDividends, parseXtbPortfolio) and detectCurrency
+// live in ./lib/parsers/xtb.js (imported at the top of this file).
 
-  // Dividends: look for the row after the dividend header
-  // Pattern: number grossRON taxRON netRON category
-  const divMatch = text.match(/(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+(Instrumente[^\n]*)/);
-  if (divMatch) {
-    result.dividends.grossRON = parseFloat(divMatch[2]) || 0;
-    result.dividends.taxWithheldRON = parseFloat(divMatch[3]) || 0;
-    result.dividends.netRON = parseFloat(divMatch[4]) || 0;
-    result.dividends.category = divMatch[5].trim();
-  }
-
-  // Interest: look for interest section
-  // Pattern after "dobânzi": number grossRON taxRON netRON payer
-  const interestSection = text.split(/dob[aâ]nzi/i).pop() || '';
-  const intMatch = interestSection.match(/(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([^\n]+)/);
-  if (intMatch) {
-    result.interest.grossRON = parseFloat(intMatch[2]) || 0;
-    result.interest.taxWithheldRON = parseFloat(intMatch[3]) || 0;
-    result.interest.netRON = parseFloat(intMatch[4]) || 0;
-    result.interest.payer = intMatch[5].trim();
-  }
-
-  return result;
-}
-
-// Parse XTB Portfolio Sheet (FISA DE PORTOFOLIU)
-// Parse IRS Form 1042-S (Foreign Person's U.S. Source Income Subject to Withholding)
+// Parse IRS Form 1042-S (Foreign Person's U.S. Source Income Subject to Withholding).
+//
+// The PDF that NFS/Fidelity emits to the recipient typically contains MULTIPLE
+// distinct forms (one per income code) and EACH form is printed THREE times
+// for Copy A / B / C. A previous version of this parser captured only the first
+// match for every field; that meant a PDF with two income codes (e.g. 01 Interest
+// AND 06 Dividends) silently dropped the second one.
+//
+// This function now returns `{forms: [...]}` where every element is a self-
+// contained form record with the same shape as the original single-result. The
+// caller dedups by uniqueFormId across the file (so the three copies collapse
+// to one entry) and across prior imports.
 function parseForm1042S(text, year) {
-  const result = {
-    year,
-    source: 'IRS Form 1042-S',
-    uniqueFormId: '',
-    incomeCode: '',
-    incomeType: '',
-    grossIncomeUSD: 0,
-    taxRate: 0,
-    federalTaxWithheldUSD: 0,
-    totalWithholdingCreditUSD: 0,
-    withholdingAgent: '',
-    recipientName: '',
-    recipientCountry: '',
-    accountNumber: ''
-  };
+  // Find every UNIQUE FORM IDENTIFIER occurrence + the offset right after it.
+  // Each match marks the START of a copy of a form; we slice from there to
+  // the next UID (or end of text) and parse that slice as a single form.
+  const uidRe = /UNIQUE FORM IDENTIFIER[\s\n]+(\d(?: \d)+)/gi;
+  const segments = [];
+  let m;
+  const starts = [];
+  while ((m = uidRe.exec(text)) !== null) {
+    starts.push({ uid: m[1].replace(/\s/g, ''), at: m.index });
+  }
+  if (starts.length === 0) {
+    // No UID anchors — fall back to the whole text as one segment so we still
+    // attempt extraction. This matches the legacy behavior for non-NFS layouts.
+    segments.push({ uid: '', slice: text });
+  } else {
+    for (let i = 0; i < starts.length; i++) {
+      const end = i + 1 < starts.length ? starts[i + 1].at : text.length;
+      segments.push({ uid: starts[i].uid, slice: text.slice(starts[i].at, end) });
+    }
+  }
 
-  // Unique form identifier (spaced digits on a single line after UNIQUE FORM IDENTIFIER)
-  const uidMatch = text.match(/UNIQUE FORM IDENTIFIER[\s\n]+(\d(?: \d)+)/i);
-  if (uidMatch) result.uniqueFormId = uidMatch[1].replace(/\s/g, '');
-
-  // Income code (1 or 2 digit code after "1 Income\ncode")
-  const icMatch = text.match(/1 Income\s*\n?code\s*\n?(\d{2})/i);
-  if (icMatch) result.incomeCode = icMatch[1];
-  // Map common income codes
   const incomeCodes = { '01': 'Interest', '06': 'Dividends', '15': 'Pensions', '27': 'Capital Gains', '34': 'Substitute dividends' };
-  result.incomeType = incomeCodes[result.incomeCode] || 'Other (' + result.incomeCode + ')';
+  const formsByUid = new Map();
 
-  // Gross income (the first dollar amount after "2 Gross income")
-  const giMatch = text.match(/2 Gross income\s*\n?([\d,]+\.\d{2})/i);
-  if (giMatch) result.grossIncomeUSD = parseNumber(giMatch[1]);
+  for (const seg of segments) {
+    const t = seg.slice;
+    const f = {
+      year,
+      source: 'IRS Form 1042-S',
+      uniqueFormId: seg.uid,
+      incomeCode: '',
+      incomeType: '',
+      grossIncomeUSD: 0,
+      taxRate: 0,
+      federalTaxWithheldUSD: 0,
+      totalWithholdingCreditUSD: 0,
+      withholdingAgent: '',
+      recipientName: '',
+      recipientCountry: '',
+      accountNumber: '',
+    };
 
-  // Tax rate: prefer 3b (withholding rate applied to income)
-  const trMatch = text.match(/3b Tax rate\s+(\d+\.\d+)/i);
-  if (trMatch) result.taxRate = parseFloat(trMatch[1]);
+    const icMatch = t.match(/1 Income\s*\n?code\s*\n?(\d{2})/i);
+    if (icMatch) f.incomeCode = icMatch[1];
+    f.incomeType = incomeCodes[f.incomeCode] || ('Other (' + f.incomeCode + ')');
 
-  // Federal tax withheld (field 7a)
-  // The amounts appear as a block of numbers after the form fields
-  // Pattern: after "COPY B" or before page break, find the numeric block
-  const numBlock = text.match(/1 9 7 4 1 2[\s\d]+\n([\d.]+)\n([\d.]+)\n([\d.]+)\n([\d.]+)\n([\d.]+)\n([\d.]+)/);
-  if (numBlock) {
-    // Fields: 5=withholding allowance, 6=net income, 7a=fed tax withheld, 8=tax by other, 9=overwithholding, 10=total credit
-    result.federalTaxWithheldUSD = parseFloat(numBlock[3]) || 0;
-    result.totalWithholdingCreditUSD = parseFloat(numBlock[6]) || 0;
+    const giMatch = t.match(/2 Gross income\s*\n?([\d,]+\.\d{2})/i);
+    if (giMatch) f.grossIncomeUSD = parseNumber(giMatch[1]);
+
+    const trMatch = t.match(/3b Tax rate\s+(\d+\.\d+)/i);
+    if (trMatch) f.taxRate = parseFloat(trMatch[1]);
+
+    // Federal tax withheld lives in the trailing numeric block, after an OCR
+    // identifier line (single digits separated by spaces, e.g. "1 9 7 9 1 00 3"
+    // or "1 9 7 4 1 2"). The six values that follow correspond to boxes
+    //   [1]=5 Withholding allowance, [2]=6 Net income, [3]=7a Federal tax withheld,
+    //   [4]=8  Tax by other agents,  [5]=9 Overwithheld,  [6]=10 Total credit.
+    // The label "7a Federal tax withheld" appears BEFORE the value block in the
+    // extracted text, so a naive `7a Federal tax withheld[\s\S]*?\d+\.\d{2}`
+    // greedy-skips into the gross-income line and captures the wrong number.
+    const numBlock = t.match(/\n((?:\d+\s){4,}\d+)\s*\n([\d.]+)\n([\d.]+)\n([\d.]+)\n([\d.]+)\n([\d.]+)\n([\d.]+)/);
+    if (numBlock) {
+      // Capture groups are shifted by 1 (the OCR identifier captured at [1]).
+      f.federalTaxWithheldUSD = parseFloat(numBlock[4]) || 0;
+      f.totalWithholdingCreditUSD = parseFloat(numBlock[7]) || 0;
+    }
+
+    const waMatch = t.match(/12d Withholding agent.+name\s*\n(.+)/i);
+    if (waMatch) f.withholdingAgent = waMatch[1].trim();
+
+    const rnMatch = t.match(/13a Recipient.+name\s*\n(.+)/i);
+    if (rnMatch) f.recipientName = rnMatch[1].trim();
+
+    const rcMatch = t.match(/13b Recipient.+country code\s*\n?(\w+)/i);
+    if (rcMatch) f.recipientCountry = rcMatch[1].trim();
+
+    const acMatch = t.match(/13k Recipient.+account number\s*\n?([\w-]+)/i);
+    if (acMatch) f.accountNumber = acMatch[1].trim();
+
+    // Skip segments where we extracted nothing useful — those are usually
+    // accompanying instruction pages, not actual form data.
+    if (!f.incomeCode && f.grossIncomeUSD === 0 && !f.uniqueFormId) continue;
+
+    // Within a single import, collapse the 3 copies (A/B/C) of the same form
+    // by keeping the first parse that populated the most fields.
+    const key = f.uniqueFormId || `noid-${f.incomeCode}-${f.grossIncomeUSD}`;
+    const existing = formsByUid.get(key);
+    if (!existing) {
+      formsByUid.set(key, f);
+    } else {
+      // Merge: prefer non-zero / non-empty values from the new segment.
+      const merged = { ...existing };
+      for (const k of Object.keys(f)) {
+        const cur = merged[k];
+        const next = f[k];
+        const curEmpty = cur === '' || cur === 0 || cur == null;
+        const nextNonEmpty = !(next === '' || next === 0 || next == null);
+        if (curEmpty && nextNonEmpty) merged[k] = next;
+      }
+      formsByUid.set(key, merged);
+    }
   }
-  // Fallback: try to find "7a Federal tax withheld" followed by amount
-  if (!result.federalTaxWithheldUSD) {
-    const ftMatch = text.match(/7a Federal tax withheld[\s\S]*?(\d+\.\d{2})/i);
-    if (ftMatch) result.federalTaxWithheldUSD = parseFloat(ftMatch[1]) || 0;
-  }
 
-  // Withholding agent
-  const waMatch = text.match(/12d Withholding agent.+name\s*\n(.+)/i);
-  if (waMatch) result.withholdingAgent = waMatch[1].trim();
-
-  // Recipient
-  const rnMatch = text.match(/13a Recipient.+name\s*\n(.+)/i);
-  if (rnMatch) result.recipientName = rnMatch[1].trim();
-
-  const rcMatch = text.match(/13b Recipient.+country code\s*\n?(\w+)/i);
-  if (rcMatch) result.recipientCountry = rcMatch[1].trim();
-
-  const acMatch = text.match(/13k Recipient.+account number\s*\n?([\w-]+)/i);
-  if (acMatch) result.accountNumber = acMatch[1].trim();
-
-  return result;
+  return { forms: Array.from(formsByUid.values()) };
 }
 
-function parseXtbPortfolio(text, year) {
-  const result = {
-    year,
-    source: 'XTB Romania',
-    longTerm: { gainRON: 0, lossRON: 0, taxWithheldRON: 0 },
-    shortTerm: { gainRON: 0, lossRON: 0, taxWithheldRON: 0 },
-    country: '',
-    currency: 'RON',
-    totalGainRON: 0,
-    totalTaxWithheldRON: 0
-  };
-
-  // Pattern: country currency gain loss tax gain loss tax
-  // "Statele Unite RON 5457.00 0.00 55.00 2296.00 0.00 69.00"
-  const rowMatch = text.match(/(Statele Unite|Romania|[A-Z][a-z]+(?:\s[A-Z][a-z]+)*)\s+RON\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
-  if (rowMatch) {
-    result.country = rowMatch[1];
-    result.longTerm.gainRON = parseFloat(rowMatch[2]) || 0;
-    result.longTerm.lossRON = parseFloat(rowMatch[3]) || 0;
-    result.longTerm.taxWithheldRON = parseFloat(rowMatch[4]) || 0;
-    result.shortTerm.gainRON = parseFloat(rowMatch[5]) || 0;
-    result.shortTerm.lossRON = parseFloat(rowMatch[6]) || 0;
-    result.shortTerm.taxWithheldRON = parseFloat(rowMatch[7]) || 0;
-  }
-
-  result.totalGainRON = result.longTerm.gainRON + result.shortTerm.gainRON - result.longTerm.lossRON - result.shortTerm.lossRON;
-  result.totalTaxWithheldRON = result.longTerm.taxWithheldRON + result.shortTerm.taxWithheldRON;
-
-  return result;
-}
+// parseXtbPortfolio is imported from ./lib/parsers/xtb.js at the top of this file.
 
 // Parse Tradeville Fișă de Portofoliu (capital gains)
 function parseTradevillePortfolio(text, year) {

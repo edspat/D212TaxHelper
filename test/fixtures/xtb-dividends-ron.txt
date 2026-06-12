@@ -1,0 +1,35 @@
+DIVIDENDE/DOBANZI ÎNCASATE ÎN PERIOADA 01.01.2025 – 31.12.2025
+Client
+Numele și prenumele Test User
+Perioada prestării serviciului de la 01.01.2025 până la 31.12.2025:
+Nr.
+Crt.
+Valoare brută
+Dividende
+(în RON)
+Impozit
+reținut la
+sursă*)
+(în RON)
+Valoare netă
+Dividende
+(în RON)
+Categorie de instrumente
+1 1000.00 100.00 900.00 Instrumente cu detinere (OMI) din Statele Unite
+2 500.50 50.05 450.45 Instrumente cu detinere (OMI) din Germania
+*) În situația în care plătitorul de venituri din dividende...
+Totodată, XTB S.A. Varsovia Sucursala București confirmă că v-a plătit în perioada 01.01.2025-31.12.2025,
+următorul venit anual din dobânzi:
+Nr.
+Crt.
+Valoare brută
+Dobânzi
+(în RON)
+Impozit reținut
+la sursă
+(în RON)
+Valoare netă
+Dobânzi
+(în RON)
+Plătitor de venit
+1 200.00 20.00 180.00 XTB S.A. Varsovia Sucursala București

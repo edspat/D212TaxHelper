@@ -29,6 +29,9 @@ function resolve(obj, p) {
 
 const missing = [];
 for (const k of keys) {
+  // Skip dynamic prefixes like 'import.manualFieldLabels.' + variable -
+  // those are not real keys.
+  if (k.endsWith('.')) continue;
   if (resolve(en, k) === undefined) missing.push(k);
 }
 

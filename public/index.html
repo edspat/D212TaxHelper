@@ -9,17 +9,25 @@
 </head>
 <body>
   <a href="#app-content" class="skip-link">Skip to main content</a>
+  <!-- Boot splash: visible while the SPA initializes. Removed by init() once
+       loadAllData() resolves. 100% CSS so it shows even before any JS runs. -->
+  <div id="boot-splash" aria-hidden="true">
+    <div class="boot-splash-inner">
+      <div class="boot-splash-spinner"></div>
+      <div class="boot-splash-title">D212 Tax Helper</div>
+      <div class="boot-splash-subtitle">Se inițializează…</div>
+    </div>
+  </div>
   <header role="banner">
     <div class="header-content">
       <button id="nav-toggle" class="nav-toggle" type="button" aria-label="Toggle navigation menu">&#9776;</button>
       <h1 id="app-title" data-i18n="dashboard.appTitle">D212 Tax Helper</h1>
       <nav id="main-nav" aria-label="Main navigation">
         <button class="nav-btn active" data-tab="dashboard" data-i18n="nav.dashboard">Dashboard</button>
-        <button class="nav-btn" data-tab="income" data-i18n="nav.income">Income Details</button>
-        <button class="nav-btn" data-tab="taxes" data-i18n="nav.taxes">Tax Calculation</button>
-        <button class="nav-btn" data-tab="input" data-i18n="nav.input">Add Data</button>
-        <button class="nav-btn" data-tab="import" data-i18n="nav.import">Import Document</button>
-        <button class="nav-btn" data-tab="raw" data-i18n="nav.raw">Raw Data</button>
+        <button class="nav-btn" data-tab="data" data-i18n="nav.data">📥 Date</button>
+        <button class="nav-btn" data-tab="calc" data-i18n="nav.calc">📊 Calcul</button>
+        <button class="nav-btn" data-tab="depunere" data-i18n="nav.depunere">🧾 Depunere</button>
+        <button class="nav-btn" data-tab="advanced" data-i18n="nav.advanced">⚙ Avansat</button>
       </nav>
       <div class="header-controls">
         <button id="theme-toggle" class="theme-toggle" type="button" title="Toggle theme">🌙</button>
@@ -35,6 +43,14 @@
   </header>
 
   <main id="app-content">
+    <!--
+      Sub-tab bar: rendered dynamically by switchTab(). Shown only when the
+      active top-level tab is a multi-subtab group (Date / Calcul / Depunere /
+      Avansat). Hidden when on Dashboard (single-tab) or when the group has
+      only one item.
+    -->
+    <div id="subtab-bar" class="subtab-bar" style="display:none;" role="tablist" aria-label="Sub-section navigation"></div>
+
     <!-- Dashboard Tab -->
     <section id="tab-dashboard" class="tab-content active">
       <div class="dashboard-grid">
@@ -61,6 +77,11 @@
         <div class="card summary-card" id="card-total-tax">
           <h3 data-i18n="dashboard.totalTax">Total to Pay (D212)</h3>
           <p class="card-value" id="total-tax-value">-</p>
+          <span class="card-currency">RON</span>
+        </div>
+        <div class="card summary-card" id="card-refund" style="display:none;">
+          <h3 data-i18n="dashboard.refundOwed">Refund Owed (D212)</h3>
+          <p class="card-value" id="refund-value" style="color:var(--success);">-</p>
           <span class="card-currency">RON</span>
         </div>
       </div>
@@ -266,7 +287,12 @@
       <div class="card declaratie-helper">
         <h2 data-i18n="taxes.dclTitle">Declarație Unică D212 - Form Helper</h2>
         <p class="subtitle" data-i18n="taxes.dclSubtitle">Use these values to fill in the Declarație Unică D212 form on ANAF portal.</p>
-        <p style="margin-top:0.5rem;"><a href="https://www.anaf.ro/declaratii/duf" target="anaf_d212" rel="noopener" class="btn-primary" style="display:inline-block;padding:0.5rem 1.2rem;text-decoration:none;font-size:0.9rem;" onclick="window.open(this.href,'anaf_d212','width=1200,height=900,menubar=no,toolbar=no,location=yes,status=no,scrollbars=yes,resizable=yes');return false;" data-i18n="taxes.dclOpenANAF">🔗 Open D212 Form on ANAF</a></p>
+        <p style="margin-top:0.5rem;"><a href="https://www.anaf.ro/declaratii/duf" target="anaf_d212" rel="noopener" class="btn-primary" style="display:inline-block;padding:0.5rem 1.2rem;text-decoration:none;font-size:0.9rem;" onclick="window.open(this.href,'anaf_d212','width=1200,height=900,menubar=no,toolbar=no,location=yes,status=no,scrollbars=yes,resizable=yes');return false;" data-i18n="taxes.dclOpenANAF">🔗 Open D212 Form on ANAF</a>
+        <button type="button" id="btn-export-d212-xml" class="btn-primary" style="margin-left:0.5rem;padding:0.5rem 1.2rem;font-size:0.9rem;" data-i18n="taxes.exportXml">📤 Exportă D212 XML (skeleton)</button>
+        <button type="button" id="btn-export-audit-pack" class="btn-primary" style="margin-left:0.5rem;padding:0.5rem 1.2rem;font-size:0.9rem;background:var(--success);" data-i18n="taxes.exportAuditPack">📦 Exportă pachet control ANAF</button>
+        </p>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.4rem;" data-i18n="taxes.exportXmlHint">XML-ul generat conține cap11/cap14 cu valorile calculate; deschide-l în tool-ul ANAF, completează datele personale (nume, CNP, IBAN) și depune-l prin SPV.</p>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem;" data-i18n="taxes.exportAuditPackHint">Pachet ZIP cu toate documentele necesare verificării calculelor (raport-uri broker text, JSON parsate, rate BNR, metodologie, trace calcul). Conține date sensibile — nu îl trimite prin email.</p>
         <p class="subtitle" style="font-size:0.75rem;color:var(--text-muted);" data-i18n="taxes.dclVersion">Version: A1.0.6/08.12.2025</p>
 
         <div class="dcl-section">
@@ -300,6 +326,22 @@
                 </tr>
               </thead>
               <tbody id="dcl-ro-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="dcl-section" id="dcl-cap11-section" style="display:none;">
+          <h3 data-i18n="taxes.dclCap11Section">D212 Cap. I §1.1 — cap11 (Venituri din România, sistem real)</h3>
+          <p style="font-size:0.85rem;color:var(--text-muted);" data-i18n="taxes.dclCap11Note">Acest bloc este împachetat ca element cap11 în viitorul export XML D212. Categ_venit = 1012 (Câștiguri din transferul titlurilor de valoare).</p>
+          <div class="table-responsive">
+            <table id="dcl-cap11-table">
+              <thead>
+                <tr>
+                  <th data-i18n="taxes.dclField">Field</th>
+                  <th data-i18n="taxes.dclValue">Value</th>
+                </tr>
+              </thead>
+              <tbody id="dcl-cap11-tbody"></tbody>
             </table>
           </div>
         </div>
@@ -372,6 +414,22 @@
         <p class="subtitle" data-i18n="input.subtitle">Enter amounts for the selected year. For 2025+, input dividends and stock sale proceeds from both US (Fidelity / Morgan Stanley) and Romania broker.</p>
       <div class="input-year-banner" id="input-year-banner"></div>
 
+      <!-- Sub-tab switcher inside Add Data: imports verification vs new manual entry. -->
+      <div class="card" id="data-mode-switcher" style="margin-bottom:1rem;">
+        <div role="tablist" aria-label="Data entry mode" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+          <button type="button" id="data-mode-imports" role="tab" aria-selected="false" class="nav-btn" data-i18n="input.modeImports">📄 Verifică & corectează importuri</button>
+          <button type="button" id="data-mode-new" role="tab" aria-selected="true" class="nav-btn active" data-i18n="input.modeNew">✏️ Adaugă date noi</button>
+          <label style="margin-left:auto;display:flex;align-items:center;gap:0.4rem;font-size:0.85rem;cursor:pointer;">
+            <input type="checkbox" id="data-advanced-toggle" style="cursor:pointer;">
+            <span data-i18n="input.modeAdvanced">Mod avansat (toate câmpurile)</span>
+          </label>
+        </div>
+        <p id="data-mode-hint" style="margin-top:0.5rem;font-size:0.8rem;color:var(--text-muted);"></p>
+      </div>
+
+      <!-- Imports verification panel: rendered dynamically when imports exist for the selected year. -->
+      <div id="data-imports-panel" style="display:none;"></div>
+
       <div class="card">
         <form id="data-form">
           <fieldset class="form-grid-2">
@@ -390,12 +448,13 @@
               <datalist id="ro-broker-list">
                 <option value="XTB">
                 <option value="Tradeville">
+                <option value="BT Trade">
                 <option value="Interactive Brokers">
               </datalist>
             </div>
           </fieldset>
 
-          <fieldset class="form-grid-2">
+          <fieldset class="form-grid-2" id="fieldset-dividends">
             <legend data-i18n="input.dividends">Dividends</legend>
             <div class="form-row">
               <label data-i18n="input.usDividends">US Dividends (USD)</label>
@@ -415,9 +474,29 @@
               <input type="number" step="0.01" id="input-ro-div-tax" name="roDivTaxPaid">
               <small data-i18n="input.roDivTaxPaidHint">Tax withheld at source by Romania broker</small>
             </div>
+            <div class="form-row">
+              <label data-i18n="input.roEurDividends">Romania Dividends (EUR)</label>
+              <input type="number" step="0.01" id="input-ro-eur-dividends" name="roEurDividends">
+              <small data-i18n="input.roEurDividendsHint">Dividends in EUR received via Romanian broker (converted at BNR EUR/RON)</small>
+            </div>
+            <div class="form-row">
+              <label data-i18n="input.roEurDivTaxPaid">RO EUR Dividend Tax Withheld (EUR)</label>
+              <input type="number" step="0.01" id="input-ro-eur-div-tax" name="roEurDivTaxPaid">
+              <small data-i18n="input.roEurDivTaxPaidHint">Tax withheld in EUR by Romanian broker</small>
+            </div>
+            <div class="form-row">
+              <label data-i18n="input.roUsdDividends">Romania Dividends (USD)</label>
+              <input type="number" step="0.01" id="input-ro-usd-dividends" name="roUsdDividends">
+              <small data-i18n="input.roUsdDividendsHint">Dividends in USD received via Romanian broker (converted at BNR USD/RON)</small>
+            </div>
+            <div class="form-row">
+              <label data-i18n="input.roUsdDivTaxPaid">RO USD Dividend Tax Withheld (USD)</label>
+              <input type="number" step="0.01" id="input-ro-usd-div-tax" name="roUsdDivTaxPaid">
+              <small data-i18n="input.roUsdDivTaxPaidHint">Tax withheld in USD by Romanian broker</small>
+            </div>
           </fieldset>
 
-          <fieldset class="form-grid-2">
+          <fieldset class="form-grid-2" id="fieldset-capital-gains">
             <legend data-i18n="input.capitalGains">Capital Gains (Stock Sales)</legend>
             <div class="form-row">
               <label data-i18n="input.usGains">US Stock Sales (USD)</label>
@@ -440,14 +519,14 @@
             </div>
           </fieldset>
 
-          <fieldset>
+          <fieldset id="fieldset-ro-gains">
             <legend data-i18n="input.roCapitalGains">Romania Broker Capital Gains (per country)</legend>
-            <p class="subtitle" style="font-size:0.8rem;" data-i18n="input.roCapitalGainsHint">Add capital gains from Romanian broker (XTB / Tradeville) per country of origin. All are treated as final tax withheld by broker.</p>
+            <p class="subtitle" style="font-size:0.8rem;" data-i18n="input.roCapitalGainsHint">Add capital gains from Romanian broker (XTB / Tradeville / BT Trade) per country of origin. Select the currency for each row (defaults to RON). All are treated as final tax withheld by broker.</p>
             <div id="ro-gains-rows"></div>
             <button type="button" id="btn-add-ro-row" class="btn-primary" style="font-size:0.8rem;padding:0.4rem 0.8rem;margin-top:0.5rem;" data-i18n="input.addCountryRow">+ Add Country</button>
           </fieldset>
 
-          <fieldset class="form-grid-2">
+          <fieldset class="form-grid-2" id="fieldset-interest">
             <legend data-i18n="input.interestIncome">Interest Income</legend>
             <div class="form-row">
               <label data-i18n="input.interestRON">Interest Income (RON)</label>
@@ -457,6 +536,24 @@
               <label data-i18n="input.interestTaxPaid">Tax Already Paid (RON)</label>
               <input type="number" step="0.01" id="input-interest-tax-paid" name="interestTaxPaid">
               <small data-i18n="input.interestTaxPaidHint">Tax withheld at source on interest income</small>
+            </div>
+            <div class="form-row">
+              <label data-i18n="input.roEurInterest">Romania Interest (EUR)</label>
+              <input type="number" step="0.01" id="input-ro-eur-interest" name="roEurInterest">
+              <small data-i18n="input.roEurInterestHint">Interest in EUR received via Romanian broker (converted at BNR EUR/RON)</small>
+            </div>
+            <div class="form-row">
+              <label data-i18n="input.roEurInterestTaxPaid">RO EUR Interest Tax Withheld (EUR)</label>
+              <input type="number" step="0.01" id="input-ro-eur-interest-tax" name="roEurInterestTaxPaid">
+            </div>
+            <div class="form-row">
+              <label data-i18n="input.roUsdInterest">Romania Interest (USD)</label>
+              <input type="number" step="0.01" id="input-ro-usd-interest" name="roUsdInterest">
+              <small data-i18n="input.roUsdInterestHint">Interest in USD received via Romanian broker (converted at BNR USD/RON)</small>
+            </div>
+            <div class="form-row">
+              <label data-i18n="input.roUsdInterestTaxPaid">RO USD Interest Tax Withheld (USD)</label>
+              <input type="number" step="0.01" id="input-ro-usd-interest-tax" name="roUsdInterestTaxPaid">
             </div>
           </fieldset>
 
@@ -516,6 +613,22 @@
             </div>
           </fieldset>
 
+          <fieldset class="form-grid-2">
+            <legend data-i18n="input.pfaIncome">Venit PFA (activități independente, art. 155(1)b)</legend>
+            <div class="form-row">
+              <label data-i18n="input.pfaNetIncome">Venit net anual PFA (RON)</label>
+              <input type="number" step="0.01" id="input-pfa-net-income" name="pfaNetIncome">
+              <small data-i18n="input.pfaNetIncomeHint">Venit net din activități independente (din D212 cap I §3 subsec 2.1). CASS pentru PFA se calculează SEPARAT de CASS pentru investiții.</small>
+            </div>
+            <div class="form-row" style="display:flex;align-items:flex-start;gap:0.5rem;">
+              <input type="checkbox" id="input-pfa-opt-in-cass" name="pfaOptInCASS" style="margin-top:0.4rem;width:auto;">
+              <div>
+                <label for="input-pfa-opt-in-cass" data-i18n="input.pfaOptInCASS">Optez să plătesc CASS PFA chiar dacă venitul net e sub 6 SM (art. 180 alin. (2))</label>
+                <small data-i18n="input.pfaOptInCASSHint">Conform Cod fiscal art. 180(2), poți alege să plătești CASS la baza minimă (6 SM = 24.300 RON) chiar dacă venitul net e sub prag. Bifează doar dacă ai exercitat opțiunea prin depunerea D212 la termen.</small>
+              </div>
+            </div>
+          </fieldset>
+
           <fieldset>
             <legend data-i18n="input.deductions">Deductions</legend>
             <div class="form-row">
@@ -535,6 +648,11 @@
             <div class="form-row">
               <label data-i18n="input.usdRon">USD/RON Rate</label>
               <input type="number" step="0.0001" id="input-exchange-rate" name="exchangeRate">
+              <small data-i18n="input.bnrSource">Source: BNR annual average</small>
+            </div>
+            <div class="form-row">
+              <label data-i18n="input.eurRon">EUR/RON Rate</label>
+              <input type="number" step="0.0001" id="input-eur-rate" name="eurRate">
               <small data-i18n="input.bnrSource">Source: BNR annual average</small>
             </div>
             <div class="form-row">
@@ -606,6 +724,14 @@
       <div class="card">
         <h2 data-i18n="import.title">Import Document</h2>
         <p class="subtitle" data-i18n="import.subtitle">Upload a PDF or image (screenshot) of your declarations, investment reports, or income certificates. Images will be processed with OCR.</p>
+
+        <!--
+          Existing-imports panel: shows the document types already uploaded for
+          the selected year so the user knows what was already imported (and
+          doesn't have to re-upload). Hidden when there's nothing yet.
+        -->
+        <div id="import-existing-panel" style="display:none;margin-bottom:1rem;"></div>
+
         <div class="ocr-status-row">
           <div id="ocr-engine-badge" class="ocr-badge" style="display:none;">
             <span class="ocr-badge-icon">⚙</span>
@@ -629,17 +755,32 @@
               <label data-i18n="import.type">Document Type</label>
               <select id="upload-type" name="type" required>
                 <option value="" disabled selected data-i18n="import.selectType">-- Select Document Type --</option>
-                <option value="adeverinta" data-i18n="import.typeAdeverinta">ANAF - Income Certificate (Adeverinta Venit)</option>
-                <option value="declaratie" data-i18n="import.typeDeclaratie">ANAF - Tax Declaration D-212 (Declaratie Unica)</option>
-                <option value="stock_award" data-i18n="import.typeStockAward">MSFT - Stock Award Document</option>
-                <option value="tradeville_portfolio" data-i18n="import.typeTradevillePortfolio">Romania (Tradeville) - Portfolio Statement (Capital Gains)</option>
-                <option value="xtb_portfolio" data-i18n="import.typeXtbPortfolio">Romania (XTB) - Portfolio Statement (Capital Gains)</option>
-                <option value="xtb_dividends" data-i18n="import.typeXtbDividends">Romania (XTB) - Dividends & Interest Report</option>
-                <option value="trade_confirmation" data-i18n="import.typeTradeConfirmation">US (Fidelity) - Trade Confirmation (Sale / Purchase)</option>
-                <option value="fidelity_statement" data-i18n="import.typeFidelityStatement">US (Fidelity) - Stock Plan Statement (Monthly)</option>
-                <option value="investment" data-i18n="import.typeInvestment">US (Fidelity) - Investment Report (Yearly)</option>
-                <option value="ms_statement" data-i18n="import.typeMSStatement">US (Morgan Stanley) - Stock Plan Statement (Yearly)</option>
-                <option value="form_1042s" data-i18n="import.typeForm1042S">Tax Form - 1042-S (US Withholding)</option>
+                <optgroup label="ANAF / Oficial România" data-i18n-label="import.groupAnaf">
+                  <option value="declaratie" data-i18n="import.typeDeclaratie">ANAF - Tax Declaration D-212 (Declaratie Unica)</option>
+                  <option value="adeverinta" data-i18n="import.typeAdeverinta">ANAF - Income Certificate (Adeverinta Venit)</option>
+                </optgroup>
+                <optgroup label="Broker România" data-i18n-label="import.groupBrokerRo">
+                  <option value="xtb_portfolio" data-i18n="import.typeXtbPortfolio">Romania (XTB) - Portfolio Statement (Capital Gains)</option>
+                  <option value="xtb_dividends" data-i18n="import.typeXtbDividends">Romania (XTB) - Dividends & Interest Report</option>
+                  <option value="bt_portfolio" data-i18n="import.typeBtPortfolio">Romania (BT Capital Partners) - Portfolio Sheet (Capital Gains)</option>
+                  <option value="bt_dividends" data-i18n="import.typeBtDividends">Romania (BT Capital Partners) - Fișă Dividende (Foreign Markets)</option>
+                  <option value="tradeville_portfolio" data-i18n="import.typeTradevillePortfolio">Romania (Tradeville) - Portfolio Statement (Capital Gains)</option>
+                </optgroup>
+                <optgroup label="Broker SUA" data-i18n-label="import.groupBrokerUs">
+                  <option value="fidelity_statement" data-i18n="import.typeFidelityStatement">US (Fidelity) - Stock Plan Statement (Monthly)</option>
+                  <option value="trade_confirmation" data-i18n="import.typeTradeConfirmation">US (Fidelity) - Trade Confirmation (Sale / Purchase)</option>
+                  <option value="investment" data-i18n="import.typeInvestment">US (Fidelity) - Investment Report (Yearly)</option>
+                  <option value="ms_statement" data-i18n="import.typeMSStatement">US (Morgan Stanley) - Stock Plan Statement (Yearly)</option>
+                </optgroup>
+                <optgroup label="Broker extern (UE / Internațional)" data-i18n-label="import.groupBrokerForeign">
+                  <option value="revolut_statement" data-i18n="import.typeRevolut">Revolut - Consolidated Statement (Foreign Broker)</option>
+                </optgroup>
+                <optgroup label="Formulare fiscale internaționale" data-i18n-label="import.groupTaxForms">
+                  <option value="form_1042s" data-i18n="import.typeForm1042S">Tax Form - 1042-S (US Withholding)</option>
+                </optgroup>
+                <optgroup label="Angajator (RSU / ESPP)" data-i18n-label="import.groupEmployer">
+                  <option value="stock_award" data-i18n="import.typeStockAward">MSFT - Stock Award Document</option>
+                </optgroup>
               </select>
               <div id="ocr-type-hint" class="ocr-type-hint hidden"></div>
             </div>
@@ -658,6 +799,136 @@
           <button type="submit" id="upload-submit-btn" class="btn-primary" data-i18n="import.upload">Upload & Process</button>
         </form>
         <div id="upload-result" class="hidden"></div>
+      </div>
+    </section>
+
+    <!-- Validate & Prepare D212 Tab -->
+    <section id="tab-validate" class="tab-content">
+      <div class="card">
+        <h2 data-i18n="validate.title">🔬 Validare &amp; Pregătire D212</h2>
+        <p class="subtitle" data-i18n="validate.subtitle">Loc unic pentru: (1) validare cu XML-ul DUF, (2) tabelul cu valorile de introdus în portal, (3) detaliu D205 per plătitor (introdus manual din portal). Datele rămân local — nimic nu se salvează pe disc.</p>
+
+        <!-- 1. Import + validation -->
+        <div class="dcl-section" id="validate-duf-import-section" style="border-left:3px solid var(--accent);padding-left:1rem;">
+          <h3 data-i18n="validate.importTitle">📥 Import XML de la DUF</h3>
+          <p class="subtitle" data-i18n="validate.importSubtitle">Descarcă XML-ul din portalul DUF (cu datele tale precompletate) și încarcă-l aici. Validăm rând cu rând ce știe ANAF vs ce calculăm noi din PDF-urile broker.</p>
+
+          <div id="validate-duf-dropzone" style="margin-top:0.75rem;border:2px dashed var(--border);border-radius:var(--radius);padding:1.5rem;text-align:center;cursor:pointer;transition:background 0.15s;">
+            <p style="margin:0;color:var(--text-muted);font-size:0.95rem;" data-i18n="submit.dropzoneHint">📁 Trage XML-ul aici sau click pentru a-l selecta</p>
+            <p style="margin:0.3rem 0 0;color:var(--text-muted);font-size:0.75rem;" data-i18n="submit.dropzoneSubhint">Acceptă fișiere .xml de maxim 5 MB. Doar parser în memorie — fișierul nu părăsește calculatorul.</p>
+            <input type="file" id="validate-duf-file-input" accept=".xml,application/xml,text/xml" style="display:none;">
+          </div>
+
+          <div id="validate-duf-compare-result" style="margin-top:1rem;"></div>
+        </div>
+
+        <!-- 2. D205 detailed breakdown — manual entry because the XML aggregates everything -->
+        <div class="dcl-section" id="validate-d205-section" style="border-left:3px solid var(--warning,#b35900);padding-left:1rem;">
+          <h3 data-i18n="validate.d205Title">📑 Detaliu D205 per plătitor (manual)</h3>
+          <p class="subtitle" data-i18n="validate.d205Subtitle"><strong>De ce manual:</strong> XML-ul DUF conține totalul agregat <code>cass_ven_inv</code> (ex. 513.258 lei) pentru CASS, dar NU și breakdown-ul per plătitor. Detaliile (XTB / ING / SALT etc.) sunt vizibile doar în portal la „Sursa informațiilor în detaliu → Toate sursele". Introdu-le aici manual ca să le putem pune față în față cu PDF-urile tale de la brokeri.</p>
+
+          <details style="margin-top:0.5rem;">
+            <summary style="cursor:pointer;color:var(--accent);" data-i18n="validate.d205HowToCollect">📖 Cum colectez detaliile din portalul DUF? (2 căi)</summary>
+            <div style="margin-top:0.75rem;padding:0.5rem 0;border-top:1px solid var(--border);">
+              <p style="font-weight:600;margin:0.3rem 0;" data-i18n="validate.d205PathA">Calea A — în wizardul „Preluare/modificare date"</p>
+              <ol style="font-size:0.85rem;margin:0.3rem 0 0.6rem;line-height:1.6;">
+                <li data-i18n="validate.d205PathA1">În pagina <strong>Preluare/modificare date</strong> (după ce ai apăsat „Precompletare (recomandat)"), comutatorul din dreapta sus arată <strong>„Modific/Vizualizez"</strong>.</li>
+                <li data-i18n="validate.d205PathA2">Pentru fiecare pas al wizardului există butonul albastru <strong>„Sursa informațiilor în detaliu"</strong> (sub bara de progres).</li>
+                <li data-i18n="validate.d205PathA3">Click → modal cu 2 tab-uri: <strong>„Acest pas"</strong> (doar sursa curentă) și <strong>„Toate sursele"</strong> (D205 cumulat, ce ai nevoie tu pentru breakdown).</li>
+              </ol>
+              <p style="margin:0 0 0.5rem;"><img src="assets/screenshots/duf-step1-prelaure-modificare.png" alt="Pasul Preluare/modificare date cu butonul Sursa informațiilor în detaliu" style="max-width:100%;border:1px solid var(--border);border-radius:var(--radius);"></p>
+              <p style="margin:0 0 0.5rem;"><img src="assets/screenshots/duf-step4-sursa-modal.png" alt="Modalul Sursa informațiilor în detaliu cu tab-urile Acest pas / Toate sursele" style="max-width:100%;border:1px solid var(--border);border-radius:var(--radius);"></p>
+            </div>
+
+            <div style="margin-top:0.75rem;padding:0.5rem 0;border-top:1px solid var(--border);">
+              <p style="font-weight:600;margin:0.3rem 0;" data-i18n="validate.d205PathB">Calea B — via „Centralizator"</p>
+              <ol style="font-size:0.85rem;margin:0.3rem 0 0.6rem;line-height:1.6;">
+                <li data-i18n="validate.d205PathB1">Tot pe pagina precompletării, comută din dreapta sus pe butonul <strong>„Centralizator"</strong>.</li>
+                <li data-i18n="validate.d205PathB2">Apasă <strong>„Deschide toate"</strong> ca să expandezi toate sursele de venit.</li>
+                <li data-i18n="validate.d205PathB3">La fiecare sursă apare un buton <strong>„Sursa informațiilor în detaliu"</strong> (acolaș modal cu „Toate sursele").</li>
+                <li data-i18n="validate.d205PathB4">Tabelul „Toate sursele" cuprinde: <em>Cod fiscal plătitor</em>, <em>Nume firmă plătitor</em>, <em>Categoria de venit (d205/C168)</em> — coduri ca <code>09</code> (dobânzi), <code>26</code> (capgains ≥1y), <code>27</code> (capgains &lt;1y), <em>Venit brut</em>, <em>Impozit</em>.</li>
+              </ol>
+              <p style="margin:0 0 0.5rem;"><img src="assets/screenshots/duf-step2-centralizator.png" alt="Pagina Centralizator cu toate sursele expandate" style="max-width:100%;border:1px solid var(--border);border-radius:var(--radius);"></p>
+              <p style="margin:0 0 0.5rem;"><img src="assets/screenshots/duf-step3-cap14-detail.png" alt="Detaliu sursă de venit cu butonul Sursa informațiilor în detaliu" style="max-width:100%;border:1px solid var(--border);border-radius:var(--radius);"></p>
+            </div>
+
+            <p style="font-size:0.8rem;color:var(--text-muted);font-style:italic;margin-top:0.5rem;" data-i18n="validate.d205ScreenshotNote">Capturi de ecran anonimizate, doar pentru referință. Sumele și datele de identificare reale au fost mascate.</p>
+            <p style="font-size:0.85rem;margin-top:0.5rem;" data-i18n="validate.d205Step4">După ce ai datele, folosește butoanele de mai jos: <strong>+ Adaugă rând</strong> pentru introducere manuală, sau <strong>📋 Lipește din clipboard</strong> dacă ai copiat direct din tabel.</p>
+          </details>
+
+          <div style="margin-top:0.75rem;display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;">
+            <button type="button" id="validate-d205-add" class="btn-primary" style="font-size:0.85rem;padding:0.4rem 0.9rem;" data-i18n="validate.d205AddRow">+ Adaugă rând</button>
+            <button type="button" id="validate-d205-paste" class="btn-secondary" style="font-size:0.85rem;padding:0.4rem 0.9rem;" data-i18n="validate.d205Paste">📋 Lipește din clipboard</button>
+            <button type="button" id="validate-d205-clear" class="btn-secondary" style="font-size:0.85rem;padding:0.4rem 0.9rem;background:var(--danger,#c53030);color:#fff;" data-i18n="validate.d205Clear">🗑 Șterge toate</button>
+          </div>
+
+          <div id="validate-d205-table" style="margin-top:0.75rem;"></div>
+          <div id="validate-d205-match-summary" style="margin-top:0.75rem;"></div>
+        </div>
+
+        <!-- 3. Per-DUF-field copy-paste table (kept here, this is what users actually use) -->
+        <div class="dcl-section" id="validate-duf-values-section">
+          <h3 data-i18n="submit.valuesTitle">📋 Valorile de introdus în formularul DUF pentru anul curent</h3>
+          <p class="subtitle" data-i18n="submit.valuesSubtitle">Aceste valori vin direct din calculele tool-ului nostru. Copiază-le în câmpurile corespunzătoare ale formularului web DUF în secțiunea „Venituri realizate".</p>
+          <div id="validate-duf-values"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- D212 Submission Guide Tab -->
+    <section id="tab-submit" class="tab-content">
+      <div class="card">
+        <h2 data-i18n="submit.title">🧭 Cum depui D212 — ghid pas cu pas</h2>
+        <p class="subtitle" data-i18n="submit.subtitle">Sursa: <em>Ghid de precompletare D212 v2026.1 (ANAF, mai 2026)</em>. Acest tool este un calculator — depunerea efectivă se face prin ANAF.</p>
+
+        <div class="dcl-section" style="border-left:3px solid var(--accent);padding-left:1rem;">
+          <h3 data-i18n="submit.recommended">⭐ Fluxul recomandat: portal DUF (online, în SPV)</h3>
+          <p data-i18n="submit.recommendedFor"><strong>Pentru cine:</strong> orice persoană fizică cu cont SPV (utilizator+parolă, NU certificat digital). Funcționează pentru investitori, PFA, multi-CNP — toate.</p>
+          <ol style="margin-top:0.5rem;line-height:1.7;">
+            <li data-i18n="submit.step1">Login pe <a href="https://www.anaf.ro/declaratii/duf" target="_blank" rel="noopener" style="color:var(--accent);">anaf.ro/declaratii/duf</a> cu credențialele SPV.</li>
+            <li data-i18n="submit.step2">Apare popup-ul „Precompletare din SPV" — click <strong>„Precompletare (recomandat)"</strong>.</li>
+            <li data-i18n="submit.step3">Parcurgi wizard-ul pas-cu-pas. ANAF arată ce știe deja despre tine (D205 venituri cu reținere la sursă, contracte chirie C168, D212 anterior). Pentru fiecare alegi: <em>„Include cu sume"</em> · <em>„Include fără sume"</em> · <em>„Nu include"</em>.</li>
+            <li data-i18n="submit.step4"><strong>⚠️ Veniturile din străinătate (cap14) POT SĂ NU FIE PRECOMPLETATE.</strong> Le adaugi manual în formularul web DUF după wizard.</li>
+            <li data-i18n="submit.step5">După wizard, ești în formularul web complet editabil. Navighezi în meniul stâng la <em>„Venituri realizate"</em> și completezi câmpurile pe baza tabelului din secțiunea de mai jos.</li>
+            <li data-i18n="submit.step6">Click butonul roșu <strong>„Generează fișier PDF pentru depunere"</strong> (panou dreapta). Sistemul validează și produce PDF-ul gata de depus.</li>
+            <li data-i18n="submit.step7">PDF-ul se depune electronic prin SPV. Vei primi recipisa în secțiunea „Mesaje" din SPV.</li>
+          </ol>
+          <p style="font-size:0.85rem;color:var(--text-muted);margin-top:0.5rem;" data-i18n="submit.dufCaveat">💡 <strong>Atenție:</strong> Funcționalitatea de precompletare DUF nu este disponibilă pentru autentificarea cu certificat digital calificat — doar cu utilizator+parolă SPV.</p>
+        </div>
+
+        <div class="dcl-section" style="border-left:3px solid var(--text-muted);padding-left:1rem;">
+          <h3 data-i18n="submit.fallback">🛠️ Flux alternativ: PDF inteligent (Adobe Reader, fără SPV interactiv)</h3>
+          <p data-i18n="submit.fallbackFor"><strong>Pentru cine:</strong> users care preferă să lucreze offline sau care nu pot accesa wizard-ul DUF. Mai laborios, dar suportă import XML direct.</p>
+          <ol style="margin-top:0.5rem;line-height:1.7;">
+            <li data-i18n="submit.fbStep1">Descarcă PDF-ul oficial D212 de pe <a href="https://www.anaf.ro/declaratii/" target="_blank" rel="noopener" style="color:var(--accent);">anaf.ro/declaratii</a>. <strong>Salvează pe disc</strong>, nu deschide în browser.</li>
+            <li data-i18n="submit.fbStep2">Deschide PDF-ul exclusiv în <strong>Adobe Acrobat Reader</strong> (Chrome/Edge nu pot rula formularele XFA).</li>
+            <li data-i18n="submit.fbStep3">Exportă XML-ul nostru: tab <em>„Calcul Impozite"</em> → buton 📤 <em>„Exportă D212 XML (skeleton)"</em>.</li>
+            <li data-i18n="submit.fbStep4">În Adobe Reader, caută butonul „Importă date" (sus, în zona de formular) și selectează XML-ul nostru.</li>
+            <li data-i18n="submit.fbStep5">Completează manual datele lipsă: nume, CNP, IBAN, eventual PFA dacă ai.</li>
+            <li data-i18n="submit.fbStep6">Click „Validare" în PDF — corectează erorile semnalate.</li>
+            <li data-i18n="submit.fbStep7">Salvează PDF-ul completat și depune-l prin SPV (secțiunea „Depunere declarații").</li>
+          </ol>
+          <p style="font-size:0.85rem;color:var(--text-muted);margin-top:0.5rem;" data-i18n="submit.fbWarning">⚠️ Acest flux nu beneficiază de precompletarea automată DUF. Riscă să completezi greșit datele pe care ANAF le are deja (D205, D112). Recomandat doar dacă DUF nu funcționează pentru tine.</p>
+        </div>
+
+        <div class="dcl-section" style="background:rgba(88,166,255,0.06);border-left:3px solid var(--accent);padding:0.75rem 1rem;border-radius:var(--radius);">
+          <h3 style="margin-top:0;" data-i18n="submit.crossRefValidate">🔬 Validare + Pregătire D212</h3>
+          <p data-i18n="submit.crossRefValidateText">Validarea cu XML-ul DUF și tabelul „Valori de introdus în DUF" au fost mutate în tab-ul <a href="#" id="submit-goto-validate" style="color:var(--accent);">🔬 Validare &amp; Pregătire D212</a> pentru a separa clar fluxul procedural (ghidul ăsta) de fluxul de lucru cu datele tale (validarea și pregătirea).</p>
+        </div>
+
+        <div class="dcl-section" style="background:rgba(255,193,7,0.08);border-left:3px solid var(--warning,#b35900);padding:0.75rem 1rem;border-radius:var(--radius);">
+          <h3 style="margin-top:0;" data-i18n="submit.responsibility">⚖️ Responsabilitatea ta</h3>
+          <p data-i18n="submit.responsibilityText">Conform Ghidului ANAF: <em>„Responsabilitatea pentru corectitudinea informațiilor din cuprinsul declarației aparține în totalitate contribuabilului. Precompletarea este un instrument de asistență, NU o confirmare a situației fiscale reale."</em></p>
+          <p style="font-size:0.85rem;color:var(--text-muted);" data-i18n="submit.responsibilityNote">Verifică valorile noastre înainte să le introduci în DUF. Acest tool este un calculator open-source, nu un substitut pentru consultanță fiscală.</p>
+        </div>
+
+        <div class="dcl-section">
+          <h3 data-i18n="submit.deadlines">📅 Termene cheie</h3>
+          <ul>
+            <li data-i18n="submit.deadlineBonus"><strong>15 aprilie 2026</strong> — termen pentru bonificație 3% (depunere + plată integrală). Dacă te încadrezi, bifezi opțiunea de bonificație în DUF.</li>
+            <li data-i18n="submit.deadlineFinal"><strong>25 mai 2026</strong> — termen normal de depunere D212 pentru anul fiscal 2025.</li>
+          </ul>
+        </div>
       </div>
     </section>
 
@@ -680,6 +951,15 @@
         <textarea id="raw-editor" class="raw-text-box hidden" rows="20"></textarea>
       </div>
     </section>
+    <!-- Rules & References Tab (P2) -->
+    <section id="tab-rules" class="tab-content">
+      <div class="card">
+        <h2 data-i18n="rules.title">⚖️ Reguli & Referințe fiscale</h2>
+        <p style="color:var(--text-muted);font-size:0.92rem;" data-i18n="rules.intro">Sursa de adevăr pentru fiecare calcul: articol Cod fiscal, paragraf instrucțiuni D212, formulă verbatim și pointer la implementare. Conceput pentru a fi citit de contabili / auditori care vor să verifice corectitudinea cifrelor.</p>
+        <div id="rules-content"></div>
+      </div>
+    </section>
+
   </main>
 
   <footer>
@@ -757,8 +1037,49 @@
     </div>
   </div>
 
+  <!-- Override-confirmation modal: shown before an upload would replace manual entries -->
+  <div id="override-modal" class="modal-overlay hidden" style="z-index:1030;">
+    <div class="modal-content" style="position:relative; max-width:760px; max-height:85vh; display:flex; flex-direction:column;">
+      <div class="modal-header">
+        <h3 id="override-modal-title" data-i18n="import.overrideModalTitle">Confirm document import</h3>
+        <button type="button" id="override-modal-close" class="modal-close">&times;</button>
+      </div>
+      <div id="override-modal-body" style="padding:1rem 1.5rem; overflow-y:auto; flex:1 1 auto;"></div>
+      <div class="modal-footer" style="padding:0.75rem 1.5rem; border-top:1px solid var(--border); display:flex; gap:0.5rem; justify-content:flex-end;">
+        <button type="button" id="override-cancel-btn" class="btn-primary" style="background:var(--bg-secondary); color:var(--text-primary);" data-i18n="import.overrideCancel">Cancel</button>
+        <button type="button" id="override-confirm-btn" class="btn-primary" data-i18n="import.overrideConfirm">Replace and import</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset-year confirmation modal: wipes all imported documents, parsed data,
+       trades and ledger entries for the selected year. Two-step: shows the
+       manifest of what will be deleted, then requires typing the year to confirm. -->
+  <div id="reset-year-modal" class="modal-overlay hidden" style="z-index:1040;">
+    <div class="modal-content" style="position:relative; max-width:640px; max-height:85vh; display:flex; flex-direction:column;">
+      <div class="modal-header">
+        <h3 id="reset-year-modal-title" data-i18n="resetYear.modalTitle">Reset year</h3>
+        <button type="button" id="reset-year-modal-close" class="modal-close">&times;</button>
+      </div>
+      <div id="reset-year-modal-body" style="padding:1rem 1.5rem; overflow-y:auto; flex:1 1 auto;"></div>
+      <div class="modal-footer" style="padding:0.75rem 1.5rem; border-top:1px solid var(--border); display:flex; gap:0.5rem; justify-content:flex-end;">
+        <button type="button" id="reset-year-cancel-btn" class="btn-primary" style="background:var(--bg-secondary); color:var(--text-primary);" data-i18n="resetYear.cancel">Cancel</button>
+        <button type="button" id="reset-year-confirm-btn" class="btn-primary" style="background:var(--danger);" disabled data-i18n="resetYear.confirm">Reset year</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/js/i18n.js"></script>
   <script src="/js/charts.js"></script>
+  <!--
+    Browser-side calc primitives served from lib/ (whitelisted in server.js).
+    Loaded BEFORE app.js so window.SourceResolver + window.IncomeResolvers
+    are available when _computeYearDataImpl runs. The same files are
+    require()d server-side by tests; single source of truth.
+  -->
+  <script src="/lib/source-resolver.js"></script>
+  <script src="/lib/income-resolvers.js"></script>
+  <script src="/lib/rules-catalog.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

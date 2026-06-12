@@ -1,0 +1,1635 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- 
+  v1.0.4 08042026 modificare tip de date pentru nr_unit_impoz D15_2_GreaterTanZero -> D15_2_AllowZero; coeficient_majorare, coeficient_reducere N2Type -> D2_2_GreaterThanZero
+  v1.0.3 16022026 au fost adaugate atributele venit_ret_dpi, venit_ret_asc, venit_ret_cfb, venit_ret_invvenit_ret_asp, venit_ret_alt, venit_ret_ai.
+  v1.0.2 13012026 au fost adaugate D15_2_GreaterThanZero, D15_2_AllowZero si atributele nr_unit_total, nr_unit_impoz, norma_agr  au fost modificate la D15_2_GreaterThanZero, iar nr_unit_neimpoz si norma_agr_redusa au fost modificate la D15_2_AllowZero.
+  v1.0.1 05012026 a fost adaugat C500Type si atributele den_categ_venit, den_venit, den_caen, den_criteriu, den_norma_judet, den_norma_localitate, den_norma_strada, den_norma_caen, den_stat, den_tara, den_produs, den_stat_rezidenta au fost modificate la C500Type
+  v1.0.0 23122025 conform cu d212_documentatieTehnica_v1.0.0_23122025.xls
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="mfp:anaf:dgti:d212:declaratie:v11"
+  targetNamespace="mfp:anaf:dgti:d212:declaratie:v11" elementFormDefault="qualified"
+  attributeFormDefault="unqualified">
+  <xs:annotation>
+    <xs:documentation>Schema structurala pentru D212 v1.0.4 (24.11.2025) - generata din tabelul de structura. Valideaza doar structura si tipurile de baza ale datelor. Reguli de business suplimentare vor fi definite in Schematron.</xs:documentation>
+  </xs:annotation>
+  <xs:simpleType name="C1Type">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="1"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="C10Type">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="10"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="C13Type">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="13"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="C100Type">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="100"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="C15Type">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="15"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="C2Type">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="2"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="C200Type">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="200"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="C24Type">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="24"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="C250Type">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="250"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="C500Type">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="500"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="C4Type">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="4"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="C50Type">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="50"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="C6Type">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="6"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="C60Type">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="60"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="D10Type">
+    <xs:restriction base="xs:string">
+      <xs:length value="10"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="N1Type">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="1"/>
+      <xs:fractionDigits value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="N13Type">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="13"/>
+      <xs:fractionDigits value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="N15Type">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="15"/>
+      <xs:fractionDigits value="0"/>
+      <xs:minInclusive value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="N2Type">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="2"/>
+      <xs:fractionDigits value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="N3Type">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="3"/>
+      <xs:fractionDigits value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="N4Type">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="4"/>
+      <xs:fractionDigits value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="N5Type">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="5"/>
+      <xs:fractionDigits value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="N9Type">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="9"/>
+      <xs:fractionDigits value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="D2_2_GreaterThanZero">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="4"/>
+      <xs:fractionDigits value="2"/>
+      <xs:minExclusive value="0.00"/>
+    </xs:restriction>
+  </xs:simpleType> 
+  <xs:simpleType name="D15_2_GreaterThanZero">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="17"/>
+      <xs:fractionDigits value="2"/>
+      <xs:minExclusive value="0.00"/>
+    </xs:restriction>
+  </xs:simpleType> 
+  <xs:simpleType name="D15_2_AllowZero">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="17"/>
+      <xs:fractionDigits value="2"/>
+      <xs:minInclusive value="0.00"/>
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <xs:element name="d212">
+    <xs:annotation>
+      <xs:documentation>Radacina declaratiei</xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <!-- Capitolul I Date privind veniturile realizate -->
+        <xs:element minOccurs="0" name="oblig_realizat">
+          <xs:annotation>
+            <xs:documentation>Date privind veniturile realizate, declarate in Capitolul I.(BG-01000)</xs:documentation>
+          </xs:annotation>
+          <!-- Capitolul I, Sectiunea 1,  Subsectiunea 3: Date privind impozitul pe veniturile din inchirierrea in scop turistic a camerelor situate in locuinte proprietate personale -->
+          <xs:complexType>
+            <xs:attribute name="real_camere_inchiriere" type="N3Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Numar camere(BT-01001)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_venit_inchiriere" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit anual(BT-01002)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_impozit_inchiriere" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Impozit anual (rd.1 *10%)(BT-01003)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <!-- Capitolul I, Sectiunea 2,  Subsectiunea 2: Date privind contributia de asigurari sociale si contributia de asigurari social ede sanatate datorate pentru venituri asimilate salariilor pentru activitatea desfasurata in strainatate -->
+            <xs:attribute name="str_cas_baza" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Baza anuala de calcul al CAS(BT-01004)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_cas_datorat" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CAS datorata (rd.1 x 25%)(BT-01005)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_cass_baza" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Baza anuala de calcul al CASS(BT-01006)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_cass_datorat" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS datorata (rd.3 x 10%)(BT-01007)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <!-- Capitolul I, Sectiunea 3,  Subsectiunea 1: Date privind contributia de asigurari sociale datorata -->
+            <xs:attribute name="bifa_cas_real" type="N1Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Bifa optiune venituri realizate(BT-01008)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="bifa_cas_recalculat" type="N1Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Am realizat venituri peste plafon minim recalculat(BT-01009)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="bifa_cas_sub_plafon" type="N1Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Am realizat venituri sub plafon minim si optez pentru plata CAS(BT-01010)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cas_total_ven" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Total venituri anuale realizate din activitati independente si drepturi de proprietate intelectuala  potrivit art.148 alin.(2) din Codul fiscal(BT-01011)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cas_baza" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Baza anuala calcul a CAS (Venit ales pentru plata CAS)(BT-01012)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cas_datorat" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CAS datorata (rd.2 x 25%)(BT-01013)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cas_retinut_platitor" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CAS retinuta de platitorul de venit conform art.151 alin. (6^1) din Codul fiscal(BT-01014)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cas_dif_plus" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Diferenta stabilita in plus (rd.3 - rd.4)(BT-01015)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <!-- Capitolul I, Sectiunea 3,  Subsectiunea 2 Date privind contributia de asigurari sociale de sanatate datorata -->
+            <xs:attribute name="bifa_cass_datorat_ai" type="N1Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS datorata pentru veniturile din activitati independente prevazute la art.155 alin.(1) lit.b) din Codul fiscal(BT-01016)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="bifa_cass_datorat_dpi" type="N1Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS datorata pentru veniturile din drepturi de proprietate intelectuala  asocierea cu o persoana juridica  contribuabil potrivit titlului II sau titlului III din Codul fiscal,  cedarea folosintei bunurilor,  activitati agricole, silvicultura si piscicultura,  venituri din investitii si/sau din alte surse prevazute la art. 155 alin. (1) lit. c) - h) din Codul fiscal(BT-01017)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <!-- 2.1 Date privind contributia de asigurari sociale datorata CASS datorata pentru veniturile din activitati independente prevazute la art.155 alin.(1) lit.b) din Codul fiscal -->
+            <xs:attribute name="cass_total_ven_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Total venituri anuale realizate din activitati independente si drepturi de proprietate intelectuala  potrivit art.148 alin.(2) din Codul fiscal (BT-01018)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="baza_cass_datorat_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Baza anuala de calcul al CASS(BT-01019)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_anuala_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS anuala (rd.2 x 10%)(BT-01020)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_datorat_art180_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS datorata ca urmare a exercitarii optiunii potrivit art.180 alin.(2) din Codul Fiscal(BT-01021)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_datorat_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS datorata(rd.3 - rd.4 sau rd.4, dupa caz)(BT-01022)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_retinut_platitor_alin6_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS retinuta de platitorul de venit conform art.174 alin. (10) din Codul fiscal(BT-01023)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_dif_plus_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Diferenta stabilita in plus (rd.5 – rd.6)(BT-01024)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_dif_minus6_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Diferenta stabilita in minus (rd.6 - rd.5)(BT-01025)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_retinut_platitor_alin7_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>9. CASS retinuta de platitorii de venituri conform art.174 alin.(11) din Codul fiscal</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_dif_minus8_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>10. Diferenta stabilita în minus (suma de la rd.9 -10% x 60 salarii minime brute pe tara )</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <!-- 2.2. CASS datorata pentru veniturile din drepturi de proprietate intelectuala, asocierea cu o persoana juridica, contribuabil potrivit titlului II sau titlului III din Codul fiscal, cedarea folosinţei bunurilor, activitaţi agricole, silvicultura şi piscicultura, venituri din investiţii și/sau din alte surse prevazute la art. 155 alin. (1) lit. c) - h) din Codul fiscal -->
+            <xs:attribute name="bifa_cass_real" type="N1Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Bifa optiune venituri realizate(BT-01026)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_ven_dpi" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit din drepturi de proprietate intelectuala(BT-01027)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_ven_asc" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit distribuit din asocieri cu persoane juridice  contribuabili potrivit prevederilor titlului II sau titlului III din Codul fiscal(BT-01028)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_ven_cfb" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit din cedarea folosintei bunurilor(BT-01029)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_ven_inv" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit si/sau cistig din investisii(BT-01030)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_ven_asp" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit din activitati agricole  silvicultura si piscicultura(BT-01031)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_ven_alt" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit din alte surse(BT-01032)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_total_ven" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>TOTAL(BT-01033)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_baza" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Baza anuala de calcul a CASS(numar luni x salariu minim)(BT-01034)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_anuala" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS datorata (rd.2 x 10%)(BT-01035)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_datorat_art180" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS datorata ca urmare a exercitarii optiunii potrivit art.180 alin.(2) din Codul Fiscal(BT-01036)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_datorat" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS datorata (rd.2 x 10%)(BT-01037)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_retinut" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS resinuta de platitorul de venit conform art.174^1 alin. (8) din Codul fiscal(BT-01038)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_dif_plus" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Diferenta stabilita in plus (rd.5 i rd.6)(BT-01039)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_dif_minus" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Diferenta stabilita in minus(rd.6 i rd.5)(BT-01040)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <!-- Capitolul I, Sectiunea 4 Stabilirea impozitului anual datorat pe venitul net anual impozabil realizat din activitati independente, impuse în sistem real -->
+            <xs:attribute name="real_venit_net_recalculat_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Suma veniturilor nete recalculate din activitati independente  impuse in sistem real (rd.7 de la 1.1.B)(BT-01041)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_cas-deduc_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CAS deductibila(rd.5 de la subsecsiunea 4.1)(BT-01042)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_cass-deductibil_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS deductibila (rd.6 de la subsecsiunea 4.2)(BT-01043)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_venit_net_impozabil_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit net anual impozabil (rd.1-rd.2 - rd.3 )(BT-01044)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_venit_net_impozabil_redus_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit net anual impozabil redus(BT-01045)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_impozit_datorat_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Total impozit anual datorat (rd.4x10% sau rd.5x10%)(BT-01046)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <!-- Capitolul I, Sectiunea 4, Subsectiunea 4.1 Stabilirea contributiei de asigurari sociale deductibile pentru calculul impozitului pe venit, potrivit art.118 din Codul fiscal -->
+            <xs:attribute name="real_cas_venit_net_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Suma veniturilor nete anuale din activitati independente impuse in sistem real (rd.3 de la 1.1.B)(BT-01047)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_cas_total_ven_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Total venituri anuale realizate din activitati independente si drepturi de proprietate intelectuala  potrivit art.148 alin.(2) din Codul fiscal (rd.1 de la 3.1)(BT-01048)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_cas_pondere_ai" use="optional">
+              <xs:annotation>
+                <xs:documentation>
+                  Ponderea venitului net anual determinat în sistem real în total venituri cumulate
+                  potrivit art.148 alin.(2) din Codul fiscal (rd.1/rd.2)(BT-01049)
+                </xs:documentation>
+              </xs:annotation>
+              <xs:simpleType>
+                <xs:restriction base="xs:decimal">
+                  <xs:minExclusive value="0"/>
+                  <xs:maxInclusive value="1"/>
+                  <xs:totalDigits value="6"/>
+                  <xs:fractionDigits value="5"/>
+                </xs:restriction>
+              </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="real_cas_datorata_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CAS datorata (rd.3 de la subsecsiunea 1  secsiunea 3)(BT-01050)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_cas_deductibila_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>5. CAS deductibila (rd.3 x rd.4)(BT-01051)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <!-- Capitolul I, Sectiunea 4, Subsectiunea 4.2 Stabilirea contributiei de asigurari sociale de sanatate deductibile pentru calculul impozitului pe venit, potrivit art.118 din Codul fiscal -->
+            <xs:attribute name="real_cass_venit_net_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>1.Suma veniturilor nete anuale din activitati independente impuse in sistem real (rd.3 de la 1.1.B)(BT-01052)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_cass_total_ven_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Total venit anual cumulat din activitati independente stabilit potrivit art.170 alin. (1) din Codul fiscal (rd.1 de la 3.2.1)(BT-01053)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_cass_pondere_ai" use="optional">
+              <xs:annotation>
+                <xs:documentation>Ponderea venitului net anual determinat in sistem real in total venit cumulat potrivit art.170 alin.(1) din Codul fiscal (rd.1/rd.2)(BT-01054)</xs:documentation>
+              </xs:annotation>
+              <xs:simpleType>
+                <xs:restriction base="xs:decimal">
+                  <xs:minExclusive value="0"/>
+                  <xs:maxInclusive value="1"/>
+                  <xs:totalDigits value="6"/>
+                  <xs:fractionDigits value="5"/>
+                </xs:restriction>
+              </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="real_cass_datorata_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS datorata (rd.2 de la subsecsiunea 2.1  secsiunea 3)(BT-01055)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_cass_calculata_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS calculata asupra veniturilor nete/brute realizate sau norma anuala de venit  potrivit art.174 alin.(1) din Codul fiscal 1)(BT-01056)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_cass_deductibila_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS deductibila (rd.3 x rd.4 sau rd.3 x rd.5)(BT-01057)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <!-- Capitolul I, Sectiunea 5, Stabilirea impozitului anual datorat pe venitul net anual impozabil realizat din drepturi de proprietate intelectuala, impuse în sistem real -->
+            <xs:attribute name="real_venit_net_recalculat_dpi" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Suma veniturilor nete recalculate din drepturi pe proprietate intelectuala  impuse in sistem real (rd.7 de la 1.1.B)(BT-01058)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_cas_dpi" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CAS deductibila(rd.5 de la subsecsiunea 51)(BT-01059)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_venit_net_impozabil_dpi" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit net anual impozabil (rd.1-rd.2)(BT-01060)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_venit_net_impozabil_redus_dpi" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit net anual impozabil redus(BT-01061)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_impozit_datorat_dpi" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Total impozit anual datorat (rd.3x10% sau rd.4x10%)(BT-01062)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <!-- Capitolul I, Sectiunea 5, Subsectiunea 5.1 Stabilirea contributiei de asigurari sociale deductibile pentru calculul impozitului pe venit, potrivit art.118 din Codul fiscal -->
+            <xs:attribute name="real_cas_venit_net_dpi" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Suma veniturilor nete anuale din activitati independente impuse in sistem real (rd.3 de la 1.1.B)(BT-01063)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_cas_total_ven_dpi" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Total venituri anuale realizate din activitati independente si drepturi de proprietate intelectuala  potrivit art.148 alin.(2) din Codul fiscal (rd.1 de la 3.1)(BT-01064)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_cas_pondere_dpi" use="optional">
+              <xs:annotation>
+                <xs:documentation>Ponderea venitului net anual determinat in sistem real in total venituri cumulate potrivit art.148 alin.(2) din Codul fiscal (rd.1/rd.2)(BT-01065)</xs:documentation>
+              </xs:annotation>
+              <xs:simpleType>
+                <xs:restriction base="xs:decimal">
+                  <xs:minExclusive value="0"/>
+                  <xs:maxInclusive value="1"/>
+                  <xs:totalDigits value="6"/>
+                  <xs:fractionDigits value="5"/>
+                </xs:restriction>
+              </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="real_cas_datorata_dpi" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CAS datorata (rd.3 de la subsecsiunea 1  secsiunea 3)(BT-01066)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_cas_deductibila_dpi" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CAS deductibila (rd.3 x rd.4)(BT-01067)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <!-- Capitolul I, Sectiunea 6, Stabilirea impozitului aferent diferentei de CASS stabilita în minus rezultata în urma recalcularii potrivit art.174 alin.(7) din Codul fiscal -->
+            <xs:attribute name="real_diferenta_CASS" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Diferenat de CASS stabilita in minus rezultata in urma recalcularii potrivit art.174 alin. (7) din Codul fiscal (rd.8 de la subsecsiunea 2.1  secsiunea 3)(BT-01068)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="real_impozit_diferenta_CASS" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Impozit datorat (rd.1 x 10%)(BT-01069)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <!-- Capitolul I, Sectiunea 7.I SUMAR: Obligatii privind impozitul pe venitul realizat, stabilite prin declaratia curenta -->
+            <xs:attribute name="oblimpoz_real_total" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Impozit pe venitul anual(BT-01070)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="oblimpoz_real_anticipat" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Impozit retinut la sursa(BT-01071)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="oblimpoz_real_dif_deplata" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Diferente de impozit in plus rezultate din definitivarea impozitului anual datorat (rd.1 - rd.2)(BT-01072)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="oblimpoz_real_dif_restituit" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Diferente de impozit in minus rezultate din definitivarea impozitului anual datorat (rd.2 - rd.1)(BT-01073)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <!-- Capitolul I, Sectiunea 7.II SUMAR: Obligatii privind contributia de asigurari sociala -->
+            <xs:attribute name="oblcas_real_difPlus" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Diferenta stabilita in plus(BT-01074)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="oblcas_real_str" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CAS datorata pentru venituri asimilate salariilor pentru activitatea desfaturata in strsinatate(BT-01075)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <!-- Capitolul I, Sectiunea 7.III SUMAR: Obligatii privind contributia de asigurari sociale de sanatate -->
+            <xs:attribute name="oblcass_real_difPlus_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Diferenta stabilita in plus pentru veniturile din activitati independente(BT-01076)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="oblcass_real_difMinus_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Diferenta stabilita in minus pentru veniturile din activitati independente(BT-01077)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="oblcass_real_difMinus_174" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Diferenta stabilita in minus pentru veniturile din activitati independente(BT-01078)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="oblcass_real_difPlus_dpi" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Diferenta stabilita in plus pentru venituri din drepturi de proprietate intelectuala  asocierea cu o persoana juridica  contribuabil potrivit titlului II sau titlului III din Codul fiscal,  cedarea folosintei bunurilor,  activitati agricole,  silvicultura si piscicultura,  venituri din investisii si/sau din alte surse(BT-01079)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="oblcass_real_difMinus_dpi" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Diferenta stabilita in minus pentru venituri din drepturi de proprietate intelectuala  asocierea cu o persoana juridica  contribuabil potrivit titlului II sau titlului III din Codul fiscal,  cedarea folosintei bunurilor,  activitati agricole,  silvicultura si piscicultura,  venituri din investisii si/sau din alte surse(BT-01080)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="oblcass_real_str" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS datorata pentru venituri asimilate salariilor pentru activitatea desfaturata in strsinatate(BT-01081)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="oblcass_real_str_pensie" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>7. CASS datorata de persoane fizice care obtin din strainatate venituri din pensii</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <!-- Capitolul I, Sectiunea 7.IV SUMAR: Obligatii fiscale de plata/ de restituit -->
+            <xs:attribute name="impozit_venit_plus" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Impozit pe venit stabilit in plus (rd.3 de la subsecsiunea I(BT-01083)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="impozit_venit_minus" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Impozit pe venit stabilit in minus (rd.4 de la subsecsiunea I)(BT-01084)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cas_plus" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CAS stabilita in plus (rd.1+rd 2 de la subsecsiunea II)(BT-01085)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_plus" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS stabilita in plus (rd.1+rd.4+rd.6 + rd.7 de la subsecsiunea III)(BT-01086)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_minus" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS stabilita in minus (rd.2+rd.3+ rd.5 de la subsecsiunea III)(BT-01087)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="dif_de_plata" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Diferenta de plata (rd.1 + rd.3 + rd.4) - (rd.2 + rd. 5)(BT-01088)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="dif_de_restituit" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Diferenta de restituit (rd.2 + rd.5) - (rd.1 + rd.3 + rd.4)(BT-01089)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <!-- Capitolul I, Sectiunea 8, Bonificatie pentru plata impozitului pe venitul anual si a contributiilor sociale -->
+            <xs:attribute name="oblimpozit_real_bonif" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Bonificatie privind impozitul pe venitul anual(BT-01090)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="oblcas_real_bonif" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Bonificatie privind contributia de asigurari sociale(BT-01091)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="oblcass_real_bonif" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Bonificatie privind contributia de asigurari sociale de sanatate(BT-01092)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+
+            <!-- Atribute utilizate in aplicatia web -->
+            <xs:attribute name="venit_ret_dpi" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit din drepturi de proprietate intelectuala(BT-01107)
+                </xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="venit_ret_asc" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit distribuit din asocieri cu persoane juridice  contribuabili potrivit prevederilor titlului II sau titlului III din Codul fiscal(BT-01108)
+                </xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="venit_ret_cfb" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit din cedarea folosintei bunurilor(BT-01109)
+                </xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="venit_ret_inv" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit si/sau castig din investitii(BT-01110)
+                </xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="venit_ret_asp" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit din activitati agricole  silvicultura si piscicultura(BT-01111)
+                </xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="venit_ret_alt" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit din alte surse(BT-01112)
+                </xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="venit_ret_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit din activitati independente(BT-01113)
+                </xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            
+            
+            <xs:attribute name="cass_ret_dpi" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS din drepturi de proprietate intelectuala(BT-01093)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_ret_asc" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS distribuit din asocieri cu persoane juridice  contribuabili potrivit prevederilor titlului II sau titlului III din Codul fiscal(BT-01094)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_ret_cfb" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS din cedarea folosintei bunurilor(BT-01095)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_ret_inv" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS si/sau casitig din investitii(BT-01096)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_ret_asp" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS din activitati agricole  silvicultura si piscicultura(BT-01097)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_ret_alt" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS din alte surse(BT-01098)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_ret_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS din activitati independente(BT-01099)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cas_ret_dpi" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CAS din drepturi de proprietate intelectuala(BT-01100)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cas_ret_asc" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CAS distribuit din asocieri cu persoane juridice  contribuabili potrivit prevederilor titlului II sau titlului III din Codul fiscal(BT-01101)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cas_ret_cfb" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CAS din cedarea folosintei bunurilor(BT-01102)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cas_ret_inv" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CAS si/sau cistig din investisii(BT-01103)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cas_ret_asp" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CAS din activitati agricole  silvicultura si piscicultura(BT-01104)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cas_ret_alt" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CAS din alte surse(BT-01105)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cas_ret_ai" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CAS din activitati independente(BT-01106)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+        <!-- CAPITOLUL II.   Date privind contributia de asigurari sociale de sanatate datorata de catre persoanele fizice care opteaza pentru plata contributiei pentru anul   curent (2026) -->
+        <xs:element minOccurs="0" name="oblig_estimat">
+          <xs:annotation>
+            <xs:documentation>Date privind CASS datorate de catre persoanele fizice care opteaza pentru plata contributiei, declarate in Capitolul II.(BG-02000)</xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:attribute name="bifa_optiune" type="N1Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Declar ca optez pentru plata CASS(BT-02001)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="situatie_optiune" type="C1Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Ma incadrez in una din urmatoarele situatii:(BT-02002)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="baza_optiune" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Baza de calcul al CASS(BT-02003)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cass_optiune" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>CASS datorata(BT-02004)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="bifa_optiune_coasigurat" type="N1Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Declar ca optez pentru plata CASS pentru:(BT-02005)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="totalCassDatorat" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Total CASS datorata (rd.1 + rd.2)(BT-02006)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="totalCassDatoratCoasigurat" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Total CASS datorata pentru persoanele aflate in intretinere(BT-02007)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+        <!-- Capitolul I, sectiunea 1, Subsectiunea 1: Date privind impozitul pe veniturile realizate din Romania  impuse în sistem real/pe baza cotelor forfetare de cheltuieli  -->
+        <xs:element maxOccurs="unbounded" minOccurs="0" name="cap11">
+          <xs:annotation>
+            <xs:documentation>Date privind impozitul pe veniturile realizate din Romania  impuse în sistem real/pe baza cotelor forfetare de cheltuieli.(BG-03000) </xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:attribute name="scutire" type="N1Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit scutit conform convensiei de evitare a dublei impuneri si a legislatiei Uniunii Europene(BT-03001)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="reg" type="N1Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Optiune privind regularizarea in Romania a impozitului pe venit(BT-03002)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="den_venit" type="C500Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Denumirea categoriei de venit(BT-03003)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="categ_venit" type="N4Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Categoria de venit(BT-03004)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="det_ven_net" type="N1Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Determinarea venitului net(BT-03005)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="forma_org" type="N1Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Forma de organizare(BT-03006)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="den_caen" type="C500Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Denumirea obiectului principal de activitate(BT-03007)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="caen" type="C4Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Obiectul principal de activitate(BT-03008)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="descriere_sediu_bun" type="C250Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Sediul/ Date de identificare a bunului pentru care se cedeaza folosinta(BT‑03009 )</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="nr_doc_autoriz" type="C15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Nr. document autorizare/ Contract de  inchiriere(BT‑03010 )</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="data_doc_autoriz" type="D10Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Data document autorizare/ Contract de  inchiriere(BT‑03011 )</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="nr_doc_asociere" type="C15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Nr.Contract de asociere(BT‑03012)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="data_doc_asociere" type="D10Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Data Contract de asociere</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="data_incep" type="D10Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Data inceperii activitatii(BT‑03014 )</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="data_sf" type="D10Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Data incetarii activitatii(BT‑03015)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="data_suspendare" type="D10Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Data suspendarii activitatii(BT‑03016)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="nr_zile_scutite" type="N3Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Numar zile de scutire(BT‑03017)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="venit_brut" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venitul brut(BT‑03018)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="chelt_deduc" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Cheltuieli deductibile(BT‑03019)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="venit_net_anual" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit net anual(rd.1-rd.2)/ Cisitig net anual(BT‑03020)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="pierdere" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Pierdere fiscala anuala (rd.2.-rd.1) /Pierdere neta anuala(BT‑03021)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="pierdere_precedenta" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Pierderi fiscale/nete reportate din anii precedensi(BT-03022)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="pierdere_compensata" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Pierdere fiscala compensata in anul de raportare(BT-03023)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="venit_recalculat" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit/ciatig net anual impozabil/Venit net anual recalculat(rd.3- rd.6) /Ciatig/ Venit impozabil(BT-03024)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="venit_redus" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit net anual impozabil redus(BT-03025)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="impozit11" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Impozit anual datorat/Impozit pe venit datorat(rd.7x10% sau rd.8x10%)(BT-03026)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="impozit_retinut" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Impozit retinut(BT-03027)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="tip_chirie" type="N1Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Tipul chiriei(BT-03028)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+        <!-- Capitolul I, Sectiunea 1, Subsectiunea 2: Date privind impozitul pe veniturile realizate din activitati independente impuse pe baza de norma de venit  -->
+        <xs:element maxOccurs="unbounded" minOccurs="0" name="cap12">
+          <xs:annotation>
+            <xs:documentation>Date privind impozitul pe veniturile din activitati independente impuse pe baza de norme de venit.(BG-04000)</xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element maxOccurs="unbounded" name="norma_loc">
+                <xs:annotation>
+                  <xs:documentation>Locul unde se realizeaza venitul.(BG-04100)</xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="corectie">
+                      <xs:annotation>
+                        <xs:documentation>Corectie a normei de venit pentru activitati independente, cu exceptia punctelor gastronomice locale.(BG-04200)</xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:attribute name="den_criteriu" type="C500Type" use="optional">
+                          <xs:annotation>
+                            <xs:documentation>Denumire criteriu de corectie(BT-04101)</xs:documentation>
+                          </xs:annotation>
+                        </xs:attribute>
+                        <xs:attribute name="criteriu" type="C6Type" use="required">
+                          <xs:annotation>
+                            <xs:documentation>Criteriu de corectie(BT-04102)</xs:documentation>
+                          </xs:annotation>
+                        </xs:attribute>
+                        <xs:attribute name="coeficient_majorare" type="D2_2_GreaterThanZero" use="optional">
+                          <xs:annotation>
+                            <xs:documentation>Coeficient de majorare(BT-04103)</xs:documentation>
+                          </xs:annotation>
+                        </xs:attribute>
+                        <xs:attribute name="coeficient_reducere" type="D2_2_GreaterThanZero" use="optional">
+                          <xs:annotation>
+                            <xs:documentation>Coeficient de reducere(BT-04104)</xs:documentation>
+                          </xs:annotation>
+                        </xs:attribute>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute name="norma_judet" type="N2Type" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Cod judet(BT-04007)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="den_norma_judet" type="C500Type" use="optional">
+                    <xs:annotation>
+                      <xs:documentation>Denumire judet(BT-04008)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="norma_localitate" type="N4Type" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Cod localitate(BT-04011)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="den_norma_localitate" type="C500Type" use="optional">
+                    <xs:annotation>
+                      <xs:documentation>Denumire localitate(BT-04012)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="norma_strada" type="N4Type" use="optional">
+                    <xs:annotation>
+                      <xs:documentation>Cod strada(BT-04013)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="den_norma_strada" type="C500Type" use="optional">
+                    <xs:annotation>
+                      <xs:documentation>Denumire strada(BT-04014)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="norma_numarStrada" use="optional">
+                    <xs:annotation>
+                      <xs:documentation>numar strada(BT-04015)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="norma_rest_adresa" type="C200Type" use="optional">
+                    <xs:annotation>
+                      <xs:documentation>Alte informatii despre adresa(BT-04016)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="norma_isPGL" type="N1Type" use="required">
+                    <xs:annotation>
+                      <xs:documentation>bifa Punct Gastronomic Local(BT-04017)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="den_norma_caen" type="C500Type" use="optional">
+                    <xs:annotation>
+                      <xs:documentation>Denumirea obiectului de activitate(BT-04018)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="norma_caen" type="C4Type" use="optional">
+                    <xs:annotation>
+                      <xs:documentation>Obiectul  de activitate(BT-04019)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="norma_data_incep" type="D10Type" use="optional">
+                    <xs:annotation>
+                      <xs:documentation>Data inceperii activitatii(BT-04020)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="norma_data_sf" type="D10Type" use="optional">
+                    <xs:annotation>
+                      <xs:documentation>Data incetarii activitatii(BT-04021)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="norma_zile_intrerupere" type="N3Type" use="optional">
+                    <xs:annotation>
+                      <xs:documentation>Numar zile intrerupere temporara a activitatii(BT-04022)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="norma_nr_zile_scutite" type="N3Type" use="optional">
+                    <xs:annotation>
+                      <xs:documentation>Numar zile de scutire(BT-04023)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="real_norma_venit" type="N15Type" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Norma de venit(BT-04024)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="real_ajustare" type="N15Type" use="optional">
+                    <xs:annotation>
+                      <xs:documentation>Norma ajustata potrivit Codului Fiscal(BT-04025)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="real_venit_net_anual" type="N15Type" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Venit net anual  din care(BT-04026)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="real_venit_impozit" type="N15Type" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Venit impozabil(BT-04027)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute name="norma_forma_org" type="N1Type" use="required">
+              <xs:annotation>
+                <xs:documentation>Forma de organizare(BT-04001)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="norma_nr_doc_autoriz" type="C15Type" use="required">
+              <xs:annotation>
+                <xs:documentation>Nr. document autorizare(BT-04002)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="norma_data_doc_autoriz" type="D10Type" use="required">
+              <xs:annotation>
+                <xs:documentation>Data document autorizare(BT-04003)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="norma_venit_impozabil" type="N15Type" use="required">
+              <xs:annotation>
+                <xs:documentation>Total venit impozabil(BT-04004)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="norma_impozit" type="N15Type" use="required">
+              <xs:annotation>
+                <xs:documentation>Impozit anual (BT-04005)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+        <!-- Capitolul I, Sectiunea 2:Date privind veniturile realizate din strainatate -->
+        <!-- Capitolul I, Sectiunea 2, Subsectiunea 1: Date privind impozitul pe veniturile realizate din strainatate -->
+        <xs:element maxOccurs="unbounded" minOccurs="0" name="cap14">
+          <xs:annotation>
+            <xs:documentation>Date privind impozitul pe veniturile realizate din strainatate.(BG-05000)</xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:attribute name="den_stat" type="C500Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Denumirea tarii in care s-a realizat venitul(BT-05001)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_stat_realiz_v" type="C2Type" use="required">
+              <xs:annotation>
+                <xs:documentation>Tara in care s-a realizat venitul(BT-05002)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="den_categ_venit" type="C500Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Denumirea categoriei de venit(BT-05003)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_categ_venit" type="N4Type" use="required">
+              <xs:annotation>
+                <xs:documentation>Categoria de venit(BT-05004)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="dubla_impunere" type="N1Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Metoda de evitare a dublei impuneri(BT-05005)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_data_incep" type="D10Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Data inceperii activitatii(BT-05006)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_data_sf" type="D10Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Data incetarii activitatii(BT-05007)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_venit_brut" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit brut(BT-05008)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_chelt_deduc" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Cheltuieli deductibile/alte sume deductibile(BT-05009)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_venit_net_anual" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit net (rd.1-2)/ Castig net anual(BT-05010)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_pierdere_anuala" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Pierdere fiscala (rd.2-1)/ Pierdere neta anuala(BT-05011)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_pierdere_precedenta" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Pierderi fiscale/nete reportate din anii precedensi(BT-05012)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_pierdere_compensata" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Pierdere fiscala compensata in anul de raportare(BT-05013)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_venit_recalculat" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Venit/cistig net anual impozabil (rd.3-rd.6)(BT-05014)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_impozit_datorat_Ro" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Impozit pe venit datorat in Romania(BT-05016)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_impozit_platit" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Impozit pe venit platit in strsinatate(BT-05017)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_credit_fiscal" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Credit fiscal recunoscut(BT-05018)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_dif_impozit_datorat" type="N15Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Diferenta de impozit de plata (rd.8-rd.10)(BT-05019)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+        <!-- Capitolul I,Sectiunea 2, Subsectiune 3: Date privind contributia de asigurari sociale de sanatate datorata de persoanele fizice care obtin din strainatate venituri din pensi -->
+        <xs:element maxOccurs="250" minOccurs="0" name="cap19">
+          <xs:annotation>
+            <xs:documentation>Date privind contributia de asigurari sociale de sanatate datorata de persoanele fizice care obtin din strainatate venituri din pensii.(BG-06000)</xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element maxOccurs="12" name="cap19_luna">
+                <xs:annotation>
+                  <xs:documentation>Date lunare.(BG-06100)</xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:attribute name="str_cass_pensie_luna" type="N2Type" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Luna de raportare(BT-06101)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="str_cass_pensie_baza" type="N9Type" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Baza de calcul CASS pensie(BT-06102)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="str_cass_pensie_datorat" type="N9Type" use="required">
+                    <xs:annotation>
+                      <xs:documentation>CASS pensie datorat(BT-06103)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute name="den_tara" type="C500Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Denumire tara in care s-a realizat venitul(BT-06001)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="str_cass_pensie_tara" type="C2Type" use="required">
+              <xs:annotation>
+                <xs:documentation>Tara in care s-a desfasurat activitatea(BT-06002)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+        <xs:element maxOccurs="unbounded" minOccurs="0" name="cap23">
+          <xs:annotation>
+            <xs:documentation>Date privind realizarile anuale pentru activitati agricole, norme de venit.(BG-07000)</xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element minOccurs="0" maxOccurs="23" name="produse">
+                <xs:annotation>
+                  <xs:documentation>Produse/ Animale.(BG-07100)</xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:attribute name="den_produs" type="C500Type" use="optional">
+                    <xs:annotation>
+                      <xs:documentation>Denumire produs(BT-07101)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="codp" type="C10Type" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Cod produs(BT-07102)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="nr_unit_total" type="D15_2_GreaterThanZero" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Numar unitati totale(BT-07103)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="nr_unit_neimpoz" type="D15_2_AllowZero" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Numar unitati neimpozabile(BT-07104)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="nr_unit_impoz" type="D15_2_AllowZero" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Numar unitati impozabile(BT-07105)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="norma_agr" type="D15_2_GreaterThanZero" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Norma agricola(BT-07106)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="norma_agr_redusa" type="D15_2_AllowZero" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Norma agricola redusa(BT-07107)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="venit_impozabil" type="N15Type" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Venit impozabil(BT-07108)</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute name="estan_forma_org" type="N1Type" use="required">
+              <xs:annotation>
+                <xs:documentation>Forma de organizare(BT-07001)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="estan_nr_contr" type="C50Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Numar contract(BT-07002)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="estan_data_contr" type="D10Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Data contract(BT-07003)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="estan_zile_scutire" type="N3Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Numar zile scutire(BT-07004)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="estan_judet_activ" type="C2Type" use="required">
+              <xs:annotation>
+                <xs:documentation>Judetul de desfasurare a activitatii(BT-07005)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="estan_incadrare_neimpoz" type="N1Type" use="optional">
+              <xs:annotation>
+                <xs:documentation>Optiune privind incadrarea in limitele veniturilor neimpozabile(BT-07006)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="estan_tot_ven_impoz" type="N15Type" use="required">
+              <xs:annotation>
+                <xs:documentation>Total venit impozabil(BT-07007)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="estan_tot_impozit_anual" type="N15Type" use="required">
+              <xs:annotation>
+                <xs:documentation>Total impozit anual(BT-07008)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+        <!-- Capitolul  II, Sectiunea 2: Date privind CASS datorata de catre persoanele fizice pentru persoanele aflat in intretinere potrivit art.182^1 din Copdul fiscal -->
+        <xs:element maxOccurs="3" minOccurs="0" name="coasigurat">
+          <xs:annotation>
+            <xs:documentation>Date privind persoanele în întretinere.(BG-08000)</xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:attribute name="tipCoasigurat" type="N1Type" use="required">
+              <xs:annotation>
+                <xs:documentation>Tip coasigurat(BT-08001)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="numeCoasigurat" type="C250Type" use="required">
+              <xs:annotation>
+                <xs:documentation>Nume coasigurat(BT-08002)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cnpCoasigurat" type="N13Type" use="required">
+              <xs:annotation>
+                <xs:documentation>CNP coasigurat(BT-08003)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="bazaCassCoasigurat" type="N15Type" use="required">
+              <xs:annotation>
+                <xs:documentation>Baza de calcul CASS(BT-08004)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="cassDatoratCoasigurat" type="N15Type" use="required">
+              <xs:annotation>
+                <xs:documentation>CASS datorat(BT-08005)</xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="d_rec" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Declaratie rectificativa(BT-00001)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="rectif1" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Se rectifica doar Capitolul 1(BT-00002)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="rectif2" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Se rectifica doar Capitolul 2(BT-00003)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="luna_r" type="N2Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Luna de raportare(BT-00005)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="an_r" type="N4Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Anul de raportare(BT-00006)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="anulare_litA" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Declaratie depusa dupa anularea rezervei verificarii ulterioare  conform Codului de procedura fiscala art105 alin(6) lit.A(BT-00007)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="anulare_litB" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Declaratie depusa dupa anularea rezervei verificarii ulterioare  conform Codului de procedura fiscala art105 alin(6) lit.B(BT-00008)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="bifa_conformare" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Declaratie rectificativa ca urmare a unei notificari de conformare(BT-00009)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="bifa111" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Date privind impozitul pe veniturile realizate din Romania  impuse in sistem real/pe baza cotelor forfetare de cheltuieli (BT-00010)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="bifa112" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Date privind impozitul pe veniturile din activitati independente realizate din Romania  impuse pe baza de norme de venit(BT-00011)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="bifa113" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Date privind impozitul pe veniturile din inchirierea in scop turistic a camerelor situate in locuinte proprietate personala  impuse pe baza normelor de venit(BT-00012)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="bifa121" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Date privind impozitul pe veniturile din strsinatate(BT-00013)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="bifa122" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Date privind contributia de asigurari sociale si contributia de asigurari sociale de sanatate datorate pentru venituri asimilate salariilor pentru activitatea desfasurata in strsinatate(BT-00014)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="bifa131" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Date privind contributia de asigurari sociale(CAS) datorata(BT-00015)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="bifa132" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Date privind contributia de asigurari sociale de sanatate(CASS) datorata(BT-00016)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="bifa14" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Stabilirea impozitului anual datorat pe venitul net anual impozabil realizat din activitati independente  impuse in sistem real (BT-00017)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="bifa15" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Stabilirea impozitului anual datorat pe venitul net anual impozabil realizat din drepturi pe proprietate intelectuala  impuse in sistem real (BT-00018)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="bifa18" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Bonificatie pentru plata impozitului pe venitul anual si a contributiilor sociale(BT-00019)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="bifa19" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Date privind contributia de asigurari sociale de sanatate datorata de persoanele fizice care obtin din strainatate venituri din pensii(BT-00021)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="bifa23" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Date privind impozitul pe venituri din activitati agricole impuse pe baza de norme de venit(BT-00022)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="nume_c" type="C250Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Nume contribuabil(BT-00023)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="initiala_c" type="C250Type" use="optional">
+        <xs:annotation>
+          <xs:documentation>Initiala tatalui(BT-00024)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="prenume_c" type="C250Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Prenume contribuabil(BT-00025)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="telefon_c" type="C15Type" use="optional">
+        <xs:annotation>
+          <xs:documentation>Telefon contribuabil(BT-00027)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="fax_c" type="C15Type" use="optional">
+        <xs:annotation>
+          <xs:documentation>Fax contribuabil(BT-00028)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="email_c" type="C200Type" use="optional">
+        <xs:annotation>
+          <xs:documentation>Email contribuabil(BT-00029)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="cif" type="N13Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Cod numeric personal/ Numar de identificare fiscala din Romania contribuabil(BT-00030)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="nerezident" type="N1Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Bifa Nerezident(BT-00031)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="den_stat_rezidenta" type="C500Type" use="optional">
+        <xs:annotation>
+          <xs:documentation>Denumirea statului de rezidenta(BT-00032)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="stat_rezidenta" type="C2Type" use="optional">
+        <xs:annotation>
+          <xs:documentation>Tara de rezidenta(BT-00033)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="cif_str" type="C50Type" use="optional">
+        <xs:annotation>
+          <xs:documentation>Cod de identificare fiscala din strainatate(BT-00034)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="cont_bancar" type="C24Type" use="optional">
+        <xs:annotation>
+          <xs:documentation>Cont bancar (IBAN)(BT-00035)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="den_i" type="C60Type" use="optional">
+        <xs:annotation>
+          <xs:documentation>Nume  Prenume/ Denumire imputernicit/ curator fiscal(BT-00036)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="cif_i" type="N13Type" use="optional">
+        <xs:annotation>
+          <xs:documentation>Cod de identificare fiscala imputernicit/ curator fiscal(BT-00037)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="adresa_i" type="C200Type" use="optional">
+        <xs:annotation>
+          <xs:documentation>Adresa imputernicit/ curator fiscal(BT-00038)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="telefon_i" type="C15Type" use="optional">
+        <xs:annotation>
+          <xs:documentation>Telefon imputernicit/ curator fiscal(BT-00039)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="fax_i" type="C15Type" use="optional">
+        <xs:annotation>
+          <xs:documentation>Fax imputernicit/ curator fiscal(BT-00040)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="statut" type="N1Type" use="optional">
+        <xs:annotation>
+          <xs:documentation>Statut contribuabilului din punctul de vedere al contributiilor datorate(BT-00041)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="email_i" type="C200Type" use="optional">
+        <xs:annotation>
+          <xs:documentation>Email imputernicit/ curator fiscal(BT-00042)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="totalPlata_A" type="N5Type" use="required">
+        <xs:annotation>
+          <xs:documentation>Suma de control(BT-00004)</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

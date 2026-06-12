@@ -447,6 +447,43 @@ function purgeVestsByYear(year) {
   return { deleted };
 }
 
+/**
+ * Purge every ledger entry (vest + sale) tied to a specific year and
+ * unassign any stock awards manually assigned to that year. Used by the
+ * "Reset year" action to wipe all per-year state from the ledger.
+ */
+function purgeYear(year) {
+  const ledger = load();
+  let vestsDeleted = 0;
+  let salesDeleted = 0;
+
+  for (const entry of ledger.entries) {
+    if (entry.deleted) continue;
+    if (entry.year !== year) continue;
+    if (entry.type === 'stock_vest') { entry.deleted = true; vestsDeleted++; }
+    else if (entry.type === 'sale') { entry.deleted = true; salesDeleted++; }
+  }
+
+  // Unassign stock awards that were manually assigned to this year so they
+  // become available again in the per-year picker on Add Data.
+  const awards = db.getAllStockAwards().filter(a => a._assignedYear === year);
+  if (awards.length > 0) {
+    db.unassignStockAwardYear(awards.map(a => a._dbId));
+  }
+
+  if (vestsDeleted > 0 || salesDeleted > 0) {
+    recalculateAllocations(ledger);
+    save(ledger);
+  } else if (awards.length > 0) {
+    // Awards changed without ledger changes — still recalc/save so allocations
+    // reflect the unassigned awards.
+    recalculateAllocations(ledger);
+    save(ledger);
+  }
+
+  return { vestsDeleted, salesDeleted, awardsUnassigned: awards.length };
+}
+
 // ============ QUERIES ============
 
 /**
@@ -559,6 +596,7 @@ module.exports = {
   recalculate,
   purgeBySourceFile,
   purgeVestsByYear,
+  purgeYear,
   getAllocations,
   getAllAllocations,
   getSummary,

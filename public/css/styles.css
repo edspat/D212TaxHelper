@@ -88,6 +88,54 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 16px; scroll-behavior: smooth; }
 
+/* ============ Boot splash ============
+   Visible while the SPA initializes (before Express finishes responding to the
+   first fetch wave). Sits above everything; removed from the DOM in init()
+   once loadAllData() resolves. Uses theme tokens so it matches both light
+   and dark mode without JS. */
+#boot-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Tiny fade-out when the SPA removes the .hidden helper class */
+  transition: opacity 0.25s ease-out;
+}
+#boot-splash.hidden { opacity: 0; pointer-events: none; }
+.boot-splash-inner {
+  text-align: center;
+  font-family: var(--font);
+  color: var(--text-primary);
+}
+.boot-splash-spinner {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 1.25rem;
+  border: 4px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: boot-splash-spin 0.8s linear infinite;
+}
+@keyframes boot-splash-spin {
+  to { transform: rotate(360deg); }
+}
+.boot-splash-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.35rem;
+}
+.boot-splash-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+@media (prefers-reduced-motion: reduce) {
+  .boot-splash-spinner { animation: none; }
+}
+
 /* Respect user motion preferences — but keep functional spinners */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
@@ -226,6 +274,48 @@ main {
 }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
+
+/* ============ Sub-tab Bar (Phase: nav consolidation) ============
+   Rendered between the top nav and the active tab content when the active
+   top-level tab is a multi-subtab group. Visually echoes the Add Data
+   internal sub-tab switcher to keep one consistent metaphor across the app.
+*/
+.subtab-bar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 2rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.subtab-bar .subtab-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.subtab-bar .subtab-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+.subtab-bar .subtab-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.subtab-bar .subtab-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+@media (max-width: 720px) {
+  .subtab-bar { padding: 0.5rem 1rem; }
+  .subtab-bar .subtab-btn { padding: 0.35rem 0.6rem; font-size: 0.78rem; }
+}
 
 /* ============ Cards ============ */
 .card {

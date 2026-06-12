@@ -237,6 +237,12 @@ function deleteTradesBySource(source) {
   db.prepare('DELETE FROM trades WHERE source = ?').run(source);
 }
 
+function deleteTradesByYear(year) {
+  const db = getDb();
+  const r = db.prepare('DELETE FROM trades WHERE year = ?').run(year);
+  return r.changes;
+}
+
 function deleteTradesExceptSource(source) {
   const db = getDb();
   db.prepare('DELETE FROM trades WHERE source IS NULL OR source != ?').run(source);
@@ -585,6 +591,7 @@ module.exports = {
   addTrade,
   addTradeIfNotDuplicate,
   deleteTradesBySource,
+  deleteTradesByYear,
   deleteTradesExceptSource,
   clearTrades,
   assignTradeYear,

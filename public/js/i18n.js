@@ -49,6 +49,15 @@ const I18n = (() => {
         el.placeholder = translated;
       }
     });
+    // <optgroup label="..."> elements don't have textContent — translate
+    // via the `label` attribute when annotated with data-i18n-label.
+    document.querySelectorAll('[data-i18n-label]').forEach(el => {
+      const key = el.getAttribute('data-i18n-label');
+      const translated = t(key);
+      if (translated !== key) {
+        el.label = translated;
+      }
+    });
   }
 
   function getLang() { return currentLang; }

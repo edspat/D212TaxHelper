@@ -332,7 +332,9 @@ Licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). 
   console.log(`\n  === Build Complete (${BUILD_FULL ? 'Full' : 'Lite'}) ===`);
   console.log(`  Output: ${DIST}`);
   console.log(`  Size:   ${(size / 1024 / 1024).toFixed(1)} MB`);
-  console.log(`  Run:    Start.bat\n`);
+  console.log(`  Run:    ${path.join(DIST, 'Start.bat')}`);
+  console.log(`  Note:   Launch Start.bat from the OUTPUT folder above,`);
+  console.log(`          NOT the Start.bat in the source folder.\n`);
 }
 
 function getDirSize(dir) {
