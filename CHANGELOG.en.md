@@ -1,5 +1,18 @@
 # D212 Tax Helper - Changelog
 
+## v1.6.1 (2026-06-12)
+
+Maintenance release on top of v1.6.0. No tax-calculation changes.
+
+### 📖 Documentation
+- **ROADMAP is now bilingual.** The English roadmap moved to `ROADMAP.en.md`; `ROADMAP.md` is now the full Romanian translation (header links the two).
+
+### 🖼️ In-app document viewer
+- The built-in Markdown renderer (`md2html` in `public/js/app.js`) now supports images `![alt](src)`, including image-in-link badges like the CI status badge. Previously these showed as raw `![CI](...)` text in the README/Guide viewer.
+
+### 📦 Portable build
+- `build-portable.js` now ships both `ROADMAP.md` and `ROADMAP.en.md` in the portable distribution (they were previously omitted).
+
 ## v1.6.0 (2026-06-12)
 
 > Initial v1.6.0 cut was tagged on 2026-05-12; the entries below were added incrementally

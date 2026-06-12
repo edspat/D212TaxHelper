@@ -45,6 +45,8 @@ const APP_ITEMS = [
   'CHANGELOG.ro.md',
   'GUIDE.en.md',
   'GUIDE.ro.md',
+  'ROADMAP.md',
+  'ROADMAP.en.md',
 ];
 
 // Traineddata files for Tesseract OCR

@@ -1,5 +1,18 @@
 # D212 Asistent Fiscal - Istoric versiuni
 
+## v1.6.1 (2026-06-12)
+
+Release de mentenanță peste v1.6.0. Fără modificări la calculul fiscal.
+
+### 📖 Documentație
+- **ROADMAP este acum bilingv.** Roadmap-ul englez s-a mutat în `ROADMAP.en.md`; `ROADMAP.md` este acum traducerea completă în română (antetul leagă cele două variante).
+
+### 🖼️ Vizualizatorul de documente din aplicație
+- Randorul de Markdown integrat (`md2html` din `public/js/app.js`) suportă acum imaginile `![alt](src)`, inclusiv badge-urile imagine-în-link precum badge-ul de status CI. Anterior, acestea apăreau ca text brut `![CI](...)` în vizualizatorul README/Ghid.
+
+### 📦 Build portabil
+- `build-portable.js` include acum atât `ROADMAP.md` cât și `ROADMAP.en.md` în distribuția portabilă (anterior erau omise).
+
 ## v1.6.0 (2026-06-12)
 
 > Versiunea v1.6.0 a fost decupată inițial pe 2026-05-12; intrările de mai jos au fost adăugate
