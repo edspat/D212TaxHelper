@@ -267,10 +267,18 @@ const App = (() => {
           .replace(/^-|-$/g, '');
       }
       function inl(s) {
-        return esc(s)
+        // Protect inline code spans first: their contents must stay literal
+        // (e.g. a changelog that mentions `![alt](src)` should NOT render an
+        // image). Swap them for placeholders, run the other inline transforms,
+        // then restore them as <code> at the end.
+        const codeSpans = [];
+        let out = esc(s).replace(/`([^`]+)`/g, (_, code) => {
+          codeSpans.push(code);
+          return `\u0000CODE${codeSpans.length - 1}\u0000`;
+        });
+        out = out
           .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
           .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-          .replace(/`([^`]+)`/g, '<code style="background:var(--bg-secondary);padding:0.1rem 0.35rem;border-radius:3px;font-size:0.9em;">$1</code>')
           // Images: ![alt](src) — run before links so image-in-link badges
           // like [![CI](badge.svg)](url) resolve correctly.
           .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, src) =>
@@ -281,6 +289,10 @@ const App = (() => {
             }
             return `<a href="${href}" target="_blank" rel="noopener" style="color:var(--accent)">${text}</a>`;
           });
+        // Restore protected code spans as literal <code>.
+        out = out.replace(/\u0000CODE(\d+)\u0000/g, (_, i) =>
+          `<code style="background:var(--bg-secondary);padding:0.1rem 0.35rem;border-radius:3px;font-size:0.9em;">${codeSpans[+i]}</code>`);
+        return out;
       }
       function flushTable() {
         if (!tableRows.length) return '';
