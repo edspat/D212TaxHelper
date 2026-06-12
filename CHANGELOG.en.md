@@ -6,6 +6,7 @@ Maintenance release on top of v1.6.0. No tax-calculation changes.
 
 ### 📖 Documentation
 - **ROADMAP is now bilingual.** The English roadmap moved to `ROADMAP.en.md`; `ROADMAP.md` is now the full Romanian translation (header links the two).
+- **Install options reordered** in the README so the zero-prerequisite path comes first: Option A — Manual Download (portable), Option B — Git Clone, Option C — Source ZIP.
 
 ### 🖼️ In-app document viewer
 - The built-in Markdown renderer (`md2html` in `public/js/app.js`) now supports images `![alt](src)`, including image-in-link badges like the CI status badge. Previously these showed as raw `![CI](...)` text in the README/Guide viewer.

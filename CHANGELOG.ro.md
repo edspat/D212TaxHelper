@@ -6,6 +6,7 @@ Release de mentenanță peste v1.6.0. Fără modificări la calculul fiscal.
 
 ### 📖 Documentație
 - **ROADMAP este acum bilingv.** Roadmap-ul englez s-a mutat în `ROADMAP.en.md`; `ROADMAP.md` este acum traducerea completă în română (antetul leagă cele două variante).
+- **Opțiunile de instalare au fost reordonate** în README astfel încât calea fără prerechizite să fie prima: Opțiunea A — Descărcare manuală (portabil), Opțiunea B — Git Clone, Opțiunea C — Sursă ZIP.
 
 ### 🖼️ Vizualizatorul de documente din aplicație
 - Randorul de Markdown integrat (`md2html` din `public/js/app.js`) suportă acum imaginile `![alt](src)`, inclusiv badge-urile imagine-în-link precum badge-ul de status CI. Anterior, acestea apăreau ca text brut `![CI](...)` în vizualizatorul README/Ghid.
